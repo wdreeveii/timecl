@@ -1,0 +1,24 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+GET     /                                       Application.Index
+GET     /hotels                                 Hotels.Index
+GET     /hotels/list                            Hotels.List
+GET     /hotels/{id}                            Hotels.Show
+GET     /hotels/{id}/booking                    Hotels.Book
+POST    /hotels/{id}/booking                    Hotels.ConfirmBooking
+POST    /bookings/{id}/cancel                   Hotels.CancelBooking
+GET     /admin/adduser                          Admin.AddUser
+POST    /admin/adduser                          Admin.SaveUser
+GET     /admin/edituser                         Admin.EditMyUser
+GET     /admin/edituser/{id}                    Admin.EditUser
+POST    /admin/edituser/{id}                    Admin.SaveSettings
+POST    /login                                  Application.Login
+GET     /logout                                 Application.Logout
+
+# Map static resources from the /app/public folder to the /public path
+GET /public/{<.*>filepath}              Static.Serve("public")
+GET /favicon.ico                        Static.Serve("public/img","favicon.png")
+# Catch all
+*       /{controller}/{action}                  {controller}.{action}
