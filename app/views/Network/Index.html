@@ -1,0 +1,41 @@
+
+{{set . "title" "Home"}}
+{{template "header.html" .}}
+
+<div id="User List">
+    <h2>Device List</h2>
+{{if .users}}
+<table>
+  <thead>
+    <tr>
+      <th>User Name</th>
+      <th>Real Name</th>
+      <th>User ID</th>
+      <th width="13%">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .users}}
+    <tr>
+      <td>{{.Username}}</td>
+      <td>{{.Name}}</td>
+      <td>{{.UserId}}</td>
+      <td>
+        <a href='{{url "Admin.EditUser" .UserId }}'>Edit</a>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<p>
+  No more results
+</p>
+{{end}}
+<p>
+    <a href='{{url "Admin.AddUser" }}'>Add User</a>
+</p>
+</div>
+
+{{template "footer.html" .}}
+

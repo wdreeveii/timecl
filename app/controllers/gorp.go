@@ -18,6 +18,10 @@ type GorpPlugin struct {
 	r.EmptyPlugin
 }
 
+type Count struct {
+	Count int64		`db:"count(*)"`
+}
+
 func (p GorpPlugin) OnAppStart() {
 	db.DbPlugin{}.OnAppStart()
 	dbm = &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
@@ -57,21 +61,14 @@ func (p GorpPlugin) OnAppStart() {
 
 	dbm.TraceOn("[gorp]", r.INFO)
 	dbm.CreateTables()
-
-	bcryptPassword, _ := bcrypt.GenerateFromPassword(
-		[]byte("demo"), bcrypt.DefaultCost)
-	demoUser := &models.User{0, "Demo User", "demo", "demo", bcryptPassword}
-	if err := dbm.Insert(demoUser); err != nil {
+	results, err := dbm.Select(Count{}, `select count(*) from User`)
+	if err != nil {
 		panic(err)
 	}
-
-	hotels := []*models.Hotel{
-		&models.Hotel{0, "Marriott Courtyard", "Tower Pl, Buckhead", "Atlanta", "GA", "30305", "USA", 120},
-		&models.Hotel{0, "W Hotel", "Union Square, Manhattan", "New York", "NY", "10011", "USA", 450},
-		&models.Hotel{0, "Hotel Rouge", "1315 16th St NW", "Washington", "DC", "20036", "USA", 250},
-	}
-	for _, hotel := range hotels {
-		if err := dbm.Insert(hotel); err != nil {
+	if results[0].(*Count).Count == 0 {
+		bcryptPassword, _ := bcrypt.GenerateFromPassword([]byte("demo"), bcrypt.DefaultCost)
+		demoUser := &models.User{0, "Demo User", "demo", "demo", bcryptPassword}
+		if err := dbm.Insert(demoUser); err != nil {
 			panic(err)
 		}
 	}

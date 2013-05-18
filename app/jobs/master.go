@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"bytes"
 	"encoding/binary"
-	"github.com/robfig/revel"
+	//"github.com/robfig/revel"
 	//"github.com/mewkiz/pkg/hashutil/crc16"
 	//"github.com/robfig/revel/modules/jobs/app/jobs"
 	"github.com/wdreeveii/termioslib"
@@ -53,10 +53,11 @@ func ToByte(msg message_t) []byte {
     return b.Bytes()
 }
 
-func HeaderCRC(header header_t) uint16 {
+func HeaderCRC(msg *message_t) uint16 {
+    msg.header.length = uint16(len(msg.payload) + 2) // add space for the crc
     b := new(bytes.Buffer)
     b.Write([]byte("A"))
-    binary.Write(b, binary.LittleEndian, header)
+    binary.Write(b, binary.LittleEndian, msg.header)
     bytes := b.Bytes()
     var checksum uint16 = 0xffff
     for i := 0; i < len(bytes) - 2; i++ {
@@ -84,6 +85,7 @@ func runmaster() {
     if err != nil { return }
     
     defer func () {
+	fmt.Println("Closing serial port")
 	ser.Close()
     }()
     
@@ -112,8 +114,12 @@ func runmaster() {
 
     // set the settings back to the original when the program exits
     defer func () {
+	fmt.Println("Resetting termios")
         err = termioslib.Setattr(ser.Fd(), termioslib.TCSANOW, &orig_termios)
     } ()
+
+    w:= make(chan message_t)
+    go WriteMessage(ser, w)
     for {
 	defer func () {
 	    fmt.Println("Master Loop Exiting...")
@@ -124,28 +130,32 @@ func runmaster() {
 	var msg message_t
 	msg.payload = []byte("HAHAHA")
 	
-	var head header_t
-	head.destination = 1
-	head.mtype = 45
-	head.length = uint16(len(msg.payload) + 2)
-	head.mac = 6
-	head.crc = HeaderCRC(head)
+	msg.header.destination = 1
+	msg.header.mtype = 45
+	msg.header.mac = 6
 	
-	msg.header = head
-
-	_,err := ser.Write(ToByte(msg))
-	if err != nil {
-	    return
-	}
+	w <- msg
 	fmt.Println("beat")
 	time.Sleep(1*time.Second)
     }
 }
 
+func WriteMessage(c *os.File, w chan message_t) {
+    var msg message_t
+    for {
+	msg = <- w
+	msg.header.crc = HeaderCRC(&msg)
+	fmt.Printf("msglen: %d\n", msg.header.length)
+	fmt.Printf("Msg To: %d Type: %d\n", msg.header.destination, msg.header.mtype)
+	_, err := c.Write(ToByte(msg))
+	if err != nil {
+	    fmt.Println(err)
+	    //return
+	}
+    }
+}
+    
 func init() {
 	fmt.Println("blah")
-	revel.OnAppStart(func() {
-		fmt.Println("Serial Start")
-		go runmaster()
-	})
+	go runmaster() 
 }
