@@ -19,7 +19,14 @@ struct mheader_t {
 	uint32_t mac;
 	uint16_t crc;
 } __attribute__ ((packed));
-void push_char(char *buffer, char in);
+
+struct message_t {
+	struct mheader_t header;
+	char * payload;
+	uint16_t payload_len;
+} __attribute__ ((packed));
+
+void push_char(int fd, char *buffer, char in);
 int main(int argc, char *argv[])
 {
 	int fd = -1;
@@ -117,7 +124,7 @@ int main(int argc, char *argv[])
 			printf("There was a read error.\n");
 			exit(0);
 		}
-		push_char(data, inchar);
+		push_char(fd, data, inchar);
 	}
 }
 
@@ -137,7 +144,7 @@ uint16_t crc16_update(uint16_t crc, uint8_t a)
 	return crc;
 }
 
-void process_packet(char *buffer, int length) {
+void print_packet(char *buffer, int length) {
 	struct mheader_t *msg_header = (struct mheader_t*)(buffer + 1);
 	printf("pkt:\n");
 	printf("destination: %d\n", msg_header->destination);
@@ -155,7 +162,40 @@ void process_packet(char *buffer, int length) {
 	printf("payload crc: %#x\n", *((uint16_t*)(buffer + (length - 2))) );
 }
 
-void push_char(char *buffer, char in) {
+uint16_t header_crc(char * buffer)
+{
+	uint16_t checksum = 0xffff;
+	for (int i = 0; i < sizeof(struct mheader_t) - 1; i++)
+		checksum = crc16_update(checksum, buffer[i]);
+	return checksum;
+}
+
+void process_packet(int fd, char *buffer, int length) {
+	char data[sizeof(struct mheader_t) + 2 + 6 + 2];
+	struct mheader_t * header;
+	uint16_t checksum = 0xffff;
+	print_packet(buffer, length);
+	
+	data[0] = 'A';
+	data[sizeof(struct mheader_t) + 1] = 'A';
+	
+	memcpy((data + sizeof(struct mheader_t) + 2), "HAHAHA", 6);
+	
+	header = ((struct mheader_t *)(data + 1));
+	header->destination = 2;
+	header->mac = 128;
+	header->mtype = 2;
+	header->length = 6 + 2;
+	header->crc = header_crc(data);
+	
+	for (int i = 0; i < sizeof(struct mheader_t) + 2 + 6; i++)
+		checksum = crc16_update(checksum, data[i]);
+	
+	*((uint16_t *)(data + sizeof(struct mheader_t) + 2 + 6)) = checksum;
+	write(fd, data, sizeof(struct mheader_t) + 2 + 8);
+}
+
+void push_char(int fd, char *buffer, char in) {
 	struct mheader_t* msg_header = (struct mheader_t*)(buffer + 1);
 	static int end = 0;
 	uint16_t checksum = 0xffff;
@@ -186,7 +226,7 @@ void push_char(char *buffer, char in) {
 			printf("direct checksum: %#x\n", *crc);
 			if (checksum == *crc)
 			{
-				process_packet(buffer, end);
+				process_packet(fd, buffer, end);
 			}
 			end = 0;
 		}

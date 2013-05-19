@@ -12,17 +12,17 @@ import (
 	"github.com/wdreeveii/termioslib"
 )
 
-type header_t struct {
-    destination uint8
-    mtype uint8
-    length uint16
-    mac uint32
-    crc uint16
+type Header_t struct {
+    Destination uint8
+    Mtype uint8
+    Length uint16
+    Mac uint32
+    Crc uint16
 }
 
-type message_t struct {
-    header header_t
-    payload []byte
+type Message_t struct {
+    Header Header_t
+    Payload []byte
 }
 
 func crc16_update(crc uint16, a byte) uint16 {
@@ -38,12 +38,12 @@ func crc16_update(crc uint16, a byte) uint16 {
     return crc
 }
 
-func ToByte(msg message_t) []byte {
+func ToByte(msg Message_t) []byte {
     b := new(bytes.Buffer)
     b.Write([]byte("A"))
-    binary.Write(b, binary.LittleEndian, msg.header)
+    binary.Write(b, binary.LittleEndian, msg.Header)
     b.Write([]byte("A"))
-    b.Write(msg.payload)
+    b.Write(msg.Payload)
     bytes := b.Bytes()
     var checksum uint16 = 0xffff
     for i := 0; i < len(bytes); i++ {
@@ -53,11 +53,11 @@ func ToByte(msg message_t) []byte {
     return b.Bytes()
 }
 
-func HeaderCRC(msg *message_t) uint16 {
-    msg.header.length = uint16(len(msg.payload) + 2) // add space for the crc
+func HeaderCRC(msg *Message_t) uint16 {
+    msg.Header.Length = uint16(len(msg.Payload) + 2) // add space for the crc
     b := new(bytes.Buffer)
     b.Write([]byte("A"))
-    binary.Write(b, binary.LittleEndian, msg.header)
+    binary.Write(b, binary.LittleEndian, msg.Header)
     bytes := b.Bytes()
     var checksum uint16 = 0xffff
     for i := 0; i < len(bytes) - 2; i++ {
@@ -118,35 +118,102 @@ func runmaster() {
         err = termioslib.Setattr(ser.Fd(), termioslib.TCSANOW, &orig_termios)
     } ()
 
-    w:= make(chan message_t)
-    go WriteMessage(ser, w)
+    r:= make(chan []byte)
+    w:= make(chan Message_t)
+    go WriteMessages(ser, w)
+    go ReadMessages(ser, r)
+    go WriteOneMessage(w, r)
     for {
-	defer func () {
-	    fmt.Println("Master Loop Exiting...")
-	    if err != nil { 
-		fmt.Println(err)
-	    }
-	}()
-	var msg message_t
-	msg.payload = []byte("HAHAHA")
-	
-	msg.header.destination = 1
-	msg.header.mtype = 45
-	msg.header.mac = 6
-	
-	w <- msg
-	fmt.Println("beat")
 	time.Sleep(1*time.Second)
     }
 }
+func WriteOneMessage(w chan Message_t, r chan []byte) {
+    for {
+	var msg Message_t
+	msg.Payload = []byte("HAHAHA")
+	
+	msg.Header.Destination = 1
+	msg.Header.Mtype = 45
+	msg.Header.Mac = 6
+	
+	w <- msg
+	fmt.Println("beat")
+	select {
+	case rmsg := <- r:
+	    fmt.Printf("read: %s\n", rmsg)
+	    time.Sleep(1*time.Second)
+	case <- time.After(1*time.Second):
+	    fmt.Printf("read timeout\n")
+	    continue
+	}
+    }
+}
+func ReadMessages(c *os.File, r chan []byte) {
+    var buffer []byte
+    var hsize int = binary.Size(Header_t {})
+    in := make([]byte, 1)
+    for {
+	num_read, err := c.Read(in)
+	if err != nil {
+	    fmt.Println(err)
+	}
 
-func WriteMessage(c *os.File, w chan message_t) {
-    var msg message_t
+	if num_read > 0 {
+	    buffer = append(buffer, in[0])
+	    var header Header_t
+	    if len(buffer) == hsize + 2 {
+		if buffer[0] != 'A' || buffer[hsize + 1] != 'A' {
+		    buffer = buffer[1:]
+		    continue
+		}
+		var checksum uint16 = 0xffff
+		for i:= 0; i < hsize - 1; i++ {
+		    checksum = crc16_update(checksum, buffer[i])
+		}
+		iobuffer := new(bytes.Buffer)
+		iobuffer.Write(buffer[1:hsize + 1])
+		err = binary.Read(iobuffer, binary.LittleEndian, &header)
+		if err != nil {
+		    fmt.Println(err)
+		}
+		
+		if checksum != header.Crc {
+		    fmt.Println("Header CRC doesn't match")
+		    buffer = buffer[1:]
+		    continue
+		}
+	    }
+	    if len(buffer) > hsize + 2 {
+		iobuffer := new(bytes.Buffer)
+		iobuffer.Write(buffer[1:hsize+1])
+		err = binary.Read(iobuffer, binary.LittleEndian, &header)
+		if err != nil {
+		    fmt.Println(err)
+		}
+		if len(buffer) == hsize + 2 + int(header.Length) {
+		    var checksum uint16 = 0xffff
+		    for i := 0; i < len(buffer) - 2; i++ {
+			checksum = crc16_update(checksum, buffer[i])
+		    }
+		    if checksum == binary.LittleEndian.Uint16(buffer[len(buffer) - 2:]) {
+			r <- buffer
+		    }
+		    buffer = make([]byte, 0)
+		}
+		if len(buffer) > hsize + 2 + int(header.Length) {
+		    buffer = make([]byte, 0)
+		}
+	    }
+	    
+	}
+    }
+}
+func WriteMessages(c *os.File, w chan Message_t) {
+    var msg Message_t
     for {
 	msg = <- w
-	msg.header.crc = HeaderCRC(&msg)
-	fmt.Printf("msglen: %d\n", msg.header.length)
-	fmt.Printf("Msg To: %d Type: %d\n", msg.header.destination, msg.header.mtype)
+	msg.Header.Crc = HeaderCRC(&msg)
+	fmt.Printf("Msg To: %d Type: %d Length: %d\n", msg.Header.Destination, msg.Header.Mtype, msg.Header.Length)
 	_, err := c.Write(ToByte(msg))
 	if err != nil {
 	    fmt.Println(err)
