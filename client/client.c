@@ -169,30 +169,53 @@ uint16_t header_crc(char * buffer)
 		checksum = crc16_update(checksum, buffer[i]);
 	return checksum;
 }
-
-void process_packet(int fd, char *buffer, int length) {
-	char data[sizeof(struct mheader_t) + 2 + 6 + 2];
+void send_packet(int fd, struct message_t * msg) {
+	char data[sizeof(struct mheader_t) + 2 + msg->payload_len + 2];
 	struct mheader_t * header;
 	uint16_t checksum = 0xffff;
-	print_packet(buffer, length);
-	
 	data[0] = 'A';
 	data[sizeof(struct mheader_t) + 1] = 'A';
 	
-	memcpy((data + sizeof(struct mheader_t) + 2), "HAHAHA", 6);
+	memcpy((data + 1), &(msg->header), sizeof(struct mheader_t));
+	memcpy((data + sizeof(struct mheader_t) + 2), msg->payload, msg->payload_len);
 	
 	header = ((struct mheader_t *)(data + 1));
-	header->destination = 2;
-	header->mac = 128;
-	header->mtype = 2;
-	header->length = 6 + 2;
+	header->length = msg->payload_len + 2;
 	header->crc = header_crc(data);
-	
-	for (int i = 0; i < sizeof(struct mheader_t) + 2 + 6; i++)
+	for (int i = 0; i < sizeof(struct mheader_t) + 2 + msg->payload_len; i++)
 		checksum = crc16_update(checksum, data[i]);
 	
-	*((uint16_t *)(data + sizeof(struct mheader_t) + 2 + 6)) = checksum;
-	write(fd, data, sizeof(struct mheader_t) + 2 + 8);
+	*((uint16_t *)(data + sizeof(struct mheader_t) + 2 + msg->payload_len)) = checksum;
+	write(fd, data, sizeof(struct mheader_t) + 2 + msg->payload_len + 2);
+}
+	
+void process_packet(int fd, char *buffer, int length) {
+	struct mheader_t *header;
+	struct message_t msg;
+	static uint8_t addr = 2;
+	static uint32_t mac = 128;
+	
+	print_packet(buffer, length);
+	header = (struct mheader_t *)(buffer + 1);
+	
+	if (addr == 0) {
+		if (header->destination == 0) {
+			if (header->mtype == 1 && header->mac == 0) {
+				
+			}
+		}
+	}
+	else {
+		if (header->destination == addr && header->mac == mac) {
+			msg.header.destination = 1;
+			msg.header.mac = 128;
+			msg.header.mtype = 2;
+			msg.payload = "HAHAHA";
+			msg.payload_len = 6;
+			send_packet(fd, &msg);
+		}
+	}
+	
 }
 
 void push_char(int fd, char *buffer, char in) {

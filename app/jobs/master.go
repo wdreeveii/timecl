@@ -118,7 +118,7 @@ func runmaster() {
         err = termioslib.Setattr(ser.Fd(), termioslib.TCSANOW, &orig_termios)
     } ()
 
-    r:= make(chan []byte)
+    r:= make(chan Message_t)
     w:= make(chan Message_t)
     go WriteMessages(ser, w)
     go ReadMessages(ser, r)
@@ -127,20 +127,20 @@ func runmaster() {
 	time.Sleep(1*time.Second)
     }
 }
-func WriteOneMessage(w chan Message_t, r chan []byte) {
+func WriteOneMessage(w chan Message_t, r chan Message_t) {
     for {
 	var msg Message_t
 	msg.Payload = []byte("HAHAHA")
 	
-	msg.Header.Destination = 1
+	msg.Header.Destination = 2
 	msg.Header.Mtype = 45
-	msg.Header.Mac = 6
+	msg.Header.Mac = 128
 	
 	w <- msg
 	fmt.Println("beat")
 	select {
 	case rmsg := <- r:
-	    fmt.Printf("read: %s\n", rmsg)
+	    fmt.Printf("read: %#v\n", rmsg)
 	    time.Sleep(1*time.Second)
 	case <- time.After(1*time.Second):
 	    fmt.Printf("read timeout\n")
@@ -148,7 +148,7 @@ func WriteOneMessage(w chan Message_t, r chan []byte) {
 	}
     }
 }
-func ReadMessages(c *os.File, r chan []byte) {
+func ReadMessages(c *os.File, r chan Message_t) {
     var buffer []byte
     var hsize int = binary.Size(Header_t {})
     in := make([]byte, 1)
@@ -196,7 +196,10 @@ func ReadMessages(c *os.File, r chan []byte) {
 			checksum = crc16_update(checksum, buffer[i])
 		    }
 		    if checksum == binary.LittleEndian.Uint16(buffer[len(buffer) - 2:]) {
-			r <- buffer
+			var msg Message_t
+			msg.Header = header
+			msg.Payload = buffer[hsize + 2:len(buffer) - 2]
+			r <- msg
 		    }
 		    buffer = make([]byte, 0)
 		}
