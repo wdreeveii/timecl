@@ -1,0 +1,37 @@
+
+{{set . "title" "System Settings"}}
+{{template "header.html" .}}
+
+<div id="Device_List">
+    <h2>Interface List</h2>
+{{if .networks}}
+<table>
+  <thead>
+    <tr>
+      <th>ConfigKey</th>
+      <th>DevicePath</th>
+      <th>Driver</th>
+      <th width="13%">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .networks}}
+    <tr>
+      <td>{{.ConfigKey}}</td>
+      <td>{{.DevicePath}}</td>
+      <td>{{.Driver}}</td>
+      <td>
+        <a href='{{url "Network.EditNetwork" .NetworkID }}'>Edit</a>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<p>
+  No networks available.
+</p>
+{{end}}
+</div>
+
+{{template "footer.html" .}}

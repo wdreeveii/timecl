@@ -15,6 +15,9 @@ GET     /admin/edituser                         Admin.EditMyUser
 GET     /admin/edituser/{id}                    Admin.EditUser
 POST    /admin/edituser/{id}                    Admin.SaveSettings
 GET     /net                            		Network.Index
+GET		/system/settings						Network.NetworkConfig
+GET		/system/editnetwork/{NetworkID}			Network.EditNetwork
+POST	/system/editnetwork/{NetworkID}			Network.SaveNetwork
 POST    /login                                  Application.Login
 GET     /logout                                 Application.Logout
 

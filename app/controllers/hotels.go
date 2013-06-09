@@ -3,7 +3,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/robfig/revel"
-	"github.com/robfig/revel/samples/booking/app/models"
+	"timecl/app/models"
 	"strings"
 )
 

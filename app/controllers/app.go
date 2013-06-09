@@ -3,7 +3,7 @@ package controllers
 import (
 	"code.google.com/p/go.crypto/bcrypt"
 	"github.com/robfig/revel"
-	"github.com/robfig/revel/samples/booking/app/models"
+	"timecl/app/models"
 )
 
 type Application struct {

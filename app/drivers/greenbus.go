@@ -1,4 +1,4 @@
-package jobs
+package drivers
 
 import (
 	"os"
@@ -10,7 +10,17 @@ import (
 	//"github.com/mewkiz/pkg/hashutil/crc16"
 	//"github.com/robfig/revel/modules/jobs/app/jobs"
 	"github.com/wdreeveii/termioslib"
+	"timecl/app/network_manager"
 )
+
+type GreenBus struct {
+
+}
+
+func (p GreenBus) Init(port string) {
+    fmt.Println("Init GreenBus")
+    go runmaster(port)
+}
 
 type Header_t struct {
     Destination uint8
@@ -66,7 +76,7 @@ func HeaderCRC(msg *Message_t) uint16 {
     return checksum
 }
 
-func runmaster() {
+func runmaster(port string) {
     var (
 	err error
 	orig_termios termioslib.Termios
@@ -81,7 +91,7 @@ func runmaster() {
 	}
     }()
     
-    ser, err = os.OpenFile("/dev/ttyUSB0", os.O_RDWR, 777)
+    ser, err = os.OpenFile(port, os.O_RDWR, 777)
     if err != nil { return }
     
     defer func () {
@@ -122,12 +132,6 @@ func runmaster() {
     w:= make(chan Message_t)
     go WriteMessages(ser, w)
     go ReadMessages(ser, r)
-    go WriteOneMessage(w, r)
-    for {
-	time.Sleep(1*time.Second)
-    }
-}
-func WriteOneMessage(w chan Message_t, r chan Message_t) {
     for {
 	var msg Message_t
 	msg.Payload = []byte("HAHAHA")
@@ -148,6 +152,7 @@ func WriteOneMessage(w chan Message_t, r chan Message_t) {
 	}
     }
 }
+
 func ReadMessages(c *os.File, r chan Message_t) {
     var buffer []byte
     var hsize int = binary.Size(Header_t {})
@@ -157,7 +162,6 @@ func ReadMessages(c *os.File, r chan Message_t) {
 	if err != nil {
 	    fmt.Println(err)
 	}
-
 	if num_read > 0 {
 	    buffer = append(buffer, in[0])
 	    var header Header_t
@@ -227,5 +231,6 @@ func WriteMessages(c *os.File, w chan Message_t) {
     
 func init() {
 	fmt.Println("blah")
-	go runmaster() 
+	network_manager.RegisterDriver("greenbus", GreenBus{})
+	//go runmaster()
 }

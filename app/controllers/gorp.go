@@ -7,23 +7,35 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	r "github.com/robfig/revel"
 	"github.com/robfig/revel/modules/db/app"
-	"github.com/robfig/revel/samples/booking/app/models"
+	"timecl/app/models"
+	"fmt"
 )
 
 var (
 	dbm *gorp.DbMap
 )
 
-type GorpPlugin struct {
-	r.EmptyPlugin
-}
-
 type Count struct {
 	Count int64		`db:"count(*)"`
 }
 
-func (p GorpPlugin) OnAppStart() {
-	db.DbPlugin{}.OnAppStart()
+func init_networkconfig_table(dbm *gorp.DbMap) {
+	setColumnSizes := func(t *gorp.TableMap, colSizes map[string]int) {
+		for col, size := range colSizes {
+			t.ColMap(col).MaxSize = size
+		}
+	}
+	t := dbm.AddTable(models.NetworkConfig{}).SetKeys(true, "NetworkID")
+	setColumnSizes(t, map[string]int{
+		"ConfigKey":	100,
+		"DevicePath":	1000,
+		"Driver":		100,
+	})
+}
+
+func Init() {
+	fmt.Println("gorp started")
+	db.Init()
 	dbm = &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
 
 	setColumnSizes := func(t *gorp.TableMap, colSizes map[string]int) {
@@ -37,6 +49,12 @@ func (p GorpPlugin) OnAppStart() {
 	setColumnSizes(t, map[string]int{
 		"Username": 20,
 		"Name":     100,
+	})
+	
+	t = dbm.AddTable(models.AppConfig{}).SetKeys(true, "ConfigId")
+	setColumnSizes(t, map[string]int{
+		"Key": 100,
+		"Val": 1000,
 	})
 
 	t = dbm.AddTable(models.Hotel{}).SetKeys(true, "HotelId")
@@ -58,9 +76,13 @@ func (p GorpPlugin) OnAppStart() {
 		"CardNumber": 16,
 		"NameOnCard": 50,
 	})
-
+	init_networkconfig_table(dbm)
 	dbm.TraceOn("[gorp]", r.INFO)
-	dbm.CreateTables()
+	err := dbm.CreateTablesIfNotExists()
+	if err != nil {
+		panic(err)
+	}
+	
 	results, err := dbm.Select(Count{}, `select count(*) from User`)
 	if err != nil {
 		panic(err)
