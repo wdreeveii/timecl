@@ -14,12 +14,19 @@ import (
 )
 
 type GreenBus struct {
-
+    network_manager.EmptyDriver
 }
 
 func (p GreenBus) Init(port string) {
     fmt.Println("Init GreenBus")
-    go runmaster(port)
+    p.StopChan = make(chan bool)
+    go p.runmaster(port)
+}
+
+func (p GreenBus) Stop() {
+    fmt.Println("Greenbus Stop")
+    p.StopChan <- true
+    fmt.Println("greenbus stop send complete")
 }
 
 type Header_t struct {
@@ -76,7 +83,7 @@ func HeaderCRC(msg *Message_t) uint16 {
     return checksum
 }
 
-func runmaster(port string) {
+func (p GreenBus) runmaster(port string) {
     var (
 	err error
 	orig_termios termioslib.Termios
@@ -128,11 +135,18 @@ func runmaster(port string) {
         err = termioslib.Setattr(ser.Fd(), termioslib.TCSANOW, &orig_termios)
     } ()
 
+    fmt.Println("STOP CHAN: ", p.StopChan)
     r:= make(chan Message_t)
     w:= make(chan Message_t)
     go WriteMessages(ser, w)
     go ReadMessages(ser, r)
     for {
+	select {
+	case <- p.StopChan:
+	    fmt.Println("STOP RECEIVED")
+	default:
+	    fmt.Println("SOMETHING ELSE")
+	}
 	var msg Message_t
 	msg.Payload = []byte("HAHAHA")
 	
@@ -143,6 +157,9 @@ func runmaster(port string) {
 	w <- msg
 	fmt.Println("beat")
 	select {
+	case <- p.StopChan:
+	    fmt.Println("STOPPING DRIVER!!!")
+	    return
 	case rmsg := <- r:
 	    fmt.Printf("read: %#v\n", rmsg)
 	    time.Sleep(1*time.Second)

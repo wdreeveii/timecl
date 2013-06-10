@@ -9,11 +9,15 @@ import (
 )
 
 type DummyDriver struct {
-
+    network_manager.EmptyDriver
 }
 
 func (p DummyDriver) Init(port string) {
     fmt.Println("Init Dummy Driver")
+}
+
+func (p DummyDriver) Stop() {
+    fmt.Println("DUMMY STOP")
 }
     
 func init() {

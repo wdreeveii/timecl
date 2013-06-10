@@ -16,11 +16,19 @@ type network_manager struct {
 type DriverInterface interface {
 	// Called on server startup
 	Init(port string)
+	Stop()
 }
 
-type EmptyDriver struct {}
+type EmptyDriver struct {
+	StopChan	chan bool
+	SetChan		chan setCmd
+	GetChan		chan getCmd
+}
 
 func (p EmptyDriver) Init(port string)		{}
+func (p EmptyDriver) Stop() {
+	p.StopChan <- true
+}
 
 type driverListItem struct {
 	Name		string
@@ -79,16 +87,37 @@ type restartConfig struct {
 	Driver		string
 }
 
+type getCmd struct {
+	NetworkID	int
+	Bus			int
+	Device		int
+	Port		int
+	RecvChan	chan interface{}
+}
+
+type setCmd struct {
+	NetworkID	int
+	Bus			int
+	Device		int
+	Port		int
+	Value		interface{}
+}
+
 var restartInterface = make(chan restartConfig)
 var newInterface = make(chan interfaceItem)
+var getInterface = make(chan getCmd)
+var setInterface = make(chan setCmd)
 
 //get (network number, bus number, device number, port number
-func Get(NetworkID int, bus int, device int, port int) {
-	
+func Get(NetworkID int, bus int, device int, port int) interface{} {
+	var cmd = getCmd{NetworkID: NetworkID, Bus: bus, Device: device, Port: port, RecvChan: make(chan interface{})}
+	getInterface <-cmd
+	return <- cmd.RecvChan
 }
 
 func Set(NetworkID int, bus int, device int, port int, value interface{}) {
-	
+	var cmd = setCmd{NetworkID: NetworkID, Bus: bus, Device: device, Port: port, Value: value}
+	setInterface <- cmd
 }
 
 func RestartDriver(NetworkID int, driver string) {
@@ -105,6 +134,10 @@ func interfacesManager() {
 		case reConfig = <- restartInterface:
 			for _, val := range driver_collection {
 				if val.Name == reConfig.Driver {
+					if interfaces[reConfig.NetworkID].Driver.Name != "" {
+						fmt.Println("Attempting stop.")
+						interfaces[reConfig.NetworkID].Driver.Instance.Stop()
+					}
 					interfaces[reConfig.NetworkID].Driver = val
 					val, found := revel.Config.String(interfaces[reConfig.NetworkID].ConfigKey)
 					if found {
