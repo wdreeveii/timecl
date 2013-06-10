@@ -74,32 +74,59 @@ type interfaceItem struct {
 	ConfigKey	string
 }
 
-var interfaces []interfaceItem
+type restartConfig struct {
+	NetworkID	int
+	Driver		string
+}
+
+var restartInterface = make(chan restartConfig)
+var newInterface = make(chan interfaceItem)
+
 //get (network number, bus number, device number, port number
 func Get(NetworkID int, bus int, device int, port int) {
 	
 }
 
-func Set(NetworkID int, bus int, device int, port int, value interface) {
+func Set(NetworkID int, bus int, device int, port int, value interface{}) {
 	
 }
 
 func RestartDriver(NetworkID int, driver string) {
-	for _, val := range driver_collection {
-		if val.Name == driver {
-			interfaces[NetworkID].Driver = val
-			val, found := revel.Config.String(interfaces[NetowrkID].ConfigKey)
+	restartInterface <- restartConfig{NetworkID: NetworkID, Driver: driver}
+}
+
+func interfacesManager() {
+	var interfaces []interfaceItem
+	for {
+		var reConfig 		restartConfig
+		var newIntConfig 	interfaceItem
+		
+		select {
+		case reConfig = <- restartInterface:
+			for _, val := range driver_collection {
+				if val.Name == reConfig.Driver {
+					interfaces[reConfig.NetworkID].Driver = val
+					val, found := revel.Config.String(interfaces[reConfig.NetworkID].ConfigKey)
+					if found {
+						interfaces[reConfig.NetworkID].Driver.Instance.Init(val)
+					}
+				}
+			}
+		case newIntConfig = <- newInterface:
+			val, found := revel.Config.String(newIntConfig.ConfigKey)
 			if found {
-				interfaces[NetworkID].Driver.Instance.Init(val)
+				interfaces = append(interfaces, newIntConfig)
+				if interfaces[len(interfaces)-1].Driver.Name != "" {
+					interfaces[len(interfaces) - 1].Driver.Instance.Init(val)
+				}
 			}
 		}
 	}
-
-	fmt.Println(interfaces)
 }
 
 func Init() {
 	fmt.Println("driver start")
+	go interfacesManager()
 	db.Init()
 	dbm := &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
 
@@ -109,24 +136,21 @@ func Init() {
 	fmt.Println("results: ", result)
 	for _, config_key := range result {
 		fmt.Println(config_key)
-		val, found := revel.Config.String(config_key)
-		if found {
-			fmt.Println(val)
-		}
 		networks, err := dbm.Select(models.NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, config_key)
 		if err != nil {
 			panic(err)
 		}
+		var driver driverListItem
 		if len(networks) > 0 {
-			driver := networks[0].(*models.NetworkConfig).Driver
+			driver_name := networks[0].(*models.NetworkConfig).Driver
 			for index, driver_list_item := range driver_collection {
-				if driver == driver_list_item.Name {
+				if driver_name == driver_list_item.Name {
 					fmt.Println("Starting driver....")
-					interfaces = append(interfaces, interfaceItem{Driver: driver_collection[index], ConfigKey: config_key})
-					interfaces[len(interfaces) - 1].Driver.Instance.Init(val)
+					driver = driver_collection[index]
 				}
 			}
 		}
+		newInterface <- interfaceItem{ConfigKey: config_key, Driver: driver}
 	}
 }
 
