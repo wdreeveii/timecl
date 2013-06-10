@@ -17,17 +17,8 @@ type DriverInterface interface {
 	// Called on server startup
 	Init(port string)
 	Stop()
-}
-
-type EmptyDriver struct {
-	StopChan	chan bool
-	SetChan		chan setCmd
-	GetChan		chan getCmd
-}
-
-func (p EmptyDriver) Init(port string)		{}
-func (p EmptyDriver) Stop() {
-	p.StopChan <- true
+	Get(cmd GetDrvCmd)
+	Set(cmd SetDrvCmd)
 }
 
 type driverListItem struct {
@@ -86,21 +77,28 @@ type restartConfig struct {
 	NetworkID	int
 	Driver		string
 }
-
-type getCmd struct {
-	NetworkID	int
+type GetDrvCmd struct {
 	Bus			int
 	Device		int
 	Port		int
 	RecvChan	chan interface{}
 }
 
-type setCmd struct {
+type getCmd struct {
 	NetworkID	int
+	Cmd			GetDrvCmd
+}
+
+type SetDrvCmd struct {
 	Bus			int
 	Device		int
 	Port		int
 	Value		interface{}
+}
+
+type setCmd struct {
+	NetworkID	int
+	Cmd			SetDrvCmd
 }
 
 var restartInterface = make(chan restartConfig)
@@ -110,13 +108,13 @@ var setInterface = make(chan setCmd)
 
 //get (network number, bus number, device number, port number
 func Get(NetworkID int, bus int, device int, port int) interface{} {
-	var cmd = getCmd{NetworkID: NetworkID, Bus: bus, Device: device, Port: port, RecvChan: make(chan interface{})}
+	var cmd = getCmd{NetworkID: NetworkID, Cmd: GetDrvCmd{Bus: bus, Device: device, Port: port, RecvChan: make(chan interface{})}}
 	getInterface <-cmd
-	return <- cmd.RecvChan
+	return <- cmd.Cmd.RecvChan
 }
 
 func Set(NetworkID int, bus int, device int, port int, value interface{}) {
-	var cmd = setCmd{NetworkID: NetworkID, Bus: bus, Device: device, Port: port, Value: value}
+	var cmd = setCmd{NetworkID: NetworkID, Cmd: SetDrvCmd{Bus: bus, Device: device, Port: port, Value: value}}
 	setInterface <- cmd
 }
 
@@ -129,13 +127,18 @@ func interfacesManager() {
 	for {
 		var reConfig 		restartConfig
 		var newIntConfig 	interfaceItem
+		var getIntCmd		getCmd
+		var setIntCmd		setCmd
 		
 		select {
+		case getIntCmd = <- getInterface:
+			interfaces[getIntCmd.NetworkID].Driver.Instance.Get(getIntCmd.Cmd)
+		case setIntCmd = <- setInterface:
+			interfaces[setIntCmd.NetworkID].Driver.Instance.Set(setIntCmd.Cmd)
 		case reConfig = <- restartInterface:
 			for _, val := range driver_collection {
 				if val.Name == reConfig.Driver {
 					if interfaces[reConfig.NetworkID].Driver.Name != "" {
-						fmt.Println("Attempting stop.")
 						interfaces[reConfig.NetworkID].Driver.Instance.Stop()
 					}
 					interfaces[reConfig.NetworkID].Driver = val
@@ -178,7 +181,6 @@ func Init() {
 			driver_name := networks[0].(*models.NetworkConfig).Driver
 			for index, driver_list_item := range driver_collection {
 				if driver_name == driver_list_item.Name {
-					fmt.Println("Starting driver....")
 					driver = driver_collection[index]
 				}
 			}
