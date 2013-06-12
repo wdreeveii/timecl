@@ -19,6 +19,11 @@ func (p DummyDriver) Stop() {
     fmt.Println("DUMMY STOP")
 }
 
+func (p DummyDriver) Copy() network_manager.DriverInterface {
+    a := p
+    return a
+}
+
 func (p DummyDriver) Get(cmd network_manager.GetDrvCmd) {
     
 }

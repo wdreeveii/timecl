@@ -19,6 +19,7 @@ type DriverInterface interface {
 	Stop()
 	Get(cmd GetDrvCmd)
 	Set(cmd SetDrvCmd)
+	Copy() DriverInterface
 }
 
 type driverListItem struct {
@@ -141,7 +142,9 @@ func interfacesManager() {
 					if interfaces[reConfig.NetworkID].Driver.Name != "" {
 						interfaces[reConfig.NetworkID].Driver.Instance.Stop()
 					}
-					interfaces[reConfig.NetworkID].Driver = val
+					copy := val.Instance.Copy()
+					d:= driverListItem{Name: val.Name, Instance: copy}
+					interfaces[reConfig.NetworkID].Driver = d
 					val, found := revel.Config.String(interfaces[reConfig.NetworkID].ConfigKey)
 					if found {
 						interfaces[reConfig.NetworkID].Driver.Instance.Init(val)

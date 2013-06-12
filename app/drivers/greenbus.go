@@ -18,11 +18,19 @@ type GreenBus struct {
 }
 
 func (d GreenBus) Init(port string) {
+    fmt.Println("CHANNEL: ", d.StopChan)
     go d.runmaster(port)
 }
 
 func (d GreenBus) Stop() {
     d.StopChan <- true
+}
+
+func (d GreenBus) Copy() network_manager.DriverInterface {
+    var b GreenBus
+    b = d
+    b.StopChan = make(chan bool)
+    return b
 }
 
 func (d GreenBus) Get(cmd network_manager.GetDrvCmd) {
@@ -138,31 +146,57 @@ func (d GreenBus) runmaster(port string) {
 	fmt.Println("Resetting termios")
         err = termioslib.Setattr(ser.Fd(), termioslib.TCSANOW, &orig_termios)
     } ()
-
+    
     r:= make(chan Message_t)
     w:= make(chan Message_t)
     go WriteMessages(ser, w)
     go ReadMessages(ser, r)
+    
+    devices := make(map[int]GreenBusDevice)
     for {
+	for mac, device := range devices {
+	    var msg Message_t
+	    msg.Payload = []byte("HAHAHA")
+
+	    msg.Header.Destination = device.addr
+	    msg.Header.Mtype = 45
+	    msg.Header.Mac = mac
+
+	    w <- msg
+	    fmt.Println("beat")
+	    select {
+	    case <- d.StopChan:
+		fmt.Println("STOPPING DRIVER!!!")
+		return
+	    case rmsg := <- r:
+		fmt.Printf("read: %#v\n", rmsg)
+		time.Sleep(1*time.Second)
+	    case <- time.After(1*time.Second):
+		fmt.Printf("read timeout\n")
+		continue
+	    }
+	}
 	var msg Message_t
 	msg.Payload = []byte("HAHAHA")
 	
-	msg.Header.Destination = 2
+	msg.Header.Destination = 0
 	msg.Header.Mtype = 45
-	msg.Header.Mac = 128
+	msg.Header.Mac = 0
 	
 	w <- msg
 	fmt.Println("beat")
-	select {
-	case <- d.StopChan:
-	    fmt.Println("STOPPING DRIVER!!!")
-	    return
-	case rmsg := <- r:
-	    fmt.Printf("read: %#v\n", rmsg)
-	    time.Sleep(1*time.Second)
-	case <- time.After(1*time.Second):
-	    fmt.Printf("read timeout\n")
-	    continue
+FIND_DEVICES:
+	for {
+	    select {
+	    case <- d.StopChan:
+		fmt.Println("STOPPING DRIVER!!!")
+		return
+	    case <- time.After(1*time.Second):
+		fmt.Printf("read timeout\n")
+		break FIND_DEVICES
+	    case rmsg := <- r
+		fmt.Printf("read: %#v\n", rmsg)
+	    }
 	}
     }
 }
