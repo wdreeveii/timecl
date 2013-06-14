@@ -151,15 +151,15 @@ void print_packet(char *buffer, int length) {
 	printf("type: %d\n", msg_header->mtype);
 	printf("length: %d\n", msg_header->length);
 	printf("mac: %d\n", msg_header->mac);
-	printf("crc: %d\n", msg_header->crc);
+	/*printf("crc: %d\n", msg_header->crc);
 	printf("crc hex: %#x\n", msg_header->crc);
 	for (int i = sizeof(struct mheader_t) +2; i < length; i++)
 		printf("%c", *(buffer + i));
 	printf("\n");
 	for (int i = sizeof(struct mheader_t) +2; i < length; i++)
-		printf("%#x ", *(buffer + i));
+		printf("%#x ", *(buffer + i));*/
 	printf("\n");
-	printf("payload crc: %#x\n", *((uint16_t*)(buffer + (length - 2))) );
+	//printf("payload crc: %#x\n", *((uint16_t*)(buffer + (length - 2))) );
 }
 
 uint16_t header_crc(char * buffer)
@@ -192,7 +192,8 @@ void send_packet(int fd, struct message_t * msg) {
 void process_packet(int fd, char *buffer, int length) {
 	struct mheader_t *header;
 	struct message_t msg;
-	static uint8_t addr = 2;
+	unsigned long tmp;
+	static uint8_t addr = 0;
 	static uint32_t mac = 128;
 	
 	print_packet(buffer, length);
@@ -200,12 +201,30 @@ void process_packet(int fd, char *buffer, int length) {
 	
 	if (addr == 0) {
 		if (header->destination == 0) {
-			if (header->mtype == 1 && header->mac == 0) {
-				
+			if (header->mtype == 72 && header->mac == 0) {
+				// some random delay
+				msg.header.destination = 1;
+				msg.header.mac = mac;
+				msg.header.mtype = 73;
+				msg.payload = "NEED IP";
+				msg.payload_len = 7;
+				send_packet(fd, &msg);
+			}
+			if (header->mtype == 74 && header->mac == mac) {
+				msg.header.destination = 1;
+				msg.header.mac = mac;
+				msg.header.mtype = 75;
+				msg.payload = "ACK";
+				msg.payload_len = 3;
+				send_packet(fd, &msg);
+				tmp = strtoul(buffer + 2 + sizeof(struct mheader_t), NULL, 10);
+				addr = 0xFF&tmp;
+				printf("THE ADDR: %d\n", addr);
 			}
 		}
 	}
 	else {
+		printf("Got addr!\n");
 		if (header->destination == addr && header->mac == mac) {
 			msg.header.destination = 1;
 			msg.header.mac = 128;
@@ -213,6 +232,10 @@ void process_packet(int fd, char *buffer, int length) {
 			msg.payload = "HAHAHA";
 			msg.payload_len = 6;
 			send_packet(fd, &msg);
+		}
+		else if (header->destination == 0 && header->mtype == 58 && header->mac == 0) {
+			// received a reset address request. 
+			addr = 0;
 		}
 	}
 	

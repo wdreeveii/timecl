@@ -41,6 +41,12 @@ func (d GreenBus) Set(cmd network_manager.SetDrvCmd) {
     
 }
 
+type GreenBusDevice struct {
+    Addr	uint8
+    Mac		uint32
+    // things like number of errors
+}
+
 type Header_t struct {
     Destination uint8
     Mtype uint8
@@ -129,11 +135,11 @@ func (d GreenBus) runmaster(port string) {
     // get a working copy
     if err = termioslib.Getattr(ser.Fd(), &work_termios); err != nil { return }
 
-    work_termios.C_iflag &= ^(termioslib.IGNBRK | termioslib.BRKINT | termioslib.IGNPAR | termioslib.PARMRK | termioslib.INPCK | termioslib.ISTRIP | termioslib.INLCR | termioslib.IGNCR | termioslib.ICRNL | termioslib.IXON | termioslib.IXOFF | termioslib.IXANY | termioslib.IMAXBEL | termioslib.IUTF8)
-    work_termios.C_oflag &= ^(termioslib.OPOST | termioslib.ONLCR )
-    work_termios.C_lflag &= ^(termioslib.ISIG | termioslib.ICANON | termioslib.IEXTEN | termioslib.ECHO | termioslib.ECHOE | termioslib.ECHOK | termioslib.ECHONL | termioslib.NOFLSH | termioslib.TOSTOP | termioslib.ECHOPRT | termioslib.ECHOCTL | termioslib.ECHOKE)
-    work_termios.C_cflag &= ^(termioslib.CSIZE | termioslib.PARENB | termioslib.PARODD | termioslib.HUPCL | termioslib.CSTOPB | termioslib.CRTSCTS)
-    work_termios.C_cflag |= (termioslib.CS8 | termioslib.CREAD | termioslib.CLOCAL)
+    work_termios.C_iflag &= ^(termioslib.BRKINT | termioslib.INPCK | termioslib.ISTRIP | termioslib.ICRNL | termioslib.IXON)
+    work_termios.C_oflag &= ^(termioslib.OPOST )
+    work_termios.C_lflag &= ^(termioslib.ISIG | termioslib.ICANON | termioslib.IEXTEN | termioslib.ECHO )
+    //work_termios.C_cflag &= ^(termioslib.CSIZE | termioslib.PARENB | termioslib.PARODD | termioslib.HUPCL | termioslib.CSTOPB | termioslib.CRTSCTS)
+    work_termios.C_cflag |= (termioslib.CS8)
     work_termios.C_cc[termioslib.VMIN] = 1
     work_termios.C_cc[termioslib.VTIME] = 0
 
@@ -151,22 +157,25 @@ func (d GreenBus) runmaster(port string) {
     w:= make(chan Message_t)
     go WriteMessages(ser, w)
     go ReadMessages(ser, r)
-    
-    devices := make(map[int]GreenBusDevice)
+    w <- Message_t{Payload: []byte("RESET ADDR"), Header: Header_t{Destination: 0, Mtype: 58, Mac: 0}}
+
+    var devices = []GreenBusDevice{GreenBusDevice{0,0},GreenBusDevice{1,0}}
     for {
-	for mac, device := range devices {
+	for _, device := range devices[2:] {
 	    var msg Message_t
 	    msg.Payload = []byte("HAHAHA")
 
-	    msg.Header.Destination = device.addr
+	    msg.Header.Destination = device.Addr
 	    msg.Header.Mtype = 45
-	    msg.Header.Mac = mac
+	    msg.Header.Mac = device.Mac
 
 	    w <- msg
 	    fmt.Println("beat")
 	    select {
 	    case <- d.StopChan:
 		fmt.Println("STOPPING DRIVER!!!")
+		close(r)
+		close(w)
 		return
 	    case rmsg := <- r:
 		fmt.Printf("read: %#v\n", rmsg)
@@ -180,24 +189,54 @@ func (d GreenBus) runmaster(port string) {
 	msg.Payload = []byte("HAHAHA")
 	
 	msg.Header.Destination = 0
-	msg.Header.Mtype = 45
+	msg.Header.Mtype = 72
 	msg.Header.Mac = 0
 	
 	w <- msg
 	fmt.Println("beat")
+	var new_devices []uint32
 FIND_DEVICES:
 	for {
 	    select {
 	    case <- d.StopChan:
 		fmt.Println("STOPPING DRIVER!!!")
+		close(r)
+		close(w)
 		return
 	    case <- time.After(1*time.Second):
-		fmt.Printf("read timeout\n")
+		fmt.Printf("Find device timeout\n")
 		break FIND_DEVICES
-	    case rmsg := <- r
+	    case rmsg := <- r:
 		fmt.Printf("read: %#v\n", rmsg)
+		if rmsg.Header.Mtype == 73 { // and payload == "NEED IP"
+		    new_devices = append(new_devices, rmsg.Header.Mac)
+		}
 	    }
 	}
+	for _, val := range new_devices {
+	    var msg Message_t
+	    msg.Payload = []byte(fmt.Sprintf("%d", len(devices)))
+	    msg.Header.Destination = 0
+	    msg.Header.Mtype = 74
+	    msg.Header.Mac = val
+
+	    w <- msg
+	    select {
+	    case <- d.StopChan:
+		fmt.Println("STOPPING DRIVER!!!")
+		close(r)
+		close(w)
+		return
+	    case <- time.After(40*time.Millisecond):
+		fmt.Println("Addressing timeout")
+		continue
+	    case rmsg := <- r:
+		if rmsg.Header.Mtype == 75 && rmsg.Header.Mac == val { // and payload == "ACK"
+		    devices = append(devices, GreenBusDevice{Addr: uint8(len(devices)), Mac: val})
+		}
+	    }
+	}
+	fmt.Println("DEVICES: ", devices)
     }
 }
 
@@ -265,8 +304,12 @@ func ReadMessages(c *os.File, r chan Message_t) {
 }
 func WriteMessages(c *os.File, w chan Message_t) {
     var msg Message_t
+    var ok bool
     for {
-	msg = <- w
+	msg, ok = <- w
+	if !ok {
+	    return
+	}
 	msg.Header.Crc = HeaderCRC(&msg)
 	fmt.Printf("Msg To: %d Type: %d Length: %d\n", msg.Header.Destination, msg.Header.Mtype, msg.Header.Length)
 	_, err := c.Write(ToByte(msg))
