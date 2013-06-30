@@ -12,6 +12,24 @@
 
 #define MAX_PAYLOAD_LEN 250
 
+#define FIND_DEVICES		72
+#define NEED_ADDR			73
+#define ACK_DEVICE			74
+#define ACK_REPLY			75
+
+#define INTERROGATE			80
+#define INTERROGATE_REPLY 	81
+
+#define PING 				44
+#define PING_REPLY 			45
+
+#define RESET_NETWORK 		58
+
+#define GET 				36
+#define GET_REPLY 			37
+#define SET 				38
+#define SET_REPLY 			39
+
 struct mheader_t {
 	uint8_t destination;
 	uint8_t mtype;
@@ -196,24 +214,24 @@ void process_packet(int fd, char *buffer, int length) {
 	static uint8_t addr = 0;
 	static uint32_t mac = 128;
 	
-	print_packet(buffer, length);
+	//print_packet(buffer, length);
 	header = (struct mheader_t *)(buffer + 1);
 	
 	if (addr == 0) {
 		if (header->destination == 0) {
-			if (header->mtype == 72 && header->mac == 0) {
+			if (header->mtype == FIND_DEVICES && header->mac == 0) {
 				// some random delay
 				msg.header.destination = 1;
 				msg.header.mac = mac;
-				msg.header.mtype = 73;
+				msg.header.mtype = NEED_ADDR;
 				msg.payload = "NEED IP";
 				msg.payload_len = 7;
 				send_packet(fd, &msg);
 			}
-			if (header->mtype == 74 && header->mac == mac) {
+			if (header->mtype == ACK_DEVICE && header->mac == mac) {
 				msg.header.destination = 1;
 				msg.header.mac = mac;
-				msg.header.mtype = 75;
+				msg.header.mtype = ACK_REPLY;
 				msg.payload = "ACK";
 				msg.payload_len = 3;
 				send_packet(fd, &msg);
@@ -224,16 +242,25 @@ void process_packet(int fd, char *buffer, int length) {
 		}
 	}
 	else {
-		printf("Got addr!\n");
 		if (header->destination == addr && header->mac == mac) {
 			msg.header.destination = 1;
 			msg.header.mac = 128;
-			msg.header.mtype = 2;
-			msg.payload = "HAHAHA";
-			msg.payload_len = 6;
+			
+			if (header->mtype == PING) {
+
+				msg.header.mtype = PING_REPLY;
+				msg.payload = "HAHAHA";
+				msg.payload_len = 6;
+			}
+			else if (header->mtype == INTERROGATE)
+			{
+				msg.header.mtype = INTERROGATE_REPLY;
+				msg.payload = 0x06+"HELLO";
+				msg.payload_len = 6;
+			}
 			send_packet(fd, &msg);
 		}
-		else if (header->destination == 0 && header->mtype == 58 && header->mac == 0) {
+		else if (header->destination == 0 && header->mtype == RESET_NETWORK && header->mac == 0) {
 			// received a reset address request. 
 			addr = 0;
 		}
@@ -257,7 +284,6 @@ void push_char(int fd, char *buffer, char in) {
 		for (int i = 0; i < sizeof(struct mheader_t) - 1; i++)
 			checksum = crc16_update(checksum, buffer[i]);
 			
-		printf("header checksum: %#x\n", checksum);
 		if (checksum != msg_header->crc) {
 			goto remove_first;
 		}
@@ -267,9 +293,7 @@ void push_char(int fd, char *buffer, char in) {
 			checksum = 0xffff;
 			for (int i = 0; i < end - 2; i++)
 				checksum = crc16_update(checksum, buffer[i]);
-			printf("comp checksum: %#x\n", checksum);
 			uint16_t * crc = (uint16_t*)(buffer + (end - 2));
-			printf("direct checksum: %#x\n", *crc);
 			if (checksum == *crc)
 			{
 				process_packet(fd, buffer, end);

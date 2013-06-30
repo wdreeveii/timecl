@@ -15,6 +15,8 @@ import (
 
 type GreenBus struct {
     StopChan	chan bool
+    GetChan	chan network_manager.GetDrvCmd
+    SetChan	chan network_manager.SetDrvCmd
 }
 
 func (d GreenBus) Init(port string) {
@@ -30,22 +32,81 @@ func (d GreenBus) Copy() network_manager.DriverInterface {
     var b GreenBus
     b = d
     b.StopChan = make(chan bool)
+    b.GetChan = make(chan network_manager.GetDrvCmd)
+    b.SetChan = make(chan network_manager.SetDrvCmd)
     return b
 }
 
 func (d GreenBus) Get(cmd network_manager.GetDrvCmd) {
-    
+    d.GetChan <- cmd
 }
 
 func (d GreenBus) Set(cmd network_manager.SetDrvCmd) {
-    
+    d.SetChan <- cmd
+}
+
+type Cmd_t struct {
+    Payload	[]byte
+    Mtype	uint8
+    Rtype	uint8
+    ReplyHandler func(Message_t)
+    CmdInfo	interface{}
+}
+
+type PortFunction int
+const (
+    Input	PortFunction = iota
+    Output
+)
+
+type Port_t struct {
+    Type	PortFunction
+    Value	interface{}
 }
 
 type GreenBusDevice struct {
     Addr	uint8
     Mac		uint32
     // things like number of errors
+    Cmds	[]Cmd_t
+    // device model
+    Ports	[]Port_t
 }
+
+func (d GreenBusDevice) String() string {
+    return fmt.Sprintf("<Addr: %v, Mac: %v>", d.Addr, d.Mac)
+}
+
+type DeviceList []GreenBusDevice
+
+func (d DeviceList) Find(Mac uint32) (int, bool) {
+    for idx, val := range d {
+	if val.Mac == Mac {
+	    return idx, true
+	}
+    }
+    return 0, false
+}
+
+const (
+    FIND_DEVICES	uint8 = 72
+    NEED_ADDR		uint8 = 73
+    ACK_DEVICE		uint8 = 74
+    ACK_REPLY		uint8 = 75
+    
+    INTERROGATE		uint8 = 80
+    INTERROGATE_REPLY	uint8 = 81
+    
+    PING 		uint8 = 44
+    PING_REPLY 		uint8 = 45
+    
+    RESET_NETWORK 	uint8 = 58
+    
+    GET 		uint8 = 36
+    GET_REPLY 		uint8 = 37
+    SET 		uint8 = 38
+    SET_REPLY 		uint8 = 39 
+)
 
 type Header_t struct {
     Destination uint8
@@ -124,8 +185,6 @@ func (d GreenBus) runmaster(port string) {
 	ser.Close()
     }()
     
-    
-    
     // flush all buffers
     if err = termioslib.Flush(ser.Fd(), termioslib.TCIOFLUSH); err != nil { return }
     
@@ -136,51 +195,94 @@ func (d GreenBus) runmaster(port string) {
     if err = termioslib.Getattr(ser.Fd(), &work_termios); err != nil { return }
 
     work_termios.C_iflag &= ^(termioslib.BRKINT | termioslib.INPCK | termioslib.ISTRIP | termioslib.ICRNL | termioslib.IXON)
-    work_termios.C_oflag &= ^(termioslib.OPOST )
-    work_termios.C_lflag &= ^(termioslib.ISIG | termioslib.ICANON | termioslib.IEXTEN | termioslib.ECHO )
-    //work_termios.C_cflag &= ^(termioslib.CSIZE | termioslib.PARENB | termioslib.PARODD | termioslib.HUPCL | termioslib.CSTOPB | termioslib.CRTSCTS)
+    work_termios.C_oflag &= ^(termioslib.OPOST | termioslib.ONLCR )
+    work_termios.C_lflag &= ^(termioslib.ISIG | termioslib.ICANON | termioslib.IEXTEN | termioslib.ECHO | termioslib.ECHOE | termioslib.ECHOK )
+    //work_termios.C_cflag &= ^(termioslib.CSIZE | termioslib.PARENB | termioslib.PARODD | termioslib.HUPCL | termioslib.CSTOPB )
     work_termios.C_cflag |= (termioslib.CS8)
     work_termios.C_cc[termioslib.VMIN] = 1
     work_termios.C_cc[termioslib.VTIME] = 0
 
-    termioslib.Setspeed(&work_termios, termioslib.B57600)
+    if err = termioslib.Setispeed(&work_termios, termioslib.B57600); err != nil { return }
+    if err = termioslib.Setospeed(&work_termios, termioslib.B57600); err != nil { return }
+    
     // set the working copy
     if err = termioslib.Setattr(ser.Fd(), termioslib.TCSANOW , &work_termios); err != nil { return }
-
-    // set the settings back to the original when the program exits
+    
     defer func () {
+	// set the settings back to the original when the program exits
 	fmt.Println("Resetting termios")
         err = termioslib.Setattr(ser.Fd(), termioslib.TCSANOW, &orig_termios)
     } ()
     
     r:= make(chan Message_t)
     w:= make(chan Message_t)
+    
+    defer func () {
+	close(r)
+	close(w)
+    } ()
+    
+    defer func () {
+	fmt.Println("STOPING DRIVER!!!!")
+    } ()
+    
     go WriteMessages(ser, w)
     go ReadMessages(ser, r)
-    w <- Message_t{Payload: []byte("RESET ADDR"), Header: Header_t{Destination: 0, Mtype: 58, Mac: 0}}
+    w <- Message_t{Payload: []byte("RESET ADDR"), Header: Header_t{Destination: 0, Mtype: RESET_NETWORK, Mac: 0}}
 
-    var devices = []GreenBusDevice{GreenBusDevice{0,0},GreenBusDevice{1,0}}
+    var devices DeviceList = []GreenBusDevice{ GreenBusDevice{Addr: 0,Mac: 0},GreenBusDevice{Addr: 1,Mac: 0} }
     for {
-	for _, device := range devices[2:] {
+SAVE_COMMANDS:
+	for {
+	    select {
+	    case cmd := <- d.GetChan:
+		for _, device := range devices {
+		    if device.Mac == uint32(cmd.Device) {
+			device.Cmds = append(device.Cmds, Cmd_t{Payload: []byte("GET ..."), Mtype: GET, Rtype: GET_REPLY, CmdInfo: cmd})
+		    }
+		}
+	    case cmd := <- d.SetChan:
+		for _, device := range devices {
+		    if device.Mac == uint32(cmd.Device) {
+			device.Cmds = append(device.Cmds, Cmd_t{Payload: []byte("SET ..."), Mtype: SET, Rtype: SET_REPLY, CmdInfo: cmd})
+		    }
+		}
+	    default:
+		break SAVE_COMMANDS
+	    }
+	}
+//PING_DEVICES:
+	for idx, device := range devices[2:] {
+	    var cmd Cmd_t
+	    if len(device.Cmds) > 0 {
+		cmd = devices[2+idx].Cmds[0]
+		devices[2+idx].Cmds = devices[2+idx].Cmds[1:]
+	    } else {
+		cmd = Cmd_t{Payload: []byte("PING"), Mtype: PING, Rtype: PING_REPLY}
+	    }
+	    
 	    var msg Message_t
-	    msg.Payload = []byte("HAHAHA")
-
 	    msg.Header.Destination = device.Addr
-	    msg.Header.Mtype = 45
 	    msg.Header.Mac = device.Mac
-
+	    msg.Payload = cmd.Payload
+	    msg.Header.Mtype = cmd.Mtype
+	    
 	    w <- msg
 	    fmt.Println("beat")
 	    select {
 	    case <- d.StopChan:
-		fmt.Println("STOPPING DRIVER!!!")
-		close(r)
-		close(w)
 		return
 	    case rmsg := <- r:
+		if rmsg.Header.Mtype == cmd.Rtype {
+		    if cmd.ReplyHandler != nil {
+			cmd.ReplyHandler(rmsg)
+		    }
+		}
+		// else report protocol error
 		fmt.Printf("read: %#v\n", rmsg)
 		time.Sleep(1*time.Second)
 	    case <- time.After(1*time.Second):
+		// report timeout error
 		fmt.Printf("read timeout\n")
 		continue
 	    }
@@ -189,50 +291,67 @@ func (d GreenBus) runmaster(port string) {
 	msg.Payload = []byte("HAHAHA")
 	
 	msg.Header.Destination = 0
-	msg.Header.Mtype = 72
+	msg.Header.Mtype = FIND_DEVICES
 	msg.Header.Mac = 0
 	
 	w <- msg
-	fmt.Println("beat")
+	fmt.Println("Looking for new devices..")
 	var new_devices []uint32
 FIND_DEVICES:
 	for {
 	    select {
 	    case <- d.StopChan:
-		fmt.Println("STOPPING DRIVER!!!")
-		close(r)
-		close(w)
 		return
 	    case <- time.After(1*time.Second):
-		fmt.Printf("Find device timeout\n")
 		break FIND_DEVICES
 	    case rmsg := <- r:
-		fmt.Printf("read: %#v\n", rmsg)
-		if rmsg.Header.Mtype == 73 { // and payload == "NEED IP"
+		if rmsg.Header.Mtype == NEED_ADDR { // and payload == "NEED ADDR"
 		    new_devices = append(new_devices, rmsg.Header.Mac)
 		}
 	    }
 	}
+//ACK_NEW_DEVICE:
 	for _, val := range new_devices {
 	    var msg Message_t
-	    msg.Payload = []byte(fmt.Sprintf("%d", len(devices)))
+	    var device_addr uint8
+	    
+	    device_idx, device_in_list := devices.Find(val)
+	    if !device_in_list {
+		device_addr = uint8(len(devices))
+	    } else {
+		device_addr = uint8(device_idx)
+	    }
+	    
+	    msg.Payload = []byte(fmt.Sprintf("%d", device_addr))
 	    msg.Header.Destination = 0
-	    msg.Header.Mtype = 74
+	    msg.Header.Mtype = ACK_DEVICE
 	    msg.Header.Mac = val
 
 	    w <- msg
 	    select {
 	    case <- d.StopChan:
-		fmt.Println("STOPPING DRIVER!!!")
-		close(r)
-		close(w)
 		return
 	    case <- time.After(40*time.Millisecond):
-		fmt.Println("Addressing timeout")
+		fmt.Println("Address assignment response not received.")
 		continue
 	    case rmsg := <- r:
-		if rmsg.Header.Mtype == 75 && rmsg.Header.Mac == val { // and payload == "ACK"
-		    devices = append(devices, GreenBusDevice{Addr: uint8(len(devices)), Mac: val})
+		if rmsg.Header.Mtype == ACK_REPLY && rmsg.Header.Mac == val { // and payload == "ACK"
+		    interrogate_cmd := []Cmd_t{Cmd_t{Payload: []byte("INTERROGATE"), 
+					    Mtype: INTERROGATE, 
+					    Rtype: INTERROGATE_REPLY,
+					    ReplyHandler: func (msg Message_t) {
+						fmt.Println("INTERROGATE REPLY")
+						// parse the msg and init the ports
+						//devices[new_device_addr].Ports
+					    }}}
+		    if !device_in_list {
+			new_device := GreenBusDevice{Addr: device_addr,
+							Mac: val,
+							Cmds: interrogate_cmd}
+			devices = append(devices, new_device)
+		    } else {
+			devices[device_addr].Cmds = append(interrogate_cmd, devices[device_addr].Cmds...)
+		    }
 		}
 	    }
 	}
@@ -248,6 +367,7 @@ func ReadMessages(c *os.File, r chan Message_t) {
 	num_read, err := c.Read(in)
 	if err != nil {
 	    fmt.Println(err)
+	    return
 	}
 	if num_read > 0 {
 	    buffer = append(buffer, in[0])
