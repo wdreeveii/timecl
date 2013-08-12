@@ -18,6 +18,17 @@ GET     /net                            		Network.Index
 GET		/system/settings						Network.NetworkConfig
 GET		/system/editnetwork/:NetworkID			Network.EditNetwork
 POST	/system/editnetwork/:NetworkID			Network.SaveNetwork
+GET		/engine/								Engine.Index
+GET		/engine/show							Engine.Show
+GET		/engine/list							Engine.ListObjects
+GET		/engine/states							Engine.GetStates
+POST	/engine/set/output						Engine.SetOutput
+POST	/engine/set/properties					Engine.SetProperties
+POST	/engine/unhook							Engine.UnhookObject
+POST	/engine/hook							Engine.HookObject
+POST	/engine/delete							Engine.DeleteObject
+POST	/engine/add								Engine.AddObject
+POST	/engine/move							Engine.MoveObject
 POST    /login                                  Application.Login
 GET     /logout                                 Application.Logout
 

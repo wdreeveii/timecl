@@ -12,6 +12,7 @@ type Hotels struct {
 }
 
 func (c Hotels) checkUser() revel.Result {
+	fmt.Println("HOTELS CHECK USER")
 	if user := c.connected(); user == nil {
 		c.Flash.Error("Please log in first")
 		return c.Redirect(Application.Index)

@@ -1,0 +1,127 @@
+{{set . "title" "Logic Home"}}
+{{append . "moreScripts" "js/engine/object.js"}}
+{{append . "moreScripts" "js/engine/objects.js"}}
+{{append . "moreScripts" "js/engine/graphics.js"}}
+{{append . "moreScripts" "js/engine/data_source.js"}}
+{{append . "moreScripts" "js/engine/backend_link.js"}}
+{{append . "moreScripts" "js/engine/logic_ui.js"}}
+{{template "header.html" .}}
+
+<style type="text/css">
+	body { color: #404050; }
+  *.main_link {display: none; list-style-type:none; cursor: pointer;  font-weight:bold; user-select: none;  -moz-user-select: -moz-none;   -khtml-user-select: none;   -webkit-user-select: none;   }
+  *.menu_header {list-style-type:none; color:#3333dd; font-weight:bold;}
+  ul {margin: 0px; }
+ </style>
+    <div>
+        <div class="btn-group">
+	<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+	    IO
+	    <span class="caret"></span>
+	</a>
+	<ul class="dropdown-menu">
+	  <li onclick="set_addmode('binput');"  class="btn">Source</li>
+	  <li onclick="set_addmode('boutput');" class="btn">D Output</li>
+	  <li onclick="set_addmode('aoutput');" class="btn">A Output</li>
+	  <li onclick="set_addmode('httpsource');" class="btn">HTTP Val</li>
+	</ul>	
+    </div>
+    <div class="btn-group">
+	<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+	    Gates
+	    <span class="caret"></span>
+	</a>
+	<ul class="dropdown-menu">
+	    <li onclick="set_addmode('notgate');" class="btn">Not</li>
+	    <li onclick="set_addmode('andgate');" class="btn">And</li>
+	    <li onclick="set_addmode('orgate');" class="btn"> Or </li>
+	    <li onclick="set_addmode('xorgate');" class="btn">XOr</li>
+	</ul>
+    </div>
+    <div class="btn-group">
+	<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+	    Math
+	    <span class="caret"></span>
+	</a>
+	<ul class="dropdown-menu">
+	    <li onclick="set_addmode('mult');" class="btn"> Mult</li>
+	    <li onclick="set_addmode('div');" class="btn"> Div</li>
+	    <li onclick="set_addmode('add');" class="btn">  Add</li>
+	    <li onclick="set_addmode('sub');" class="btn">  Sub</li>
+	    <li onclick="set_addmode('power');" class="btn"> Power</li>
+	    <li onclick="set_addmode('sine');" class="btn"> Sine</li>
+	    <li onclick="set_addmode('cosine');" class="btn">Cosine</li>
+	</ul>
+    </div>
+    <div class="btn-group">
+	<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+	    Utility
+	    <span class="caret"></span>
+	</a>
+	<ul class="dropdown-menu">
+	    <li onclick="set_addmode('timerange');" class="btn"> Timerange </li>
+	    <li onclick="set_addmode('timebase');" class="btn"> Timebase </li>
+	    <li onclick="set_addmode('xyscope');" class="btn"> XYScope </li>
+	    <li onclick="set_addmode('guide');" class="btn"> Terminal </li>
+	</ul>
+    </div>
+    <div class="btn-group">
+	<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+	    World
+	    <span class="caret"></span>
+	</a>
+	<ul class="dropdown-menu">
+	    <li onclick="set_addmode('block');" class="btn"> Block </li>
+	    <li onclick="set_addmode('vbar');" class="btn"> Vert Bar </li>
+	    <li onclick="set_addmode('hbar');" class="btn"> Horz Bar </li>
+	</ul>
+    </div>
+    <div class="btn-group">
+	<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+	    Tools
+	    <span class="caret"></span>
+	</a>
+	<ul class="dropdown-menu">
+	    <li onclick="set_mode('add_pipe');" class="btn"> Wire</li>
+	    <li onclick="set_mode('unhook');" class="btn">  <font color="#dd3333">Unhook</font></li>
+	    <li onclick="set_mode('delete');" class="btn"> <font color="#dd3333">Delete</font></li>
+	</ul>
+    </div>
+    <div class="btn-group">
+	<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+	    System
+	    <span class="caret"></span>
+	</a>
+	<ul class="dropdown-menu">
+	    <li onclick="reset();" class="btn">Reset</li>
+	    <li onclick="backend_load();" class="btn">Reload</li>
+	</ul>
+    </div>
+    <div class="btn-group">
+	<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+	    View
+	    <span class="caret"></span>
+	</a>
+	<ul class="dropdown-menu">
+	    <li onclick="set_guide('show');" class="btn">Show Term</li>
+	    <li onclick="set_guide('hide');" class="btn">Hide Term</li>
+	</ul>
+    </div>
+  </div>
+  <div style="float: left; width:10%; border: 0px black solid;">
+    <p style="font-weight: bold">Properties</p>
+    <ul id="property_area">
+    </ul>
+    <div id="debug">
+    </div>
+
+  </div>
+<canvas id="canvas" style="border: black 1px solid; width: 89%;"></canvas>
+<script>
+$(document).ready(function() {
+    var h = $(window).height() - $('#canvas').offset().top;
+    $('#canvas').height(h - 10);
+});
+</script>
+{{template "footer.html" .}}
+

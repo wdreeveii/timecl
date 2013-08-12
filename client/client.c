@@ -255,8 +255,8 @@ void process_packet(int fd, char *buffer, int length) {
 			else if (header->mtype == INTERROGATE)
 			{
 				msg.header.mtype = INTERROGATE_REPLY;
-				msg.payload = 0x06+"HELLO";
-				msg.payload_len = 6;
+				msg.payload = "\x05" "DEV01" "\x0A" "1234567890";
+				msg.payload_len = 6 + 11;
 			}
 			send_packet(fd, &msg);
 		}

@@ -67,9 +67,10 @@ type Port_t struct {
 type GreenBusDevice struct {
     Addr	uint8
     Mac		uint32
+    ModelName	string
+    Serial	string
     // things like number of errors
     Cmds	[]Cmd_t
-    // device model
     Ports	[]Port_t
 }
 
@@ -86,6 +87,55 @@ func (d DeviceList) Find(Mac uint32) (int, bool) {
 	}
     }
     return 0, false
+}
+
+type portdef_payload []byte
+type portdef_struct struct {
+    Type	uint8
+    Index	uint8
+}
+
+func (def portdef_payload) ToStruct() (dst portdef_struct) {
+    dst.Type = def[0]
+    dst.Index = def[1]
+    return
+}
+
+type interrogate_payload []byte
+type interrogate_reply struct {
+    Model	string
+    Serial	string
+    Ports	[]portdef_struct
+}
+
+func (payload interrogate_payload) ToStruct() (dst interrogate_reply) {
+    if len(payload) > 0 {
+	model_len := uint8(payload[0])
+	if len(payload) >= 1 + int(model_len) {
+	    dst.Model = string(payload[1:1 + model_len])
+	    if len(payload) > 1 + int(model_len) {
+		serial_len := uint8(payload[1 + model_len])
+		if len(payload) >= 2 + int(model_len) + int(serial_len) {
+		    dst.Serial = string(payload[model_len + 2: model_len + 2 + serial_len])
+		    ports_offset := 2 + model_len + serial_len
+		    if len(payload) > 2 + int(model_len) + int(serial_len) {
+			num_ports := uint8(payload[ports_offset])
+			if len(payload) > int(ports_offset + 1 + (2 * num_ports)) {
+			    for ii := uint8(0); ii < uint8(num_ports); ii++ {
+				portdef_start := ports_offset+1+(ii * 2)
+				dst.Ports = append(dst.Ports, portdef_payload(payload[portdef_start:portdef_start + 2]).ToStruct())
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+    return
+}
+
+func (structure interrogate_reply) ToByte() (payload interrogate_payload) {
+    return
 }
 
 const (
@@ -341,6 +391,12 @@ FIND_DEVICES:
 					    Rtype: INTERROGATE_REPLY,
 					    ReplyHandler: func (msg Message_t) {
 						fmt.Println("INTERROGATE REPLY")
+						dev_properties := interrogate_payload(msg.Payload).ToStruct()
+						devices[device_addr].ModelName = dev_properties.Model
+						devices[device_addr].Serial = dev_properties.Serial
+						
+						fmt.Println("model: ", dev_properties.Model)
+						fmt.Println("Serial: ", dev_properties.Serial)
 						// parse the msg and init the ports
 						//devices[new_device_addr].Ports
 					    }}}
