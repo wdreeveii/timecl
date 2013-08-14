@@ -242,14 +242,20 @@ function find_object(x, y)
 	// convert to world cords
 	x = get_world_x(x);
 	y = get_world_y(y);
-
+	console.log("x2 : " + x);
+	console.log("y2 : " + y);
+	console.log("x_ofs : " + x_ofs);
+	console.log("y_ofs : " + y_ofs);
+	console.log(obj);
 	for (var i in obj)
 	{
-		if (x > obj[i].x_pos &&
-			y > obj[i].y_pos &&
-			x < obj[i].x_pos + obj[i].x_size &&
-			y < obj[i].y_pos + obj[i].y_size )
+		if (x >= obj[i].x_pos &&
+			y >= obj[i].y_pos &&
+			x <= obj[i].x_pos + obj[i].x_size &&
+			y <= obj[i].y_pos + obj[i].y_size ) {
+			
 			return(i);
+		}
 	}
 
 	return (-1);

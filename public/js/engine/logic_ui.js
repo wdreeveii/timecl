@@ -49,25 +49,16 @@ function start()
 
 	// Mouse Wheel IE
 	window.onmousewheel = document.onmousewheel = mouse_wheel;
-
 	document.onkeydown = key_down; 
 
-	window.onresize =  update_canvas;
+	window.onresize =  resize_canvas;
 
-
-
-	update_canvas();
-
+	resize_canvas();
 	set_timer();
-
 	update();
-	
 	//test_scope();
-	
 	backend_start();
-
 	data_source_start();
-	
 }
 
 /* 
@@ -111,11 +102,14 @@ function set_value(name, value)
 /* 
 	UI
 */
-function update_canvas()
+function resize_canvas()
 {
 	var canvas = document.getElementById("canvas");
-	canvas.width = window.innerWidth-140;
-	canvas.height = window.innerHeight-2;
+
+	canvas.width = window.innerWidth - $(canvas).offset().left;
+	canvas.height = window.innerHeight- $(canvas).offset().top - 10;
+	var h = $(window).height() - $('#canvas').offset().top;
+    $('#canvas').height(h - 10);
 }
 
 function draw_display()
@@ -155,12 +149,13 @@ function mouse_pos(ev)
 	var canvas_x_ofs = document.getElementById("canvas").offsetLeft;
 	var canvas_y_ofs = document.getElementById("canvas").offsetTop;
 
-
+	//console.log("x_ofs: " + canvas_x_ofs);
+	//console.log("y_ofs: " + canvas_y_ofs);
 	if(ev.pageX || ev.pageY)
 	{ 
 		return {x:ev.pageX - canvas_x_ofs, y:ev.pageY - canvas_y_ofs}; 
 	} 
-	
+	//console.log("clienttop: " + document.body.clientTop);
 	return 	{ x:ev.clientX + document.body.scrollLeft - document.body.clientLeft  - canvas_x_ofs, 
 			  y:ev.clientY + document.body.scrollTop  - document.body.clientTop   - canvas_y_ofs}; 
 }
@@ -169,7 +164,6 @@ function mouse_up(ev)
 { 
 	var pos = mouse_pos(ev);    		
 	//document.getElementById("debug").innerHTML += "Up  " + pos.x + " " + pos.y +"<br>";
-
 	mouse_state = "up";
 
 	if (ui_mode == "moving")
@@ -203,7 +197,8 @@ function mouse_down(ev)
 	
 	x_ofs_start = x_ofs;	
 	y_ofs_start = y_ofs;
-	
+	console.log("x : " + pos.x);
+	console.log("y : " + pos.y);
 	mouse_x = pos.x;
 	mouse_y = pos.y;
 	
@@ -306,7 +301,7 @@ function mouse_wheel( event )
     	delta = -event.detail/3;
     }
 
-	var zoom_factor = 1 + delta * 0.05;
+	var zoom_factor = 1 + delta; // * 0.05;
 
     zoom *= zoom_factor;       
 
@@ -385,6 +380,7 @@ function ui_add_pipe1(pos)
 
 	if (i != -1 && obj[i].type == "guide")
 	{
+		console.log("adding 1 pipe");
 		obj[i].selected  =1;
 
 		ui_mode = "add_pipe2";
@@ -477,8 +473,8 @@ function set_guide(s)
 
 function select_none()
 {
-	hide_properties();
-
+	//hide_properties();
+	// more like blank_properties
 	for (var i in obj)
 		obj[i].selected = 0;
 	
@@ -552,7 +548,7 @@ function save_properties(sel_obs)
 
 	o.save_properties();
 	
-	hide_properties();
+	//hide_properties();
 	
 	draw_display();
 

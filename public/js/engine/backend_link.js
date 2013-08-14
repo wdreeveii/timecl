@@ -208,15 +208,14 @@ function backend_load( )
 						}
 					}
 				}
-				for (var l in obj)
-				{
-						if (obj[l].id == obj[j].source_id)
-						{
-							obj[j].source = parseInt(l);
-						}			
-				}
 			}
-
+			for (var l in obj)
+			{
+					if (obj[l].id == obj[j].source_id)
+					{
+						obj[j].source = parseInt(l);
+					}			
+			}
 		}
 	});
 }

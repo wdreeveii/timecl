@@ -27,6 +27,7 @@ func init() {
 
 func InitEngine() {
 	engine = &logic_engine.Engine_t{}
+	engine.Init()
 }
 
 func (c Engine) checkUser() revel.Result {
@@ -66,21 +67,25 @@ func (c Engine) GetStates() revel.Result {
 	states := engine.GetStates()
 	return c.RenderJson(states)
 }
-func (c Engine) SetOutput() revel.Result {
-	return c.Render()
+func (c Engine) SetOutput(id int, output float32) revel.Result {
+	engine.SetOutput(id, output)
+	return c.RenderJson(1)
 }
 func (c Engine) SetProperties() revel.Result {
 	return c.Render()
 }
-func (c Engine) HookObject() revel.Result {
-	return c.Render()
+func (c Engine) HookObject(id int, source int) revel.Result {
+	engine.HookObject(id, source)
+	return c.RenderJson(1)
 }
-func (c Engine) UnhookObject() revel.Result {
-	return c.Render()
+func (c Engine) UnhookObject(id int) revel.Result {
+	engine.UnhookObject(id)
+	return c.RenderJson(1)
 }
 
-func (c Engine) DeleteObject() revel.Result {
-	return c.Render()
+func (c Engine) DeleteObject(id int) revel.Result {
+	engine.DeleteObject(id)
+	return c.RenderJson(1)
 }
 func (c Engine) AddObject(objtype string,
 							root_id int,

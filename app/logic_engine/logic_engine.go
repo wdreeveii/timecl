@@ -71,13 +71,18 @@ func (o Object_t) GetProperty(name string) string {
 }
 
 type Engine_t struct {
-	mu				sync.Mutex
-	Objects			[]Object_t
-	UpdateRate		float32
-	SolveIterations int
+	mu					sync.Mutex
+	objects				map[int]*Object_t
+	index				int
+	update_rate			float32
+	solve_iterations	int
 }
 
-func (e Engine_t) Start () {
+func (e *Engine_t) Init() {
+	e.objects = make(map[int]*Object_t)
+}
+
+/*func (e Engine_t) Start () {
 	e.LoadObjects()
 	e.printObjects()
 	e.Run()
@@ -133,7 +138,7 @@ func (e Engine_t) GetOutputs() {
 
 func (e Engine_t) SetOutputs() {
 	// for each object set
-}
+}*/
 
 type State_t struct {
 	Id	int
@@ -143,17 +148,31 @@ type State_t struct {
 func (e *Engine_t) GetStates() []State_t {
 	e.mu.Lock()
 	var states []State_t
-	for _, val := range e.Objects {
+	for _, val := range e.objects {
 		states = append(states, State_t{Id: val.Id, Output: val.Output})
 	}
 	e.mu.Unlock()
 	return states
 }
 
+func (e *Engine_t) HookObject(id int, source int) {
+	e.mu.Lock()
+	e.objects[id].Source = source
+	e.mu.Unlock()
+}
+
+func (e *Engine_t) UnhookObject(id int) {
+	e.mu.Lock()
+	e.objects[id].Source = -1
+	e.mu.Unlock()
+}
+
 func (e *Engine_t) ListObjects() []Object_t {
 	e.mu.Lock()
-	objs := make([]Object_t, len(e.Objects))
-	copy(objs, e.Objects)
+	objs := make([]Object_t, len(e.objects))
+	for _, val := range e.objects {
+		objs = append(objs, *val)
+	}
 	e.mu.Unlock()
 	return objs
 }
@@ -177,24 +196,37 @@ func (e *Engine_t) AddObject(objtype string,
 						PropertyValues: []string{property_values}}
 	
 	e.mu.Lock()
-	obj_index := len(e.Objects)
-	obj.Id = obj_index
-	e.Objects = append(e.Objects, obj)
+	obj_index := e.index
+	obj.Id = e.index
+	e.objects[e.index] = &obj
+	e.index += 1
 	e.mu.Unlock()
 	return obj_index
+}
+
+func (e *Engine_t) DeleteObject(id int) {
+	e.mu.Lock()
+	delete(e.objects, id)
+	e.mu.Unlock()
 }
 
 func (e *Engine_t) MoveObject(id, x_pos, y_pos int) {
 	fmt.Println("Move: ", id, x_pos, y_pos)
 	e.mu.Lock()
-	e.Objects[id].Xpos = x_pos
-	e.Objects[id].Ypos = y_pos
+	e.objects[id].Xpos = x_pos
+	e.objects[id].Ypos = y_pos
 	e.mu.Unlock()
 }
 
 func (e *Engine_t) SetGuides(id int, guide int) {
 	e.mu.Lock()
-	e.Objects[id].Terminals = append(e.Objects[id].Terminals, guide)
+	e.objects[id].Terminals = append(e.objects[id].Terminals, guide)
+	e.mu.Unlock()
+}
+
+func (e *Engine_t) SetOutput(id int, output float32) {
+	e.mu.Lock()
+	e.objects[id].Output = output
 	e.mu.Unlock()
 }
 
