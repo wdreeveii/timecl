@@ -510,7 +510,7 @@ function show_properties(o)
 
 	// Create property table
 	
-	p_str += "<table><tbody>";
+	p_str += "<table class='property_table'><tbody>";
 	p_str += "<tr><td><b>Type</b></td><td><b>" + o.type + "</b></td></tr>";
 
 	for (var i = 0; i < o.property_count; i++)

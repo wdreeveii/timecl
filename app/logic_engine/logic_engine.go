@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/robfig/revel"
 	"sync"
+	"time"
 )
+type processor func(o *Object_t, objs map[int]*Object_t)
 
 type Object_t struct {
 	Id				int
@@ -14,8 +16,8 @@ type Object_t struct {
 	Ypos			int
 	Xsize			int
 	Ysize			int
-	Output			float32
-	NextOutput		float32
+	Output			float64
+	NextOutput		float64
 	TermList		string
 	Terminals		[]int
 	Source			int
@@ -25,6 +27,7 @@ type Object_t struct {
 	PropertyTypes	[]string
 	Attached		int
 	Dir				int
+	process			processor
 }
 
 func (o Object_t) Display() {
@@ -39,21 +42,21 @@ func (o Object_t) Display() {
 	fmt.Printf("\n")
 }
 
-func (o Object_t) Process(objects []Object_t) {
+func (o Object_t) Process(objects map[int]*Object_t) {
 }
 
-func (o Object_t) AssignOutput(objs []Object_t, terminal int) {
+func (o Object_t) AssignOutput(objs map[int]*Object_t, terminal int) {
 	objs[o.Terminals[terminal]].NextOutput = o.Output
 }
 
-func (o Object_t) CheckTerminals(count int) int {
+func (o Object_t) CheckTerminals(count int) bool {
 	if len(o.Terminals) < count {
 		fmt.Println("Invalid ", o.Type)
-		return 1
+		return true
 	}
-	return 0
+	return false
 }
-func (o Object_t) GetTerminal(objects []Object_t, term int) float32 {
+func (o Object_t) GetTerminal(objects map[int]*Object_t, term int) float64 {
 	return objects[o.Terminals[term]].Output
 }
 
@@ -79,56 +82,59 @@ type Engine_t struct {
 }
 
 func (e *Engine_t) Init() {
+	e.update_rate = 10
+	e.solve_iterations = 10
 	e.objects = make(map[int]*Object_t)
+	go e.Start()
 }
 
-/*func (e Engine_t) Start () {
+func (e *Engine_t) Start () {
 	e.LoadObjects()
 	e.printObjects()
 	e.Run()
 }
 
-func (e Engine_t) Run () {
+func (e *Engine_t) Run () {
 	for {
-		e.LoadObjects()
-		
-		for ii := 0; ii < e.SolveIterations; ii++ {
+		e.mu.Lock()
+		for ii := 0; ii < e.solve_iterations; ii++ {
 			e.Process()
 		}
+		e.mu.Unlock()
 		e.SetOutputs()
-		e.printObjects();
-		//time.Sleep(
+		e.printObjects()
+		time.Sleep(time.Duration(1000/e.update_rate)*time.Millisecond)
 	}
 }
 
-func (e Engine_t) Process() {
-	for _, val := range e.Objects {
-		val.Process(e.Objects)
+func (e *Engine_t) Process() {
+	for _, val := range e.objects {
+		val.process(val, e.objects)
 	}
 	
-	for _, val := range e.Objects {
+	for _, val := range e.objects {
 		val.Output = val.NextOutput
 	}
 }
 
-func (e Engine_t) QueryObjects() {
+func (e *Engine_t) QueryObjects() {
 	
 }
 
-func (e Engine_t) LoadObjects() {
+func (e *Engine_t) LoadObjects() {
 	
 }
 
-func (e Engine_t) printObjects() {
+func (e *Engine_t) printObjects() {
 	e.mu.Lock()
-	for _, val := range e.Objects {
+	for _, val := range e.objects {
 		val.Display()
 	}
 	e.mu.Unlock()
 	// new line?
 }
 
-func (e Engine_t) GetOutputs() {
+func (e *Engine_t) GetOutputs() {
 	for { // range result list
 		// if object not in list
 		// return
@@ -136,20 +142,22 @@ func (e Engine_t) GetOutputs() {
 	}
 }
 
-func (e Engine_t) SetOutputs() {
+func (e *Engine_t) SetOutputs() {
 	// for each object set
-}*/
+}
 
 type State_t struct {
 	Id	int
-	Output float32
+	Output float64
+	Xpos int
+	Ypos int
 }
 
 func (e *Engine_t) GetStates() []State_t {
 	e.mu.Lock()
 	var states []State_t
 	for _, val := range e.objects {
-		states = append(states, State_t{Id: val.Id, Output: val.Output})
+		states = append(states, State_t{Id: val.Id, Output: val.Output, Xpos: val.Xpos, Ypos: val.Ypos})
 	}
 	e.mu.Unlock()
 	return states
@@ -169,7 +177,7 @@ func (e *Engine_t) UnhookObject(id int) {
 
 func (e *Engine_t) ListObjects() []Object_t {
 	e.mu.Lock()
-	objs := make([]Object_t, len(e.objects))
+	objs := make([]Object_t, 0, len(e.objects))
 	for _, val := range e.objects {
 		objs = append(objs, *val)
 	}
@@ -185,22 +193,26 @@ func (e *Engine_t) AddObject(objtype string,
 				attached int,
 				dir int,
 				property_count int,
-				property_names string,
-				property_types string,
-				property_values string) int {
+				property_names []string, 
+				property_types []string, 
+				property_values []string) int {
+		
 	var obj = Object_t{Type: objtype, Source: -1,
 						Xpos: x_pos, Ypos: y_pos,
 						Xsize: x_size, Ysize: y_size,
 						PropertyCount: property_count,
-						PropertyNames: []string{property_names},
-						PropertyValues: []string{property_values}}
-	
+						PropertyNames: property_names,
+						PropertyValues: property_values,
+						process: processors[objtype]}
+	fmt.Println(property_names)
+	fmt.Println(property_values)
 	e.mu.Lock()
 	obj_index := e.index
 	obj.Id = e.index
 	e.objects[e.index] = &obj
 	e.index += 1
 	e.mu.Unlock()
+	fmt.Println("newid: ", obj_index, " ", objtype)
 	return obj_index
 }
 
@@ -224,9 +236,18 @@ func (e *Engine_t) SetGuides(id int, guide int) {
 	e.mu.Unlock()
 }
 
-func (e *Engine_t) SetOutput(id int, output float32) {
+func (e *Engine_t) SetOutput(id int, output float64) {
 	e.mu.Lock()
+	fmt.Println("Setting output...", output)
 	e.objects[id].Output = output
+	e.mu.Unlock()
+}
+func (e *Engine_t) SetProperties(id int, property_count int,
+							property_names []string, property_types []string, property_values []string) {
+	e.mu.Lock()
+	e.objects[id].PropertyNames = property_names
+	e.objects[id].PropertyTypes = property_types
+	e.objects[id].PropertyValues = property_values
 	e.mu.Unlock()
 }
 

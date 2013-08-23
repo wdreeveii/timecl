@@ -90,9 +90,9 @@ function object_type(name)
 	{
 		backend_setproperties(this.index, this.id, 
 								this.property_count, 
-								this.property_names.join(','), 
-								this.property_types.join(','), 
-								this.property_values.join(','));
+								this.property_names, 
+								this.property_types, 
+								this.property_values);
 	}
 
 

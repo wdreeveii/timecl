@@ -45,11 +45,18 @@ function backend_setoutput(index, id, output)
 
 function backend_setproperties(index, id, property_count, property_names, property_types, property_values)
 {
-	var cmd = "id=" + id + "&" +
-		      "property_count=" + property_count + "&" +
-		      "property_names=" + property_names + "&" +
-		      "property_types=" + property_types + "&" +
-		      "property_values=" + property_values;
+	var cmd = "id=" + id + "&";
+		      
+	for (var ii = 0; ii < property_count; ii++) {
+		cmd += "property_names["+ii+"]=" + property_names[ii] + "&";
+	}
+	for (var ii = 0; ii < property_count; ii++) {
+		cmd += "property_types["+ii+"]=" + property_types[ii] + "&";
+	}
+	for (var ii = 0; ii < property_count; ii++) {
+		cmd += "property_values["+ii+"]=" + property_values[ii] + "&";
+	}
+	cmd += "property_count=" + property_count;
 
 	$.ajax({
 		url: "/engine/set/properties",
@@ -92,11 +99,19 @@ function backend_addobject(obj, done_callback)
     	      "x_size=" + obj.x_size + "&" +
     	      "y_size=" + obj.y_size + "&" +
        	      "attached=" + obj.attached + "&" +
-    	      "dir=" + obj.dir + "&" + 
-    	      "property_count=" + obj.property_count + "&" +
-    	      "property_names=" + obj.property_names + "&" + 
-    	      "property_types=" + obj.property_types + "&" +
-    	      "property_values=" + obj.property_values;
+    	      "dir=" + obj.dir + "&";
+	console.log(obj.property_values);
+	for (var ii = 0; ii < obj.property_count; ii++) {
+		cmd += "property_names["+ii+"]=" + obj.property_names[ii] + "&";
+	}
+	for (var ii = 0; ii < obj.property_count; ii++) {
+		cmd += "property_types["+ii+"]=" + obj.property_types[ii] + "&";
+	}
+	for (var ii = 0; ii < obj.property_count; ii++) {
+		cmd += "property_values["+ii+"]=" + obj.property_values[ii] + "&";
+	}
+	cmd += "property_count=" + obj.property_count;
+
 	$.ajax({
 		url: "/engine/add",
 		context: document.body,
@@ -222,21 +237,26 @@ function backend_load( )
 
 function backend_getstates( )
 {
-
 	//reset();
-		$.ajax({
+	$.ajax({
 		url: "/engine/states",
 		context: document.body,
+		type: "GET",
+		data: {state: 1},
+		cache: false,
 	}).done(function(response) {
-		console.log(response);
+		if (response == null) return;
+		
 		var tmp = eval(response);
 	
-		if (tmp.length == 0) return;
+		if (tmp == null || tmp.length == 0) return;
 	
 		for (var i = 0; i < tmp.length; i++)
 		{
 			var id = parseInt(tmp[i].Id);
 			var output = parseFloat(tmp[i].Output);
+			var x_pos = parseInt(tmp[i].Xpos);
+			var y_pos = parseInt(tmp[i].Ypos);
 			
 			var index = -1;
 
@@ -249,6 +269,8 @@ function backend_getstates( )
 			if (index >= 0)
 			{
 				obj[index].output = parseFloat(output);
+				obj[index].x_pos = x_pos;
+				obj[index].y_pos = y_pos;
 			}
 		}
 	});

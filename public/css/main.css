@@ -163,7 +163,9 @@ form .buttons {
     padding: 10px;
     margin-top: 20px;
 }
-
+.property_table input {
+    width: 3em;
+}
 /** Footer **/
 
 #footer {

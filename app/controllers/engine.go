@@ -4,9 +4,8 @@ package controllers
 import (
 	"fmt"
 	//"sort"
-	"time"
+	//"time"
 	"github.com/robfig/revel"
-	"timecl/app/models"
 	"timecl/app/logic_engine"
 	//"timecl/app/network_manager"
 	//"timecl/app/routes"
@@ -40,39 +39,32 @@ func (c Engine) checkUser() revel.Result {
 }
 
 func (c Engine) Index() revel.Result {
-	user_results, err := c.Txn.Select(models.User{}, `select * from User`)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("results: %#v\n", user_results)
-	var users []*models.User
-	for _, r := range user_results {
-		users = append(users, r.(*models.User))
-	}
-	fmt.Printf("users: %#v\n", users)
-	return c.Render(users)
+	return c.Render()
 }
 func (c Engine) Show() revel.Result {
 	return c.Render()
 }
 
 func (c Engine) ListObjects() revel.Result {
-	objects := engine.ListObjects()
+	var objects []logic_engine.Object_t
+	objects = engine.ListObjects()
 	fmt.Println(objects)
 	return c.RenderJson(objects)
 }
 
-func (c Engine) GetStates() revel.Result {
-	time.Sleep(3 * time.Second)
+func (c Engine) GetStates(state int) revel.Result {
+	//time.Sleep(1 * time.Second)
 	states := engine.GetStates()
 	return c.RenderJson(states)
 }
-func (c Engine) SetOutput(id int, output float32) revel.Result {
+func (c Engine) SetOutput(id int, output float64) revel.Result {
 	engine.SetOutput(id, output)
 	return c.RenderJson(1)
 }
-func (c Engine) SetProperties() revel.Result {
-	return c.Render()
+func (c Engine) SetProperties(id int, property_count int,
+							property_names []string, property_types []string, property_values []string) revel.Result {
+	engine.SetProperties(id, property_count, property_names, property_types, property_values)
+	return c.RenderJson(1)
 }
 func (c Engine) HookObject(id int, source int) revel.Result {
 	engine.HookObject(id, source)
@@ -96,9 +88,9 @@ func (c Engine) AddObject(objtype string,
 							attached int,
 							dir int,
 							property_count int,
-							property_names string,
-							property_types string,
-							property_values string ) revel.Result {
+							property_names []string,
+							property_types []string,
+							property_values []string) revel.Result {
 			
 	newobj_id := engine.AddObject(objtype, x_pos, y_pos,
 										x_size, y_size,attached,dir,
