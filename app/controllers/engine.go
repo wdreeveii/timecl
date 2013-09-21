@@ -4,7 +4,7 @@ package controllers
 import (
 	"fmt"
 	//"sort"
-	//"time"
+	"time"
 	"github.com/robfig/revel"
 	"timecl/app/logic_engine"
 	//"timecl/app/network_manager"
@@ -53,7 +53,7 @@ func (c Engine) ListObjects() revel.Result {
 }
 
 func (c Engine) GetStates(state int) revel.Result {
-	//time.Sleep(1 * time.Second)
+	time.Sleep(40 * time.Second)
 	states := engine.GetStates()
 	return c.RenderJson(states)
 }

@@ -149,15 +149,13 @@ func (e *Engine_t) SetOutputs() {
 type State_t struct {
 	Id	int
 	Output float64
-	Xpos int
-	Ypos int
 }
 
 func (e *Engine_t) GetStates() []State_t {
 	e.mu.Lock()
 	var states []State_t
 	for _, val := range e.objects {
-		states = append(states, State_t{Id: val.Id, Output: val.Output, Xpos: val.Xpos, Ypos: val.Ypos})
+		states = append(states, State_t{Id: val.Id, Output: val.Output})
 	}
 	e.mu.Unlock()
 	return states

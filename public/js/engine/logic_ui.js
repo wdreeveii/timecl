@@ -106,10 +106,8 @@ function resize_canvas()
 {
 	var canvas = document.getElementById("canvas");
 
-	canvas.width = window.innerWidth - $(canvas).offset().left;
+	canvas.width = window.innerWidth - $(canvas).offset().left - 10;
 	canvas.height = window.innerHeight- $(canvas).offset().top - 10;
-	var h = $(window).height() - $('#canvas').offset().top;
-    $('#canvas').height(h - 10);
 }
 
 function draw_display()

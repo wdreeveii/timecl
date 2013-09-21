@@ -255,8 +255,6 @@ function backend_getstates( )
 		{
 			var id = parseInt(tmp[i].Id);
 			var output = parseFloat(tmp[i].Output);
-			var x_pos = parseInt(tmp[i].Xpos);
-			var y_pos = parseInt(tmp[i].Ypos);
 			
 			var index = -1;
 
@@ -269,8 +267,6 @@ function backend_getstates( )
 			if (index >= 0)
 			{
 				obj[index].output = parseFloat(output);
-				obj[index].x_pos = x_pos;
-				obj[index].y_pos = y_pos;
 			}
 		}
 	});
@@ -278,7 +274,7 @@ function backend_getstates( )
 
 function backend_start( )
 {
-	setInterval(function() { backend_update(); }.bind(this), 100);
+	setInterval(function() { backend_update(); }.bind(this), 10000);
 	
 	backend_load();
 }

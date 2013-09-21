@@ -1,5 +1,6 @@
 html {
     background: #E6E6E6;
+    margin: 0px;
 }
 
 body {
@@ -7,10 +8,8 @@ body {
     font-size: 90%;
     color: #585621;
     background: #fff;
-    -webkit-border-radius: 8px;
-    -webkit-box-shadow: 0 0 10px rgba(0,0,0,.2);
-    -moz-border-radius: 8px;
-    -moz-box-shadow: 0 0 10px rgba(0,0,0,.2);
+    height: 100%;
+    margin: 0px;
 }
 
 a {
@@ -34,7 +33,9 @@ a {
 }
 
 #content {
-
+    margin: 0px;
+    height: 100%;
+    width: 100%:
 }
 
 
@@ -160,11 +161,8 @@ form .hasError .error {
 form .buttons {
     text-align: left;
     background: #dedede;
-    padding: 10px;
-    margin-top: 20px;
-}
-.property_table input {
-    width: 3em;
+    /*padding: 10px;
+    margin-top: 20px;*/
 }
 /** Footer **/
 
@@ -173,4 +171,26 @@ form .buttons {
     font-size: 70%;
     border-top: 1px dotted #ccc;
     text-align: center;
+}
+#property_and_canvas {
+}
+#property_sidebar {
+    float: left;
+    width: 150px;
+    height: 100%;
+}
+#property_sidebar ul {
+    margin: 0px;
+}
+#canvas_container {
+    height: 100%;
+}
+#canvas {
+    position: absolute;
+    top: 75px;
+    left: 150px;
+    width: auto;
+}
+.property_table input {
+    width: 3em;
 }
