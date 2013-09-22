@@ -125,7 +125,7 @@ function draw_objects(ctx, objects, x_size, y_size)
 	// Clear background
 	ctx.fillStyle = "rgb(240,240,240)";
 
-	ctx.fillStyle = "rgb(125,155,155)";
+	ctx.fillStyle = "rgb(175,205,225)";
 
 	ctx.fillRect (0, 0, x_size, y_size);
 

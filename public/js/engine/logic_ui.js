@@ -8,7 +8,8 @@
 
 // Parameters
 var snap = 5;
-var min_zoom = 0.05;
+var min_zoom = 0.20;
+var max_zoom = 2.0;
 var update_rate = 10;
 
 var obj = new Array();
@@ -106,8 +107,8 @@ function resize_canvas()
 {
 	var canvas = document.getElementById("canvas");
 
-	canvas.width = window.innerWidth - $(canvas).offset().left - 10;
-	canvas.height = window.innerHeight- $(canvas).offset().top - 10;
+	canvas.width = window.innerWidth - $(canvas).offset().left - 5;
+	canvas.height = window.innerHeight- $(canvas).offset().top - 5;
 }
 
 function draw_display()
@@ -299,13 +300,14 @@ function mouse_wheel( event )
     	delta = -event.detail/3;
     }
 
-	var zoom_factor = 1 + delta; // * 0.05;
+	var zoom_factor = 1 + delta * 0.05;
 
     zoom *= zoom_factor;       
 
     if (zoom < min_zoom) 
     	zoom = min_zoom;
-   
+    if (zoom > max_zoom)
+        zoom = max_zoom;
             
 	// Recompute offsets for new zoom 
 	var canvas = document.getElementById("canvas");
