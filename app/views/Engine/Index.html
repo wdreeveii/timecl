@@ -1,10 +1,12 @@
 {{set . "title" "Logic Home"}}
+{{append . "moreScripts" "js/jquery-ui-1.7.2.custom.min.js"}}
 {{append . "moreScripts" "js/engine/object.js"}}
 {{append . "moreScripts" "js/engine/objects.js"}}
 {{append . "moreScripts" "js/engine/graphics.js"}}
 {{append . "moreScripts" "js/engine/data_source.js"}}
 {{append . "moreScripts" "js/engine/backend_link.js"}}
 {{append . "moreScripts" "js/engine/logic_ui.js"}}
+{{append . "moreScripts" "js/engine/engine.js"}}
 {{template "header.html" .}}
 <div>
     <div class="btn-group">
@@ -74,6 +76,13 @@
         <ul class="dropdown-menu">
             <li onclick="set_guide('show');" class="btn">Show Term</li>
             <li onclick="set_guide('hide');" class="btn">Hide Term</li>
+        </ul>
+    </div>
+    <div class="btn-group">
+        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Engine<span class="caret"></span></a>
+        <ul class="dropdown-menu">
+            <li onclick="new_engine();" class="btn">New</li>
+            <li onclick="save_engine();" class="btn">Make Persistent</li>
         </ul>
     </div>
 </div>

@@ -1,33 +1,36 @@
-
 package logic_engine
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"github.com/robfig/revel"
+	"io/ioutil"
 	"sync"
 	"time"
 )
+
 type processor func(o *Object_t, objs map[int]*Object_t)
 
 type Object_t struct {
-	Id				int
-	Type			string
-	Xpos			int
-	Ypos			int
-	Xsize			int
-	Ysize			int
-	Output			float64
-	NextOutput		float64
-	TermList		string
-	Terminals		[]int
-	Source			int
-	PropertyCount 	int
-	PropertyNames 	[]string
-	PropertyValues 	[]string
-	PropertyTypes	[]string
-	Attached		int
-	Dir				int
-	process			processor
+	Id             int
+	Type           string
+	Xpos           int
+	Ypos           int
+	Xsize          int
+	Ysize          int
+	Output         float64
+	NextOutput     float64
+	TermList       string
+	Terminals      []int
+	Source         int
+	PropertyCount  int
+	PropertyNames  []string
+	PropertyValues []string
+	PropertyTypes  []string
+	Attached       int
+	Dir            int
+	process        processor
 }
 
 func (o Object_t) Display() {
@@ -74,11 +77,11 @@ func (o Object_t) GetProperty(name string) string {
 }
 
 type Engine_t struct {
-	mu					sync.Mutex
-	objects				map[int]*Object_t
-	index				int
-	update_rate			float32
-	solve_iterations	int
+	mu               sync.Mutex
+	objects          map[int]*Object_t
+	index            int
+	update_rate      float32
+	solve_iterations int
 }
 
 func (e *Engine_t) Init() {
@@ -88,13 +91,13 @@ func (e *Engine_t) Init() {
 	go e.Start()
 }
 
-func (e *Engine_t) Start () {
+func (e *Engine_t) Start() {
 	e.LoadObjects()
 	e.printObjects()
 	e.Run()
 }
 
-func (e *Engine_t) Run () {
+func (e *Engine_t) Run() {
 	for {
 		e.mu.Lock()
 		for ii := 0; ii < e.solve_iterations; ii++ {
@@ -103,7 +106,7 @@ func (e *Engine_t) Run () {
 		e.mu.Unlock()
 		e.SetOutputs()
 		e.printObjects()
-		time.Sleep(time.Duration(1000/e.update_rate)*time.Millisecond)
+		time.Sleep(time.Duration(1000/e.update_rate) * time.Millisecond)
 	}
 }
 
@@ -111,18 +114,33 @@ func (e *Engine_t) Process() {
 	for _, val := range e.objects {
 		val.process(val, e.objects)
 	}
-	
+
 	for _, val := range e.objects {
 		val.Output = val.NextOutput
 	}
 }
 
-func (e *Engine_t) QueryObjects() {
-	
+func (e *Engine_t) Save() {
+	m := new(bytes.Buffer)
+	enc := gob.NewEncoder(m)
+	enc.Encode(e)
+	err := ioutil.WriteFile("gob", m.Bytes(), 0600)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (e *Engine_t) LoadObjects() {
-	
+	/*n, err := ioutil.ReadFile("gob")
+	if err != nil {
+		panic(err)
+	}
+	p := bytes.NewBuffer(n)
+	dec := gob.NewDecoder(p)
+	err = dec.Decode(e)
+	if err != nil {
+		panic(err)
+	}*/
 }
 
 func (e *Engine_t) printObjects() {
@@ -147,7 +165,7 @@ func (e *Engine_t) SetOutputs() {
 }
 
 type State_t struct {
-	Id	int
+	Id     int
 	Output float64
 }
 
@@ -183,25 +201,25 @@ func (e *Engine_t) ListObjects() []Object_t {
 	return objs
 }
 
-func (e *Engine_t) AddObject(objtype string, 
-				x_pos int,
-				y_pos int,
-				x_size int,
-				y_size int,
-				attached int,
-				dir int,
-				property_count int,
-				property_names []string, 
-				property_types []string, 
-				property_values []string) int {
-		
+func (e *Engine_t) AddObject(objtype string,
+	x_pos int,
+	y_pos int,
+	x_size int,
+	y_size int,
+	attached int,
+	dir int,
+	property_count int,
+	property_names []string,
+	property_types []string,
+	property_values []string) int {
+
 	var obj = Object_t{Type: objtype, Source: -1,
-						Xpos: x_pos, Ypos: y_pos,
-						Xsize: x_size, Ysize: y_size,
-						PropertyCount: property_count,
-						PropertyNames: property_names,
-						PropertyValues: property_values,
-						process: processors[objtype]}
+		Xpos: x_pos, Ypos: y_pos,
+		Xsize: x_size, Ysize: y_size,
+		PropertyCount:  property_count,
+		PropertyNames:  property_names,
+		PropertyValues: property_values,
+		process:        processors[objtype]}
 	fmt.Println(property_names)
 	fmt.Println(property_values)
 	e.mu.Lock()
@@ -241,7 +259,7 @@ func (e *Engine_t) SetOutput(id int, output float64) {
 	e.mu.Unlock()
 }
 func (e *Engine_t) SetProperties(id int, property_count int,
-							property_names []string, property_types []string, property_values []string) {
+	property_names []string, property_types []string, property_values []string) {
 	e.mu.Lock()
 	e.objects[id].PropertyNames = property_names
 	e.objects[id].PropertyTypes = property_types
@@ -249,57 +267,8 @@ func (e *Engine_t) SetProperties(id int, property_count int,
 	e.mu.Unlock()
 }
 
-func engineManager() {
-	//var engine Engine_t
-	
-	/*for {
-		select {
-		case obj_add_cmd, ok := <- addobj:
-			if (!ok) {
-				return
-			}
-			obj_index := len(engine.Objects)
-			engine.Objects = append(engine.Objects, obj_add_cmd.obj)
-			obj_add_cmd.recv <- obj_index
-		case statecmd, ok := <- getstates:
-			if (!ok) {
-				return
-			}
-			states := StateResult{Num: len(engine.Objects)}
-			for index, val := range engine.Objects {
-				states.ObjList = append(states.ObjList, States_t{Id: index, Output: val.Output})
-			}
-			statecmd.recv <- states
-		}
-	}*/
-}
 func Init() {
 	fmt.Println("engine start")
-	go engineManager()
-	/*db.Init()
-	dbm := &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
-
-	init_networkconfig_table(dbm)
-	
-	result := GetHardwareInterfaces()
-	fmt.Println("results: ", result)
-	for _, config_key := range result {
-		fmt.Println(config_key)
-		networks, err := dbm.Select(models.NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, config_key)
-		if err != nil {
-			panic(err)
-		}
-		var driver driverListItem
-		if len(networks) > 0 {
-			driver_name := networks[0].(*models.NetworkConfig).Driver
-			for index, driver_list_item := range driver_collection {
-				if driver_name == driver_list_item.Name {
-					driver = driver_collection[index]
-				}
-			}
-		}
-		newInterface <- interfaceItem{ConfigKey: config_key, Driver: driver}
-	}*/
 }
 
 func init() {
