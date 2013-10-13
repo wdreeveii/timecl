@@ -1,11 +1,10 @@
-
 package logic_engine
 
 import (
 	//"fmt"
 	"math"
-	"time"
 	"sync"
+	"time"
 )
 
 var processors = make(map[string]processor)
@@ -32,173 +31,196 @@ func init() {
 	//processors["hbar"] = 
 	processors["timebase"] = ProcessTimeBase
 	processors["timerange"] = ProcessTimeRange
-	go func () {
+	go func() {
 		for {
-			<- time.After(200*time.Millisecond)
+			<-time.After(200 * time.Millisecond)
 			tbmu.Lock()
 			tick += 1
 			tbmu.Unlock()
 		}
 	}()
-	
+
 }
 
-func ProcessGuide(o *Object_t, objects map[int]*Object_t) {
-	if o.Source < 0 {
+func ProcessGuide(o *Object_t, Objects map[int]*Object_t) {
+	source := int((*o)["Source"].(float64))
+	if source < 0 {
 		return
 	}
-	o.NextOutput = objects[o.Source].Output
+	(*o)["NextOutput"] = (*Objects[source])["Output"]
 }
 
-func ProcessBinput(o *Object_t, objects map[int]*Object_t) {
+func ProcessBinput(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	o.NextOutput = o.Output
-	objects[o.Terminals[0]].NextOutput = o.Output
+	(*o)["NextOutput"] = (*o)["Output"]
+	term := (*o)["Terminals"].(Terminals)[0]
+	(*Objects[term])["NextOutput"] = (*o)["Output"]
 }
 
-func ProcessBoutput(o *Object_t, objects map[int]*Object_t) {
+func ProcessBoutput(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	o.NextOutput = objects[o.Terminals[0]].Output
+	term := (*o)["Terminals"].(Terminals)[0]
+	(*o)["NextOutput"] = (*Objects[term])["Output"]
 }
 
-func ProcessAoutput(o *Object_t, objects map[int]*Object_t) {
+func ProcessAoutput(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	o.NextOutput = objects[o.Terminals[0]].Output
+	(*o)["NextOutput"] = (*Objects[(*o)["Terminals"].(Terminals)[0]])["Output"]
 }
 
-func ProcessNotGate(o *Object_t, objects map[int]*Object_t) {
+func ProcessNotGate(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(2) {
 		return
 	}
-	if o.GetTerminal(objects, 0) > 0 {
-		o.NextOutput = 0
+	if o.GetTerminal(Objects, 0) > 0 {
+		(*o)["NextOutput"] = float64(0)
 	} else {
-		o.NextOutput = 1
+		(*o)["NextOutput"] = float64(1)
 	}
-	o.AssignOutput(objects, 1)
+	o.AssignOutput(Objects, 1)
 }
 
-func ProcessAndGate(o *Object_t, objects map[int]*Object_t) {
+func ProcessAndGate(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	if objects[o.Terminals[0]].Output > 0 && objects[o.Terminals[1]].Output > 0 {
-		o.NextOutput = 1
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	term1 := (*o)["Terminals"].(Terminals)[1]
+	if (*Objects[term0])["Output"].(Output) > 0 && (*Objects[term1])["Output"].(Output) > 0 {
+		(*o)["NextOutput"] = 1
 	} else {
-		o.NextOutput = 0
+		(*o)["NextOutput"] = 0
 	}
-	o.AssignOutput(objects, 2)
+	o.AssignOutput(Objects, 2)
 }
 
-func ProcessOrGate(o *Object_t, objects map[int]*Object_t) {
+func ProcessOrGate(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	if objects[o.Terminals[0]].Output > 0 || objects[o.Terminals[1]].Output > 0 {
-		o.NextOutput = 1
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	term1 := (*o)["Terminals"].(Terminals)[1]
+	if (*Objects[term0])["Output"].(Output) > 0 || (*Objects[term1])["Output"].(Output) > 0 {
+		(*o)["NextOutput"] = 1
 	} else {
-		o.NextOutput = 0
+		(*o)["NextOutput"] = 0
 	}
-	o.AssignOutput(objects, 2)
+	o.AssignOutput(Objects, 2)
 }
 
 func xor(cond1, cond2 bool) bool {
 	return (cond1 || cond2) && !(cond1 && cond2)
 }
 
-func ProcessXorGate(o *Object_t, objects map[int]*Object_t) {
+func ProcessXorGate(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	if xor((objects[o.Terminals[0]].Output > 0), (objects[o.Terminals[1]].Output > 0)) {
-		o.NextOutput = 1
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	term1 := (*o)["Terminals"].(Terminals)[1]
+	if xor(((*Objects[term0])["Output"].(Output) > 0), ((*Objects[term1])["Output"].(Output) > 0)) {
+		(*o)["NextOutput"] = 1
 	} else {
-		o.NextOutput = 0
+		(*o)["NextOutput"] = 0
 	}
-	o.AssignOutput(objects, 2)
+	o.AssignOutput(Objects, 2)
 }
 
-func ProcessMult(o *Object_t, objects map[int]*Object_t) {
+func ProcessMult(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	o.NextOutput = objects[o.Terminals[0]].Output * objects[o.Terminals[1]].Output
-	o.AssignOutput(objects, 2)
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	term1 := (*o)["Terminals"].(Terminals)[1]
+	(*o)["NextOutput"] = (*Objects[term0])["Output"].(Output) * (*Objects[term1])["Output"].(Output)
+	o.AssignOutput(Objects, 2)
 }
 
-func ProcessDiv(o *Object_t, objects map[int]*Object_t) {
+func ProcessDiv(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	if objects[o.Terminals[1]].Output != 0 {
-		o.NextOutput = objects[o.Terminals[0]].Output / objects[o.Terminals[1]].Output
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	term1 := (*o)["Terminals"].(Terminals)[1]
+	if (*Objects[term1])["Output"].(Output) != 0 {
+		(*o)["NextOutput"] = (*Objects[term0])["Output"].(Output) / (*Objects[term1])["Output"].(Output)
 	}
-	o.AssignOutput(objects, 2)
+	o.AssignOutput(Objects, 2)
 }
 
-func ProcessAdd(o *Object_t, objects map[int]*Object_t) {
+func ProcessAdd(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	o.NextOutput = objects[o.Terminals[0]].Output + objects[o.Terminals[1]].Output
-	o.AssignOutput(objects, 2)
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	term1 := (*o)["Terminals"].(Terminals)[1]
+	(*o)["NextOutput"] = (*Objects[term0])["Output"].(Output) + (*Objects[term1])["Output"].(Output)
+	o.AssignOutput(Objects, 2)
 }
 
-func ProcessSub(o *Object_t, objects map[int]*Object_t) {
+func ProcessSub(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	o.NextOutput = objects[o.Terminals[0]].Output - objects[o.Terminals[1]].Output
-	o.AssignOutput(objects, 2)
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	term1 := (*o)["Terminals"].(Terminals)[1]
+	(*o)["NextOutput"] = (*Objects[term0])["Output"].(Output) - (*Objects[term1])["Output"].(Output)
+	o.AssignOutput(Objects, 2)
 }
 
-func ProcessPower(o *Object_t, objects map[int]*Object_t) {
+func ProcessPower(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	o.NextOutput = math.Pow(objects[o.Terminals[0]].Output, objects[o.Terminals[1]].Output)
-	o.AssignOutput(objects, 2)
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	term1 := (*o)["Terminals"].(Terminals)[1]
+	(*o)["NextOutput"] = math.Pow((*Objects[term0])["Output"].(float64), (*Objects[term1])["Output"].(float64))
+	o.AssignOutput(Objects, 2)
 }
 
-func ProcessSine(o *Object_t, objects map[int]*Object_t) {
+func ProcessSine(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(2) {
 		return
 	}
-	o.NextOutput = math.Sin(objects[o.Terminals[0]].Output)
-	o.AssignOutput(objects, 1)
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	(*o)["NextOutput"] = math.Sin((*Objects[term0])["Output"].(float64))
+	o.AssignOutput(Objects, 1)
 }
 
-func ProcessCosine(o *Object_t, objects map[int]*Object_t) {
+func ProcessCosine(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(2) {
 		return
 	}
-	o.NextOutput = math.Cos(objects[o.Terminals[0]].Output)
-	o.AssignOutput(objects, 1)
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	(*o)["NextOutput"] = math.Cos((*Objects[term0])["Output"].(float64))
+	o.AssignOutput(Objects, 1)
 }
+
 var tbmu sync.Mutex
 var tick float64
 
-func ProcessTimeBase(o *Object_t, objects map[int]*Object_t) {
+func ProcessTimeBase(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
 	tbmu.Lock()
-	o.NextOutput = tick //float64(time.Now().Unix())
+	(*o)["NextOutput"] = tick //float64(time.Now().Unix())
 	tbmu.Unlock()
-	o.AssignOutput(objects, 0)
+	o.AssignOutput(Objects, 0)
 }
 
-func ProcessXYscope(o *Object_t, objects map[int]*Object_t) {
+func ProcessXYscope(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(2) {
 		return
 	}
 }
+
 /*			if ($this->check_terminals(1)) return;
 
 			$on = $this->get_property("on");
@@ -214,17 +236,17 @@ func ProcessXYscope(o *Object_t, objects map[int]*Object_t) {
 			else
 				$this->output = 0;
 
-	
+
 			$this->next_output =  $this->output;
-			
-			$objects[$this->terminals[0]]->next_output = $this->output;*/
-func ProcessTimeRange(o *Object_t, objects map[int]*Object_t) {
+
+			$Objects[$this->terminals[0]]->next_output = $this->output;*/
+func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
 	var on = o.GetProperty("on")
 	var off = o.GetProperty("off")
-	
+
 	var current_time = time.Now().UTC()
 	var year, month, day = current_time.Date()
 	m := int(month)
@@ -232,14 +254,13 @@ func ProcessTimeRange(o *Object_t, objects map[int]*Object_t) {
 	on_time = on_time.AddDate(year, m-1, day-1)
 	var off_time, _ = time.Parse("15:04", off)
 	off_time = off_time.AddDate(year, m-1, day-1)
-	
+
 	if current_time.After(on_time) && current_time.Before(off_time) {
-		o.Output = 1;
+		(*o)["Output"] = 1
 	} else {
-		o.Output = 0
+		(*o)["Output"] = 0
 	}
-	o.NextOutput = o.Output
-	objects[o.Terminals[0]].NextOutput = o.Output
+	(*o)["NextOutput"] = (*o)["Output"]
+	term0 := (*o)["Terminals"].(Terminals)[0]
+	(*Objects[term0])["NextOutput"] = (*o)["Output"]
 }
-
-

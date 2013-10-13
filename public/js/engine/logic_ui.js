@@ -173,13 +173,13 @@ function mouse_up(ev)
 		}
 		else
 		{
-			backend_moveobject(sel_obj, obj[sel_obj].id, obj[sel_obj].x_pos, obj[sel_obj].y_pos);
+			backend_moveobject(sel_obj, obj[sel_obj].Id, obj[sel_obj].Xpos, obj[sel_obj].Ypos);
 		
-			for (var i in obj[sel_obj].guides)
+			for (var i in obj[sel_obj].Terminals)
 			{
-				var k = obj[sel_obj].guides[i];
+				var k = obj[sel_obj].Terminals[i];
 				//debug (i);
-				backend_moveobject(k, obj[k].id, obj[k].x_pos, obj[k].y_pos);
+				backend_moveobject(k, obj[k].Id, obj[k].Xpos, obj[k].Ypos);
 			}
 		}
 			
@@ -246,20 +246,20 @@ function mouse_move(ev)
 		var new_x = snap_val(get_world_x(pos.x) - obj_x_ofs);
 		var new_y = snap_val(get_world_y(pos.y) - obj_y_ofs);
 
-		var delta_x = new_x - obj[sel_obj].x_pos ;
-		var delta_y = new_y - obj[sel_obj].y_pos;
+		var delta_x = new_x - obj[sel_obj].Xpos ;
+		var delta_y = new_y - obj[sel_obj].Ypos;
 
 
-		obj[sel_obj].x_pos = new_x;
-		obj[sel_obj].y_pos = new_y;
+		obj[sel_obj].Xpos = new_x;
+		obj[sel_obj].Ypos = new_y;
 
 
-		for(var j in obj[sel_obj].guides)
+		for(var j in obj[sel_obj].Terminals)
 		{
-			var k = obj[sel_obj].guides[j];
+			var k = obj[sel_obj].Terminals[j];
 
-			obj[k].x_pos += delta_x;
-			obj[k].y_pos += delta_y;
+			obj[k].Xpos += delta_x;
+			obj[k].Ypos += delta_y;
 		}
 
 		draw_display();
@@ -378,7 +378,7 @@ function ui_add_pipe1(pos)
 
 	var i = find_object(pos.x, pos.y) 
 
-	if (i != -1 && obj[i].type == "guide")
+	if (i != -1 && obj[i].Type == "guide")
 	{
 		console.log("adding 1 pipe");
 		obj[i].selected  =1;
@@ -398,7 +398,7 @@ function ui_add_pipe2(pos)
 
 	if (i != -1 && i != sel_obj)
 	{
-		if (obj[sel_obj].type == "guide" && obj[i].type == "guide")
+		if (obj[sel_obj].Type == "guide" && obj[i].Type == "guide")
 		{
 			object_connect(sel_obj, i);
 			draw_display();
@@ -417,8 +417,8 @@ function ui_move_object(pos, i)
 {
 	if (obj[i].attached == -1)
 	{
-		obj_x_ofs = get_world_x(pos.x) - obj[i].x_pos;
-		obj_y_ofs = get_world_y(pos.y) - obj[i].y_pos;
+		obj_x_ofs = get_world_x(pos.x) - obj[i].Xpos;
+		obj_y_ofs = get_world_y(pos.y) - obj[i].Ypos;
 
 		//obj[i].selected = 1;//!obj[i].selected;
 
@@ -457,7 +457,6 @@ function ui_unhook_object(pos)
 function ui_add_object(pos)
 {
 	var index = add_object(obj, pos.x, pos.y, ui_addtype, 0);
-	obj[index].backend_add();
 	ui_mode = "none";
 	ui_addtype = "";
 
@@ -513,10 +512,10 @@ function show_properties(o)
 	p_str += "<table class='property_table'><tbody>";
 	p_str += "<tr><td><b>Type</b></td><td><b>" + o.type + "</b></td></tr>";
 
-	for (var i = 0; i < o.property_count; i++)
+	for (var i = 0; i < o.PropertyCount; i++)
 	{
-		p_str += "<tr><td><b>" + o.property_names[i] + " </b></td><td>";
-		p_str += "<input id='"    + o.property_names[i] + "_field' size='6&quot;' type='text' value='" + o.property_values[i] + "'></td></tr>";
+		p_str += "<tr><td><b>" + o.PropertyNames[i] + " </b></td><td>";
+		p_str += "<input id='"    + o.PropertyNames[i] + "_field' size='6&quot;' type='text' value='" + o.PropertyValues[i] + "'></td></tr>";
 	}
 
 	p_str += "</tbody></table>";
@@ -539,9 +538,9 @@ function save_properties(sel_obs)
 	var o = obj[sel_obj];
 
 	// Save all properties
-	for (var i = 0; i < o.property_count; i++)
+	for (var i = 0; i < o.PropertyCount; i++)
 	{
-		o.property_values[i] = get_value(o.property_names[i] + "_field");
+		o.PropertyValues[i] = get_value(o.PropertyNames[i] + "_field");
 	}
 
 	// Need to save peoperties to database

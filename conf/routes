@@ -27,13 +27,14 @@ POST	/engine/set/properties					Engine.SetProperties
 POST	/engine/unhook							Engine.UnhookObject
 POST	/engine/hook							Engine.HookObject
 POST	/engine/delete							Engine.DeleteObject
-POST	/engine/add								Engine.AddObject
 POST	/engine/move							Engine.MoveObject
+POST	/engine/new								Engine.NewEngine
+WS      /engine/ws 								Engine.EngineSocket
 POST    /login                                  Application.Login
 GET     /logout                                 Application.Logout
 
 # Map static resources from the /app/public folder to the /public path
 GET     /public/*filepath                       Static.Serve("public")
-GET     /favicon.ico                            Static.Serve("public/img","favicon.png")
+GET     /favicon.ico                            Static.Serve("public/img","favicon.ico")
 # Catch all
 *       /:controller/:action                    :controller.:action

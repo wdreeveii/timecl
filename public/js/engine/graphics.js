@@ -30,24 +30,24 @@ function draw_wire(ctx, objects, i1, i2, p1, p2)
 	var o1 = objects[i1];
 	var o2 = objects[i2];
 
-	var x1 = o1.x_pos + o1.x_size/2;
-	var y1 = o1.y_pos + o1.y_size/2;
+	var x1 = o1.Xpos + o1.Xsize/2;
+	var y1 = o1.Ypos + o1.Ysize/2;
 
-	var x2 = o2.x_pos + o1.x_size/2;
-	var y2 = o2.y_pos + o1.y_size/2;
+	var x2 = o2.Xpos + o1.Xsize/2;
+	var y2 = o2.Ypos + o1.Ysize/2;
 
 
 	if (show_guide == 0)
 	{
-		if (o1.dir == dir_type.left)  x1 += handle_size/2;
-		if (o1.dir == dir_type.right) x1 -= handle_size/2;
-		if (o1.dir == dir_type.up)    y1 += handle_size/2;
-		if (o1.dir == dir_type.down)  y1 -= handle_size/2;
+		if (o1.Dir == dir_type.left)  x1 += handle_size/2;
+		if (o1.Dir == dir_type.right) x1 -= handle_size/2;
+		if (o1.Dir == dir_type.up)    y1 += handle_size/2;
+		if (o1.Dir == dir_type.down)  y1 -= handle_size/2;
 
-		if (o2.dir == dir_type.left)  x2 += handle_size/2;
-		if (o2.dir == dir_type.right) x2 -= handle_size/2;
-		if (o2.dir == dir_type.up)    y2 += handle_size/2;
-		if (o2.dir == dir_type.down)  y2 -= handle_size/2;
+		if (o2.Dir == dir_type.left)  x2 += handle_size/2;
+		if (o2.Dir == dir_type.right) x2 -= handle_size/2;
+		if (o2.Dir == dir_type.up)    y2 += handle_size/2;
+		if (o2.Dir == dir_type.down)  y2 -= handle_size/2;
 	}
 
 
@@ -73,13 +73,13 @@ function draw_properties(ctx, o, x, y)
 	ctx.font = format(f_size) + "pt Arial";
 
 	if (o.show_output)
-	    ctx.fillText(bformat(o.output), get_x(x + o.x_size * 0.3 ), get_y(y + o.y_size/2) + f_size  / 2);
+	    ctx.fillText(bformat(o.Output), get_x(x + o.Xsize * 0.3 ), get_y(y + o.Ysize/2) + f_size  / 2);
 
 	if (o.show_analog)
-	    ctx.fillText(format(o.output), get_x(x + o.x_size * 0.1 ), get_y(y + o.y_size/2) + f_size  / 2);
+	    ctx.fillText(format(o.Output), get_x(x + o.Xsize * 0.1 ), get_y(y + o.Ysize/2) + f_size  / 2);
 
 	if (o.show_name)
-	    ctx.fillText(o.type, get_x(x + o.x_size * 0.1 ), get_y(y + o.y_size/2) - f_size  / 2 * 1.5);
+	    ctx.fillText(o.type, get_x(x + o.Xsize * 0.1 ), get_y(y + o.Ysize/2) - f_size  / 2 * 1.5);
 	    
 	ctx.fillStyle = old_fill;
 	    
@@ -91,11 +91,11 @@ function draw_object(ctx, o, x_size, y_size)
 	if (o.type == "guide" && show_guide == 0) return;
 
 
-	//if (o.x_pos + o.x_size < x_size) return;
-	//if (o.y_pos + o.y_size < y_size) return;
+	//if (o.Xpos + o.Xsize < Xsize) return;
+	//if (o.Ypos + o.Xsize < Ysize) return;
 
-//	if (o.x_pos  > x_size) return;
-	//if (o.y_pos  > y_size) return;
+//	if (o.Xpos  > Xsize) return;
+	//if (o.Ypos  > Ysize) return;
 	
 
 
@@ -106,17 +106,17 @@ function draw_object(ctx, o, x_size, y_size)
 		var border = 4;
 
 		ctx.fillStyle = "rgb(255,0,0)";
-		ctx.fillRect (get_x(o.x_pos - border ), get_y(o.y_pos - border), (o.x_size + 2*border)*zoom,(o.y_size + 2*border)*zoom);
+		ctx.fillRect (get_x(o.Xpos - border ), get_y(o.Ypos - border), (o.Xsize + 2*border)*zoom,(o.Ysize + 2*border)*zoom);
 
 		ctx.fillStyle = old_fill;
 	}
 
 	o.draw_icon(ctx);
 	
-	o.draw_properties(ctx, o.x_pos, o.y_pos);
+	o.draw_properties(ctx, o.Xpos, o.Ypos);
 	
 
-	//draw_properties(ctx, o, o.x_pos, o.y_pos);
+	//draw_properties(ctx, o, o.Xpos, o.Ypos);
 }
 
 
@@ -138,7 +138,7 @@ function draw_objects(ctx, objects, x_size, y_size)
 	// Draw all wires
 	for (var i in objects)
 	{
-		var idx = objects[i].source;
+		var idx = objects[i].Source;
 			
 		if (idx >= 0)
 			draw_wire(ctx, objects, i, idx, 1, 0);

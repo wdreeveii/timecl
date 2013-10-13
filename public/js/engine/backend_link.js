@@ -66,6 +66,27 @@ function backend_setproperties(index, id, property_count, property_names, proper
 	});
 }
 
+function backend_new_engine(name)
+{
+	$.ajax({
+		url: "/engine/new",
+		context: document.body,
+		type: "POST",
+	});
+}
+
+function backend_save_engine(name)
+{
+	var cmd = "name="+name;
+
+	$.ajax({
+		url: "/engine/save",
+		context: document.body,
+		type: "POST",
+		data: cmd
+	});
+}
+
 function backend_unhookobject(index, id)
 {
 	var cmd = "id=" + id ;
@@ -90,34 +111,16 @@ function backend_deleteobject(index, id)
 	});
 }
 
-function backend_addobject(obj, done_callback)
+function backend_addobject(obj)
 {
-	var cmd = "objtype=" + obj.type + "&" +
-			  "root_id=" + obj.root_id + "&" +
-    	      "x_pos=" + obj.x_pos + "&" +
-    	      "y_pos=" + obj.y_pos + "&" + 
-    	      "x_size=" + obj.x_size + "&" +
-    	      "y_size=" + obj.y_size + "&" +
-       	      "attached=" + obj.attached + "&" +
-    	      "dir=" + obj.dir + "&";
-	console.log(obj.property_values);
-	for (var ii = 0; ii < obj.property_count; ii++) {
-		cmd += "property_names["+ii+"]=" + obj.property_names[ii] + "&";
+	var event = {
+		Type: "add",
+		Data: obj,
+		Timestamp: 1000000,
 	}
-	for (var ii = 0; ii < obj.property_count; ii++) {
-		cmd += "property_types["+ii+"]=" + obj.property_types[ii] + "&";
-	}
-	for (var ii = 0; ii < obj.property_count; ii++) {
-		cmd += "property_values["+ii+"]=" + obj.property_values[ii] + "&";
-	}
-	cmd += "property_count=" + obj.property_count;
-
-	$.ajax({
-		url: "/engine/add",
-		context: document.body,
-		type: "POST",
-		data: cmd
-	}).done(done_callback);
+	console.log("sending1");
+	socket.send(JSON.stringify(event));
+	console.log("sending2");
 }
 
 function backend_moveobject(index, id, x_pos, y_pos)
@@ -134,10 +137,10 @@ function backend_moveobject(index, id, x_pos, y_pos)
 	});
 }
 
-function backend_setguides(index, id, guides)
+function backend_setguides(index, id, Terminals)
 {
 	var cmd = "id=" + id  + "&" +
-		      "guides=" + guides;
+		      "Terminals=" + Terminals;
 	
 	$.ajax({
 		url: "/engine/set/guides",
@@ -193,7 +196,7 @@ function backend_load( )
 	
 			obj[index].id = id;
 			console.log("setting " + String(index));
-			obj[index].tmp_guides = tmp[j].Terminals;
+			obj[index].tmp_Terminals = tmp[j].Terminals;
 			obj[index].source_id = source_id;
 			
 			obj[index].property_count = property_count;
@@ -211,7 +214,7 @@ function backend_load( )
 		
 		for (var j in obj)
 		{
-			var guide_list = obj[j].tmp_guides;
+			var guide_list = obj[j].tmp_Terminals;
 			if (guide_list) {
 				for (var k = 0; k < guide_list.length; k++)
 				{
@@ -219,7 +222,7 @@ function backend_load( )
 					{
 						if (obj[l].id == guide_list[k])
 						{
-							obj[j].guides.push(l);
+							obj[j].Terminals.push(l);
 						}
 					}
 				}
@@ -271,11 +274,24 @@ function backend_getstates( )
 		}
 	});
 }
-
+var socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
+socket.onmessage = function(event) {
+	console.log(event.data)
+}
 function backend_start( )
 {
 	setInterval(function() { backend_update(); }.bind(this), 10000);
-	
+	var testevent = {
+		Type: "edit",
+		Data: {
+			Id: 1,
+			State: {
+				"test": 123
+			}
+		},
+		Timestamp: 100000000
+	}
+	setInterval(function() { socket.send(JSON.stringify(testevent));}.bind(this), 2000);
 	backend_load();
 }
 
