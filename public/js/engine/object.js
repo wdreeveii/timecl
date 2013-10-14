@@ -58,23 +58,23 @@ function object_type(name)
 	
 	this.RootId = -1;
 	
-	this.add_output_terminal = function(objects, pos)
+	this.add_output_terminal = function(objects, pos, root_id)
 	{
 		var index = add_object(objects,
 							   this.Xpos + this.Xsize,
 							   this.Ypos + this.Ysize/2 - guide_size/2 + pos * (guide_size+2), 
-						       "guide", 1, dir_type.right);
+						       "guide", 1, dir_type.right, root_id);
 
 		this.Terminals.push(index);
 	}
 
 
-	this.add_input_terminal = function(objects, pos)
+	this.add_input_terminal = function(objects, pos, root_id)
 	{
 		var index = add_object(objects,
 						      this.Xpos-guide_size, 
 						      this.Ypos + this.Ysize/2 - guide_size/2 + pos * (guide_size+2), 
-							  "guide", 1, dir_type.left);
+							  "guide", 1, dir_type.left, root_id);
 
 		this.Terminals.push(index);
 	}
@@ -165,14 +165,14 @@ function bounding_rect(ctx, o)
 	ctx.fill();
 	ctx.stroke();	
 }
-function init_obj(x, y, type, attached, dir, index) {
+function init_obj(x, y, type, attached, dir, index, root_id) {
 	var o = new object_type;
 	o.Type = type;
 	o.Xpos = x;
 	o.Ypos = y;
 	o.Dir = dir;
 	o.Id = index;
-	o.RootId = 0;
+	o.RootId = root_id;
 	o.index = index;
 	if (type == "guide")
 		o.Attached = attached;
@@ -188,43 +188,44 @@ function construct(new_object) {
 	}
 }
 
-function add_object(objects, x, y, type, attached, dir)
+function add_object(objects, x, y, type, attached, dir, root_id)
 {
 	var index = objects.length;
-	var o = init_obj(x, y, type, attached, dir, index);
+	var o = init_obj(x, y, type, attached, dir, index, root_id);
 	objects.push(o);
 	construct(o);
-	
 	// Add terminals
 	// HACK
 	for (var i = 0; i < o.input_termcount; i++)
 	{
 		if (o.input_termcount == 1)
-			o.add_input_terminal(objects, 0);
+			o.add_input_terminal(objects, 0, index);
 		
 		if (o.input_termcount == 2)
-			o.add_input_terminal(objects, 2*i - 1);
+			o.add_input_terminal(objects, 2*i - 1, index);
 	}
 		
 	for (var i = 0; i < o.output_termcount; i++)
 	{
 		if (o.output_termcount == 1)
-			o.add_output_terminal(objects, 0);
+			o.add_output_terminal(objects, 0, index);
 
 		if (o.output_termcount == 2)
-			o.add_output_terminal(objects, 2*i - 1);
+			o.add_output_terminal(objects, 2*i - 1, index);
 	}
 	objects[index].backend_add()
 	return index;
 }
 
-function load_object(objects, x, y, type, attached, dir)
-{
-	var index = objects.length;
-	var o = init_obj(x, y, type, attached, dir, index);
-	objects.push(o);
-	construct(o);
-	return index;
+function load_objects(objects) {
+	var results = Array();
+	for (var i = 0; i < objects.length; i++) {
+		var o = new object_type;
+		$.extend(o, objects[i]);
+		construct(o);
+		results[o["Id"]] = o;
+	}
+	return results;
 }
 
 function find_object(x, y)

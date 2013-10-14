@@ -43,7 +43,7 @@ func init() {
 }
 
 func ProcessGuide(o *Object_t, Objects map[int]*Object_t) {
-	source := int((*o)["Source"].(float64))
+	source := int((*o)["Source"].(int))
 	if source < 0 {
 		return
 	}
@@ -55,7 +55,7 @@ func ProcessBinput(o *Object_t, Objects map[int]*Object_t) {
 		return
 	}
 	(*o)["NextOutput"] = (*o)["Output"]
-	term := (*o)["Terminals"].(Terminals)[0]
+	term := int((*o)["Terminals"].([]interface{})[0].(float64))
 	(*Objects[term])["NextOutput"] = (*o)["Output"]
 }
 
@@ -63,7 +63,7 @@ func ProcessBoutput(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	term := (*o)["Terminals"].(Terminals)[0]
+	term := int((*o)["Terminals"].([]interface{})[0].(float64))
 	(*o)["NextOutput"] = (*Objects[term])["Output"]
 }
 
@@ -71,7 +71,8 @@ func ProcessAoutput(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	(*o)["NextOutput"] = (*Objects[(*o)["Terminals"].(Terminals)[0]])["Output"]
+	term := int((*o)["Terminals"].([]interface{})[0].(float64))
+	(*o)["NextOutput"] = (*Objects[term])["Output"]
 }
 
 func ProcessNotGate(o *Object_t, Objects map[int]*Object_t) {
@@ -90,12 +91,12 @@ func ProcessAndGate(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
-	term1 := (*o)["Terminals"].(Terminals)[1]
-	if (*Objects[term0])["Output"].(Output) > 0 && (*Objects[term1])["Output"].(Output) > 0 {
-		(*o)["NextOutput"] = 1
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
+	if (*Objects[term0])["Output"].(float64) > 0 && (*Objects[term1])["Output"].(float64) > 0 {
+		(*o)["NextOutput"] = float64(1)
 	} else {
-		(*o)["NextOutput"] = 0
+		(*o)["NextOutput"] = float64(0)
 	}
 	o.AssignOutput(Objects, 2)
 }
@@ -104,12 +105,12 @@ func ProcessOrGate(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
-	term1 := (*o)["Terminals"].(Terminals)[1]
-	if (*Objects[term0])["Output"].(Output) > 0 || (*Objects[term1])["Output"].(Output) > 0 {
-		(*o)["NextOutput"] = 1
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
+	if (*Objects[term0])["Output"].(float64) > 0 || (*Objects[term1])["Output"].(float64) > 0 {
+		(*o)["NextOutput"] = float64(1)
 	} else {
-		(*o)["NextOutput"] = 0
+		(*o)["NextOutput"] = float64(0)
 	}
 	o.AssignOutput(Objects, 2)
 }
@@ -122,12 +123,12 @@ func ProcessXorGate(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
-	term1 := (*o)["Terminals"].(Terminals)[1]
-	if xor(((*Objects[term0])["Output"].(Output) > 0), ((*Objects[term1])["Output"].(Output) > 0)) {
-		(*o)["NextOutput"] = 1
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
+	if xor(((*Objects[term0])["Output"].(float64) > 0), ((*Objects[term1])["Output"].(float64) > 0)) {
+		(*o)["NextOutput"] = float64(1)
 	} else {
-		(*o)["NextOutput"] = 0
+		(*o)["NextOutput"] = float64(0)
 	}
 	o.AssignOutput(Objects, 2)
 }
@@ -136,9 +137,9 @@ func ProcessMult(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
-	term1 := (*o)["Terminals"].(Terminals)[1]
-	(*o)["NextOutput"] = (*Objects[term0])["Output"].(Output) * (*Objects[term1])["Output"].(Output)
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
+	(*o)["NextOutput"] = (*Objects[term0])["Output"].(float64) * (*Objects[term1])["Output"].(float64)
 	o.AssignOutput(Objects, 2)
 }
 
@@ -146,10 +147,10 @@ func ProcessDiv(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
-	term1 := (*o)["Terminals"].(Terminals)[1]
-	if (*Objects[term1])["Output"].(Output) != 0 {
-		(*o)["NextOutput"] = (*Objects[term0])["Output"].(Output) / (*Objects[term1])["Output"].(Output)
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
+	if (*Objects[term1])["Output"].(float64) != 0 {
+		(*o)["NextOutput"] = (*Objects[term0])["Output"].(float64) / (*Objects[term1])["Output"].(float64)
 	}
 	o.AssignOutput(Objects, 2)
 }
@@ -158,9 +159,9 @@ func ProcessAdd(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
-	term1 := (*o)["Terminals"].(Terminals)[1]
-	(*o)["NextOutput"] = (*Objects[term0])["Output"].(Output) + (*Objects[term1])["Output"].(Output)
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
+	(*o)["NextOutput"] = (*Objects[term0])["Output"].(float64) + (*Objects[term1])["Output"].(float64)
 	o.AssignOutput(Objects, 2)
 }
 
@@ -168,9 +169,9 @@ func ProcessSub(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
-	term1 := (*o)["Terminals"].(Terminals)[1]
-	(*o)["NextOutput"] = (*Objects[term0])["Output"].(Output) - (*Objects[term1])["Output"].(Output)
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
+	(*o)["NextOutput"] = (*Objects[term0])["Output"].(float64) - (*Objects[term1])["Output"].(float64)
 	o.AssignOutput(Objects, 2)
 }
 
@@ -178,8 +179,8 @@ func ProcessPower(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
-	term1 := (*o)["Terminals"].(Terminals)[1]
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
 	(*o)["NextOutput"] = math.Pow((*Objects[term0])["Output"].(float64), (*Objects[term1])["Output"].(float64))
 	o.AssignOutput(Objects, 2)
 }
@@ -188,7 +189,7 @@ func ProcessSine(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(2) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
 	(*o)["NextOutput"] = math.Sin((*Objects[term0])["Output"].(float64))
 	o.AssignOutput(Objects, 1)
 }
@@ -197,7 +198,7 @@ func ProcessCosine(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(2) {
 		return
 	}
-	term0 := (*o)["Terminals"].(Terminals)[0]
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
 	(*o)["NextOutput"] = math.Cos((*Objects[term0])["Output"].(float64))
 	o.AssignOutput(Objects, 1)
 }
@@ -261,6 +262,6 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t) {
 		(*o)["Output"] = 0
 	}
 	(*o)["NextOutput"] = (*o)["Output"]
-	term0 := (*o)["Terminals"].(Terminals)[0]
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
 	(*Objects[term0])["NextOutput"] = (*o)["Output"]
 }

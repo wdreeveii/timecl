@@ -8,6 +8,7 @@ import (
 	"github.com/robfig/revel"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -16,6 +17,13 @@ type processor func(o *Object_t, objs map[int]*Object_t)
 
 func (p processor) MarshalJSON() ([]byte, error) {
 	return []byte("[]"), nil
+}
+
+func (p *processor) GobEncode() ([]byte, error) {
+	return []byte(""), nil
+}
+func (p *processor) GobDecode([]byte) error {
+	return nil
 }
 
 type Id int
@@ -62,11 +70,11 @@ type Object_t map[string]interface{}
 func (o Object_t) Display() {
 	fmt.Printf("ID %4d  ", o["Id"])
 	fmt.Printf("Type %10s  ", o["Type"])
-	fmt.Printf("Source %3d  ", int(o["Source"].(float64)))
+	fmt.Printf("Source %3d  ", int(o["Source"].(int)))
 	fmt.Printf("Output %10f  ", o["Output"])
 	fmt.Printf("Terminals: ")
 	for _, val := range o["Terminals"].([]interface{}) {
-		fmt.Printf("%d ", val)
+		fmt.Printf("%d ", int(val.(float64)))
 	}
 	fmt.Printf("\n")
 }
@@ -135,8 +143,19 @@ func (e *Engine_t) Start() {
 func (e *Engine_t) Run() {
 	for {
 		e.mu.Lock()
+		outputs := make([]float64, len(e.Objects))
+		for k, val := range e.Objects {
+			outputs[k] = (*val)["Output"].(float64)
+		}
 		for ii := 0; ii < e.SolveIterations; ii++ {
 			e.Process()
+		}
+		for k, val := range e.Objects {
+			if outputs[k] != (*val)["Output"] {
+				newstate := make(map[string]interface{})
+				newstate["Output"] = (*val)["Output"].(float64)
+				PublishStateChange(k, newstate)
+			}
 		}
 		e.mu.Unlock()
 		e.SetOutputs()
@@ -160,10 +179,17 @@ func (e *Engine_t) Save() {
 	if !found {
 		return
 	}
+	tmp := make([]interface{}, 0)
+	gob.Register(tmp)
+	var p processor
+	gob.Register(p)
 	m := new(bytes.Buffer)
 	enc := gob.NewEncoder(m)
-	enc.Encode(e)
-	err := ioutil.WriteFile(path, m.Bytes(), 0600)
+	err := enc.Encode(e)
+	if err != nil {
+		fmt.Println("Encoding:", err)
+	}
+	err = ioutil.WriteFile(path, m.Bytes(), 0600)
 	if err != nil {
 		panic(err)
 	}
@@ -179,14 +205,20 @@ func (e *Engine_t) LoadObjects() {
 	}
 	n, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
-	fmt.Println(n)
+	tmp := make([]interface{}, 0)
+	gob.Register(tmp)
+	var proc processor
+	gob.Register(proc)
 	p := bytes.NewBuffer(n)
 	dec := gob.NewDecoder(p)
+
 	err = dec.Decode(e)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	for k, _ := range e.Objects {
 		obj := *e.Objects[k]
@@ -215,51 +247,101 @@ func (e *Engine_t) SetOutputs() {
 	// for each object set
 }
 
-type State_t struct {
-	Id     int
-	Output float64
-}
-
-func (e *Engine_t) GetStates() []State_t {
-	e.mu.Lock()
-	var states []State_t
-	for _, val := range e.Objects {
-		states = append(states, State_t{Id: (*val)["Id"].(int), Output: (*val)["Output"].(float64)})
-	}
-	e.mu.Unlock()
-	return states
-}
-
-func (e *Engine_t) HookObject(id int, source int) {
-	e.mu.Lock()
-	(*e.Objects[id])["Source"] = source
-	e.Save()
-	e.mu.Unlock()
-}
-
-func (e *Engine_t) UnhookObject(id int) {
-	e.mu.Lock()
-	(*e.Objects[id])["Source"] = -1
-	e.Save()
-	e.mu.Unlock()
-}
-
-func (e *Engine_t) ListObjects() []Object_t {
+func (e *Engine_t) ListObjects() Event {
 	e.mu.Lock()
 	objs := make([]Object_t, 0, len(e.Objects))
 	for _, val := range e.Objects {
 		objs = append(objs, *val)
 	}
 	e.mu.Unlock()
-	return objs
+	event := newEvent("init", objs)
+	return event
 }
 
+func floatify(in interface{}) float64 {
+	var result float64
+	var err error
+	switch v := in.(type) {
+	case string:
+		result, err = strconv.ParseFloat(v, 64)
+		if err != nil {
+			fmt.Println(err)
+		}
+	case float64:
+		result = v
+	case int:
+		result = float64(v)
+	}
+	return result
+}
+
+func intify(in interface{}) int {
+	var result int
+	switch v := in.(type) {
+	case float64:
+		result = int(v)
+	case int:
+		result = v
+	}
+	return result
+}
+
+func stringify(in interface{}) string {
+	var result string
+	switch v := in.(type) {
+	case float64:
+		result = strconv.FormatFloat(v, 'f', 3, 64)
+	case string:
+		result = v
+	case int:
+		result = strconv.FormatInt(int64(v), 10)
+	}
+	return result
+}
+
+func sanitize(obj Object_t) Object_t {
+	var source int
+	source = intify(obj["Source"])
+	obj["Source"] = source
+
+	var PCount int
+	PCount = intify(obj["PropertyCount"])
+	obj["PropertyCount"] = PCount
+
+	var PNames []interface{}
+	for _, v := range obj["PropertyNames"].([]interface{}) {
+		PNames = append(PNames, stringify(v))
+	}
+	obj["PropertyNames"] = PNames
+
+	var PTypes []interface{}
+	for _, v := range obj["PropertyTypes"].([]interface{}) {
+		PTypes = append(PTypes, stringify(v))
+	}
+	obj["PropertyTypes"] = PTypes
+
+	var PValues []interface{}
+	for k, v := range obj["PropertyValues"].([]interface{}) {
+		switch {
+		case PTypes[k] == "float":
+			PValues = append(PValues, floatify(v))
+		case PTypes[k] == "string":
+			PValues = append(PValues, stringify(v))
+		case PTypes[k] == "int":
+			PValues = append(PValues, intify(v))
+		}
+	}
+	obj["PropertyValues"] = PValues
+	obj["Output"] = floatify(obj["Output"])
+	return obj
+}
 func (e *Engine_t) AddObject(obj Object_t) {
 	e.mu.Lock()
 	var id int
 	id = int(obj["Id"].(float64))
 	obj["Id"] = id
 	obj["process"] = processors[obj["Type"].(string)]
+	obj = sanitize(obj)
 	e.Objects[id] = &obj
 	e.Save()
 	e.mu.Unlock()
@@ -272,38 +354,24 @@ func (e *Engine_t) DeleteObject(id int) {
 	e.mu.Unlock()
 }
 
-func (e *Engine_t) MoveObject(id, x_pos, y_pos int) {
-	fmt.Println("Move: ", id, x_pos, y_pos)
+func (e *Engine_t) EditObject(new_states StateChange) {
+	id := new_states.Id
 	e.mu.Lock()
-	(*e.Objects[id])["Xpos"] = x_pos
-	(*e.Objects[id])["Ypos"] = y_pos
-	e.Save()
+	obj, ok := e.Objects[id]
+	if ok {
+		for k, v := range new_states.State {
+			(*obj)[k] = v
+		}
+		var newobj Object_t
+		newobj = sanitize(*obj)
+		e.Objects[id] = &newobj
+		e.Save()
+	} else {
+		fmt.Println("Edit: Unknown object")
+	}
 	e.mu.Unlock()
 }
 
-func (e *Engine_t) SetGuides(id int, guide int) {
-	e.mu.Lock()
-	(*e.Objects[id])["Terminals"] = append((*e.Objects[id])["Terminals"].(Terminals), guide)
-	e.Save()
-	e.mu.Unlock()
-}
-
-func (e *Engine_t) SetOutput(id int, output float64) {
-	e.mu.Lock()
-	fmt.Println("Setting output...", output)
-	(*e.Objects[id])["Output"] = output
-	e.Save()
-	e.mu.Unlock()
-}
-func (e *Engine_t) SetProperties(id int, property_count int,
-	property_names []string, property_types []string, property_values []string) {
-	e.mu.Lock()
-	(*e.Objects[id])["PropertyNames"] = property_names
-	(*e.Objects[id])["PropertyTypes"] = property_types
-	(*e.Objects[id])["PropertyValues"] = property_values
-	e.Save()
-	e.mu.Unlock()
-}
 func (e *Engine_t) EngineClient() {
 	subscription := e.Subscribe()
 	defer subscription.Cancel()
@@ -316,6 +384,15 @@ func (e *Engine_t) EngineClient() {
 			obj := event.Data.(map[string]interface{})
 			e.AddObject(obj)
 		case event.Type == "edit":
+			var s StateChange
+			switch v := event.Data.(type) {
+			case map[string]interface{}:
+				s = StateChange{Id: int(v["Id"].(float64)), State: v["State"].(map[string]interface{})}
+			case StateChange:
+				s = v
+			}
+
+			e.EditObject(s)
 			fmt.Println("edit recv")
 		}
 
@@ -428,7 +505,7 @@ func Init() {
 func init() {
 	revel.OnAppStart(Init)
 	go engine_pub_sub()
-	go testPublish()
+	//go testPublish()
 }
 
 // Drains a given channel of any messages.

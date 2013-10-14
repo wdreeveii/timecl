@@ -58,7 +58,6 @@ function start()
 	set_timer();
 	update();
 	//test_scope();
-	backend_start();
 	data_source_start();
 }
 
@@ -164,7 +163,6 @@ function mouse_up(ev)
 	var pos = mouse_pos(ev);    		
 	//document.getElementById("debug").innerHTML += "Up  " + pos.x + " " + pos.y +"<br>";
 	mouse_state = "up";
-
 	if (ui_mode == "moving")
 	{
 		if (!has_moved)
@@ -205,13 +203,12 @@ function mouse_down(ev)
 	//debug("mode: " + ui_mode);
 
 	has_moved = 0;
-	
+
 	if (pos.x < 0 || pos.y < 0) return;
 
 	if (ui_mode == "none")// No mode, either find an obj or clear mode
 	{
 		var i = find_object(pos.x, pos.y);
-
 		if (i == -1) // No object found, go clear selection
 		{
 			select_none();
@@ -415,7 +412,7 @@ function ui_add_pipe2(pos)
 
 function ui_move_object(pos, i)
 {
-	if (obj[i].attached == -1)
+	if (obj[i].Attached == -1)
 	{
 		obj_x_ofs = get_world_x(pos.x) - obj[i].Xpos;
 		obj_y_ofs = get_world_y(pos.y) - obj[i].Ypos;
@@ -456,7 +453,7 @@ function ui_unhook_object(pos)
 
 function ui_add_object(pos)
 {
-	var index = add_object(obj, pos.x, pos.y, ui_addtype, 0);
+	var index = add_object(obj, pos.x, pos.y, ui_addtype, 0, -1);
 	ui_mode = "none";
 	ui_addtype = "";
 
@@ -510,7 +507,7 @@ function show_properties(o)
 	// Create property table
 	
 	p_str += "<table class='property_table'><tbody>";
-	p_str += "<tr><td><b>Type</b></td><td><b>" + o.type + "</b></td></tr>";
+	p_str += "<tr><td><b>Type</b></td><td><b>" + o.Type + "</b></td></tr>";
 
 	for (var i = 0; i < o.PropertyCount; i++)
 	{
@@ -520,7 +517,7 @@ function show_properties(o)
 
 	p_str += "</tbody></table>";
 		
-	if (o.property_count > 0)
+	if (o.PropertyCount > 0)
 		p_str += "<input value='Save' onclick='save_properties(" +sel_obj + ");' type='submit'>  ";
 	
 	document.getElementById("property_area").innerHTML = p_str;
@@ -565,8 +562,7 @@ function set_addmode(obj_type)
 	//ui_mode = "add_object";
 	//ui_addtype = obj_type;
 	
-	var index = add_object(obj, get_world_x(100), get_world_y(100), obj_type, 0, 0);
-	obj[index].backend_add();
+	var index = add_object(obj, get_world_x(100), get_world_y(100), obj_type, 0, 0, -1);
 }
 
 function reset()

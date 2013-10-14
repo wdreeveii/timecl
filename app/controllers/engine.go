@@ -5,7 +5,6 @@ import (
 	"fmt"
 	//"sort"
 	"github.com/robfig/revel"
-	"time"
 	"timecl/app/logic_engine"
 	//"timecl/app/network_manager"
 	//"timecl/app/routes"
@@ -41,48 +40,9 @@ func (c Engine) checkUser() revel.Result {
 func (c Engine) Index() revel.Result {
 	return c.Render()
 }
-func (c Engine) Show() revel.Result {
-	return c.Render()
-}
-
-func (c Engine) ListObjects() revel.Result {
-	var objects []logic_engine.Object_t
-	objects = engine.ListObjects()
-	fmt.Println(objects)
-	return c.RenderJson(objects)
-}
-
-func (c Engine) GetStates(state int) revel.Result {
-	time.Sleep(40 * time.Second)
-	states := engine.GetStates()
-	return c.RenderJson(states)
-}
-func (c Engine) SetOutput(id int, output float64) revel.Result {
-	engine.SetOutput(id, output)
-	return c.RenderJson(1)
-}
-func (c Engine) SetProperties(id int, property_count int,
-	property_names []string, property_types []string, property_values []string) revel.Result {
-	engine.SetProperties(id, property_count, property_names, property_types, property_values)
-	return c.RenderJson(1)
-}
-func (c Engine) HookObject(id int, source int) revel.Result {
-	engine.HookObject(id, source)
-	return c.RenderJson(1)
-}
-func (c Engine) UnhookObject(id int) revel.Result {
-	engine.UnhookObject(id)
-	return c.RenderJson(1)
-}
 
 func (c Engine) DeleteObject(id int) revel.Result {
 	engine.DeleteObject(id)
-	return c.RenderJson(1)
-}
-
-func (c Engine) MoveObject(id int, x_pos int, y_pos int) revel.Result {
-	fmt.Println("Moving")
-	engine.MoveObject(id, x_pos, y_pos)
 	return c.RenderJson(1)
 }
 
@@ -95,7 +55,11 @@ func (c Engine) NewEngine() revel.Result {
 func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 	subscription := engine.Subscribe()
 	defer subscription.Cancel()
-
+	init := engine.ListObjects()
+	if err := websocket.JSON.Send(ws, &init); err != nil {
+		fmt.Println(err)
+		return nil
+	}
 	for _, event := range subscription.Archive {
 		if websocket.JSON.Send(ws, &event) != nil {
 			return nil

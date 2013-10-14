@@ -149,12 +149,13 @@ object_list.push("notgate");
 function notgate_type (o)
 {
 	o.show_output = 1;
-	
+	console.log("notgate_type", o.PropertyCount);
 	if (o.PropertyCount == 0)
 	{
 		o.add_property("name", "string", "");
 	}					 
-	
+	console.log("notgate_end", o.PropertyCount);
+	console.log("notgate_end2", o.PropertyNames);
 	o.input_termcount = 1;
 	o.output_termcount = 1;
 	
