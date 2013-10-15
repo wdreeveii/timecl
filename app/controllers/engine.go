@@ -41,11 +41,6 @@ func (c Engine) Index() revel.Result {
 	return c.Render()
 }
 
-func (c Engine) DeleteObject(id int) revel.Result {
-	engine.DeleteObject(id)
-	return c.RenderJson(1)
-}
-
 func (c Engine) NewEngine() revel.Result {
 	InitEngine()
 	engine.Save()

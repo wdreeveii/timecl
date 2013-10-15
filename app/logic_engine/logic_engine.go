@@ -144,7 +144,7 @@ func (e *Engine_t) Start() {
 func (e *Engine_t) Run() {
 	for {
 		e.mu.Lock()
-		outputs := make([]float64, len(e.Objects))
+		outputs := make(map[int]float64, len(e.Objects))
 		for k, val := range e.Objects {
 			outputs[k] = (*val)["Output"].(float64)
 		}
@@ -309,19 +309,19 @@ func sanitize(obj Object_t) Object_t {
 	PCount = intify(obj["PropertyCount"])
 	obj["PropertyCount"] = PCount
 
-	var PNames []interface{}
+	PNames := make([]interface{}, 0)
 	for _, v := range obj["PropertyNames"].([]interface{}) {
 		PNames = append(PNames, stringify(v))
 	}
 	obj["PropertyNames"] = PNames
 
-	var PTypes []interface{}
+	PTypes := make([]interface{}, 0)
 	for _, v := range obj["PropertyTypes"].([]interface{}) {
 		PTypes = append(PTypes, stringify(v))
 	}
 	obj["PropertyTypes"] = PTypes
 
-	var PValues []interface{}
+	PValues := make([]interface{}, 0)
 	for k, v := range obj["PropertyValues"].([]interface{}) {
 		switch {
 		case PTypes[k] == "float":
@@ -392,9 +392,14 @@ func (e *Engine_t) EngineClient() {
 			case StateChange:
 				s = v
 			}
-
 			e.EditObject(s)
 			fmt.Println("edit recv")
+		case event.Type == "del":
+			var id int
+			data := event.Data.(map[string]interface{})
+			id = intify(data["Id"])
+			e.DeleteObject(id)
+			fmt.Println("del recv")
 		}
 
 	}

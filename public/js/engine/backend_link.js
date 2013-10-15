@@ -92,14 +92,14 @@ function backend_setoutput(index, id, output)
 
 function backend_deleteobject(index, id)
 {
-	var cmd = "id=" + id ;
-	
-	$.ajax({
-		url: "/engine/delete",
-		context: document.body,
-		type: "POST",
-		data: cmd
-	});
+	var eevent = {
+		Type: "del",
+		Data: {
+			Id: id
+		},
+		Timestamp: 100000000
+	}
+	socket.send(JSON.stringify(eevent));
 }
 
 function backend_addobject(obj)
