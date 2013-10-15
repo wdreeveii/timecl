@@ -79,7 +79,7 @@ function draw_properties(ctx, o, x, y)
 	    ctx.fillText(format(o.Output), get_x(x + o.Xsize * 0.1 ), get_y(y + o.Ysize/2) + f_size  / 2);
 
 	if (o.show_name)
-	    ctx.fillText(o.type, get_x(x + o.Xsize * 0.1 ), get_y(y + o.Ysize/2) - f_size  / 2 * 1.5);
+	    ctx.fillText(o.Type, get_x(x + o.Xsize * 0.1 ), get_y(y + o.Ysize/2) - f_size  / 2 * 1.5);
 	    
 	ctx.fillStyle = old_fill;
 	    
@@ -88,7 +88,7 @@ function draw_properties(ctx, o, x, y)
 
 function draw_object(ctx, o, x_size, y_size)
 {
-	if (o.type == "guide" && show_guide == 0) return;
+	if (o.Type == "guide" && show_guide == 0) return;
 
 
 	//if (o.Xpos + o.Xsize < Xsize) return;

@@ -618,6 +618,7 @@ function timerange_type (o)
 		o.add_property("name", "string", "");
 		o.add_property("on", "time", "8:00");
 		o.add_property("off", "time", "18:00");
+		o.add_property("timezone", "timezone", "");
 	}					 
 	
 	o.draw_icon = function(ctx) 

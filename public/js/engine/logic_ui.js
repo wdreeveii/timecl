@@ -39,18 +39,20 @@ var y_ofs = 0;
 */
 function start()
 {
+	var canvas = document.getElementById('canvas')
 	// Map mouse functions
-	document.onmouseup = mouse_up; 
-	document.onmousedown = mouse_down; 
-	document.onmousemove = mouse_move; 
+	$(canvas).mouseup(mouse_up); 
+	$(canvas).mousedown(mouse_down); 
+	$(canvas).mousemove(mouse_move); 
 
 	// Mouse wheel, FF
-	if (window.addEventListener)
-        window.addEventListener('DOMMouseScroll', mouse_wheel, false);
+	if (canvas.addEventListener)
+        canvas.addEventListener('DOMMouseScroll', mouse_wheel, false);
 
 	// Mouse Wheel IE
 	window.onmousewheel = document.onmousewheel = mouse_wheel;
-	document.onkeydown = key_down; 
+	$(canvas).scroll(mouse_wheel);
+	$(canvas).keydown(key_down); 
 
 	window.onresize =  resize_canvas;
 
@@ -283,6 +285,7 @@ function mouse_move(ev)
 
 function mouse_wheel( event )
 {
+	console.log("scrolling");
    var delta = 0;
 
    if (!event)
@@ -469,7 +472,7 @@ function set_guide(s)
 
 function select_none()
 {
-	//hide_properties();
+	hide_properties();
 	// more like blank_properties
 	for (var i in obj)
 		obj[i].selected = 0;
@@ -498,24 +501,55 @@ function select_object( o )
 	draw_display();
 }
 
+
+function format_type(type, name, value) {
+	var p_str = "";
+
+	if (type == "timezone") {
+		var current_timezone = jstz.determine().name();
+		p_str += "<select class='input-block-level' id='" + name + "_field'>";
+		for (var tz in tzdb) {
+			var selected = "";
+			if (!value && current_timezone == tzdb[tz])
+				selected = "selected";
+			else if (value == tzdb[tz])
+				selected = "selected";
+
+			p_str += "<option value='" + tzdb[tz] + "' " + selected + ">" + tzdb[tz] + "</option>\n";
+		}
+		p_str += "</select>";
+	} else {
+		p_str += "<input class='input-block-level' id='" + name + "_field' size='6' type='text' value='" + value + "'/>"
+	}
+	return p_str;
+}
+
 function show_properties(o)
 {
 	show_div("property_area");
 
 	var p_str = "";
-
-	// Create property table
-	
-	p_str += "<table class='property_table'><tbody>";
-	p_str += "<tr><td><b>Type</b></td><td><b>" + o.Type + "</b></td></tr>";
+	p_str += "<div>Type: " + o.Type + "</div>";
+	p_str += "<div>Properties:</div>";
+	p_str += "<div class='accordion' id='property_accordion'>";
 
 	for (var i = 0; i < o.PropertyCount; i++)
 	{
-		p_str += "<tr><td><b>" + o.PropertyNames[i] + " </b></td><td>";
-		p_str += "<input id='"    + o.PropertyNames[i] + "_field' size='6&quot;' type='text' value='" + o.PropertyValues[i] + "'></td></tr>";
+		p_str += "<div class='accordion-group accordion-caret'>";
+		p_str += "<div class='accordion-heading'>";
+		p_str += "<a class='accordion-toggle collapsed' data-toggle='collapse' data-parent='#property_accordion' href='#collapse" + i + "'>";
+		p_str += o.PropertyNames[i];
+		p_str += "</a>";
+		p_str += "</div>";
+		p_str += "<div id='collapse" + i + "' class='accordion-body collapse'>";
+		p_str += "<div class='accordion-inner'>";
+		p_str += format_type(o.PropertyTypes[i], o.PropertyNames[i], o.PropertyValues[i]);
+		p_str += "</div>";
+		p_str += "</div>";
+		p_str += "</div>";
 	}
 
-	p_str += "</tbody></table>";
+	p_str += "</div>";
 		
 	if (o.PropertyCount > 0)
 		p_str += "<input value='Save' onclick='save_properties(" +sel_obj + ");' type='submit'>  ";

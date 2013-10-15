@@ -326,7 +326,7 @@ func sanitize(obj Object_t) Object_t {
 		switch {
 		case PTypes[k] == "float":
 			PValues = append(PValues, floatify(v))
-		case PTypes[k] == "string" || PTypes[k] == "time":
+		case PTypes[k] == "string", PTypes[k] == "time", PTypes[k] == "timezone":
 			PValues = append(PValues, stringify(v))
 		case PTypes[k] == "int":
 			PValues = append(PValues, intify(v))

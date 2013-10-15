@@ -35,7 +35,7 @@ a {
 #content {
     margin: 0px;
     height: 100%;
-    width: 100%:
+    width: 100%;
 }
 
 
@@ -186,11 +186,40 @@ form .buttons {
     height: 100%;
 }
 #canvas {
+    overflow: scroll;
     position: absolute;
     top: 75px;
     left: 150px;
     width: auto;
 }
-.property_table input {
-    width: 3em;
+.accordion-heading .accordion-toggle {
+    padding: 0px;
+}
+.accordion-group .input-block-level {
+    margin-bottom: 0px;
+}
+.accordion-heading a:focus {
+    text-decoration: none;
+}
+.accordion-inner {
+    padding: 0px;
+}
+.accordion-caret .accordion-toggle:hover {
+    text-decoration: none;
+}
+.accordion-caret .accordion-toggle:hover span,
+.accordion-caret .accordion-toggle:hover strong {
+    text-decoration: underline;
+}
+.accordion-caret .accordion-toggle:before {
+    font-size: 25px;
+    vertical-align: -3px;
+}
+.accordion-caret .accordion-toggle:not(.collapsed):before {
+    content: "▾";
+    margin-right: 5px;
+}
+.accordion-caret .accordion-toggle.collapsed:before {
+    content: "▸";
+    margin-right: 5px;
 }

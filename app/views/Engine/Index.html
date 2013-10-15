@@ -1,6 +1,8 @@
 {{set . "title" "Logic Home"}}
 {{append . "moreStyles" "/css/south-street/jquery-ui-1.10.3.custom.min.css"}}
 {{append . "moreScripts" "js/jquery-ui-1.10.3.custom.min.js"}}
+{{append . "moreScripts" "js/tz.json"}}
+{{append . "moreScripts" "js/jstz-1.0.4.min.js"}}
 {{append . "moreScripts" "js/engine/object.js"}}
 {{append . "moreScripts" "js/engine/objects.js"}}
 {{append . "moreScripts" "js/engine/graphics.js"}}
@@ -69,7 +71,7 @@
         <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">System<span class="caret"></span></a>
         <ul class="dropdown-menu">
             <li onclick="reset();" class="btn">Reset</li>
-            <li onclick="backend_load();" class="btn">Reload</li>
+            <li onclick="location.reload();" class="btn">Reload</li>
         </ul>
     </div>
     <div class="btn-group">
@@ -88,7 +90,6 @@
 </div>
 <div id='property_and_canvas'>
     <div id='property_sidebar'>
-        <p style="font-weight: bold">Properties</p>
         <ul id="property_area">
         </ul>
         <div id="debug">

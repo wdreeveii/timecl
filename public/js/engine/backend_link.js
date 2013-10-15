@@ -137,7 +137,6 @@ socket.onmessage = function(event) {
 		var object = load_object(event_data);
 		obj[object["Id"]] = object;
 	} else if (event_msg["Type"] == "edit") {
-		console.log("changestate");
 		var event_data = event_msg["Data"];
 		var id = event_data["Id"]
 		var changes = event_data["State"]
