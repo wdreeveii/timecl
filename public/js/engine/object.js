@@ -240,13 +240,12 @@ function find_object(x, y)
 	// convert to world cords
 	x = get_world_x(x);
 	y = get_world_y(y);
-	console.log("x2 : " + x);
-	console.log("y2 : " + y);
-	console.log("x_ofs : " + x_ofs);
-	console.log("y_ofs : " + y_ofs);
-	console.log(obj);
-	for (var i in obj)
+	var keys = [], ii = 0;
+	for (keys[ii++] in obj) {}
+	keys.reverse();
+	for (var k in keys)
 	{
+		var i = keys[k];
 		if (x >= obj[i].Xpos &&
 			y >= obj[i].Ypos &&
 			x <= obj[i].Xpos + obj[i].Xsize &&
