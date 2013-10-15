@@ -6,7 +6,7 @@
 
 "use strict";
 
-function backend_setproperties(index, id, PropertyCount, PropertyNames, PropertyTypes, PropertyValues)
+function backend_setproperties(id, PropertyCount, PropertyNames, PropertyTypes, PropertyValues)
 {
 	var eevent = {
 		Type: "edit",
@@ -44,7 +44,7 @@ function backend_save_engine(name)
 		data: cmd
 	});
 }
-function backend_hookobject(index, id, source)
+function backend_hookobject(id, source)
 {
 	var eevent = {
 		Type: "edit",
@@ -59,7 +59,7 @@ function backend_hookobject(index, id, source)
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_unhookobject(index, id)
+function backend_unhookobject(id)
 {
 	var eevent = {
 		Type: "edit",
@@ -74,7 +74,7 @@ function backend_unhookobject(index, id)
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_setoutput(index, id, output)
+function backend_setoutput(id, output)
 {
 	console.log("setting output");
 	var eevent = {
@@ -90,7 +90,7 @@ function backend_setoutput(index, id, output)
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_deleteobject(index, id)
+function backend_deleteobject(id)
 {
 	var eevent = {
 		Type: "del",
@@ -112,7 +112,7 @@ function backend_addobject(obj)
 	socket.send(JSON.stringify(event));
 }
 
-function backend_moveobject(index, id, x_pos, y_pos)
+function backend_moveobject(id, x_pos, y_pos)
 {
 	var eevent = {
 		Type: "edit",
@@ -121,21 +121,6 @@ function backend_moveobject(index, id, x_pos, y_pos)
 			State: {
 				"Xpos": x_pos,
 				"Ypos": y_pos
-			}
-		},
-		Timestamp: 100000000
-	}
-	socket.send(JSON.stringify(eevent));
-}
-
-function backend_setguides(index, id, Terminals)
-{
-	var eevent = {
-		Type: "edit",
-		Data: {
-			Id: id,
-			State: {
-				"Terminals": Terminals
 			}
 		},
 		Timestamp: 100000000

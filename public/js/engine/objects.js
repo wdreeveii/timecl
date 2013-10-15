@@ -30,13 +30,13 @@ function binput_type (o)
 
 	o.save_properties = function()
 	{
-		backend_setproperties(o.index, o.Id, o.PropertyCount, o.PropertyNames, o.PropertyTypes, o.PropertyValues);
+		backend_setproperties(o.Id, o.PropertyCount, o.PropertyNames, o.PropertyTypes, o.PropertyValues);
 		
 		for (var i = 0; i < o.PropertyCount; i++)
 		{
 			if (o.PropertyNames[i] == "value")
 			{
-				backend_setoutput(o.index, o.Id, o.PropertyValues[i]);
+				backend_setoutput(o.Id, o.PropertyValues[i]);
 				break;
 			}
 		}
@@ -46,7 +46,7 @@ function binput_type (o)
 	{
 		o.Output = output;
 		
-		backend_setoutput(o.index, o.Id, o.Output);
+		backend_setoutput(o.Id, o.Output);
 		
 		for (var i = 0; i < o.PropertyCount; i++)
 		{
@@ -57,7 +57,7 @@ function binput_type (o)
 			}
 		}		
 		
-		backend_setproperties(o.index, o.Id, o.PropertyCount, o.PropertyNames, o.PropertyTypes, o.PropertyValues);
+		backend_setproperties(o.Id, o.PropertyCount, o.PropertyNames, o.PropertyTypes, o.PropertyValues);
 	}
 					 
 	o.draw_icon = function(ctx) 

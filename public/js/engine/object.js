@@ -83,12 +83,12 @@ function object_type(name)
 	{
 		this.Output = output;
 		
-		backend_setoutput(this.index, this.Id, this.Output);
+		backend_setoutput(this.Id, this.Output);
 	}
 
 	this.save_properties = function()
 	{
-		backend_setproperties(this.index, this.Id, 
+		backend_setproperties(this.Id, 
 								this.PropertyCount, 
 								this.PropertyNames, 
 								this.PropertyTypes, 
@@ -267,14 +267,14 @@ function unhook_object(i)
 		{
 			obj[j].Source = -1;
 		
-			backend_unhookobject(j, obj[j].Id);
+			backend_unhookobject(obj[j].Id);
 		}
 			
 			
 	// unhook main source
 	obj[i].Source = -1;
 		
-	backend_unhookobject(i, obj[i].Id);
+	backend_unhookobject(obj[i].Id);
 	
 	for (var j in obj[i].Terminals)
 	{
@@ -282,7 +282,7 @@ function unhook_object(i)
 		
 		obj[obj[i].Terminals[j]].source=-1;
 		
-		backend_unhookobject(obj[i].Terminals[j], obj[obj[i].Terminals[j]].Id);
+		backend_unhookobject(obj[obj[i].Terminals[j]].Id);
 		
 	}
 }
@@ -293,7 +293,7 @@ function unhook_guide(i)
 		if (obj[j].Source == i)	
 		{	
 			obj[j].Source = -1;
-			backend_unhookobject(j, obj[j].Id);
+			backend_unhookobject(obj[j].Id);
 		}			
 			
 	obj[i].Source = -1;
@@ -306,7 +306,7 @@ function delete_object(i)
 	for (var j in obj[i].Terminals)
 		delete_object(obj[i].Terminals[j]);
 
-	backend_deleteobject(i, obj[i].Id);
+	backend_deleteobject(obj[i].Id);
 
 	delete obj[i];
 //	draw_objects();
@@ -315,7 +315,7 @@ function delete_object(i)
 function object_connect(o1, o2)
 {	
 	obj[o2].Source = o1;
-	backend_hookobject(o1, obj[o2].Id, obj[o1].Id)
+	backend_hookobject(obj[o2].Id, obj[o1].Id)
 }
 
 function object_toggle(o)

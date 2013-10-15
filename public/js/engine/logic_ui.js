@@ -171,13 +171,13 @@ function mouse_up(ev)
 		}
 		else
 		{
-			backend_moveobject(sel_obj, obj[sel_obj].Id, obj[sel_obj].Xpos, obj[sel_obj].Ypos);
+			backend_moveobject(obj[sel_obj].Id, obj[sel_obj].Xpos, obj[sel_obj].Ypos);
 		
 			for (var i in obj[sel_obj].Terminals)
 			{
 				var k = obj[sel_obj].Terminals[i];
 				//debug (i);
-				backend_moveobject(k, obj[k].Id, obj[k].Xpos, obj[k].Ypos);
+				backend_moveobject(obj[k].Id, obj[k].Xpos, obj[k].Ypos);
 			}
 		}
 			
