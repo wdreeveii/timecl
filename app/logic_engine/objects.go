@@ -31,6 +31,7 @@ func init() {
 	//processors["hbar"] = 
 	processors["timebase"] = ProcessTimeBase
 	processors["timerange"] = ProcessTimeRange
+	processors["timer"] = ProcessTimer
 	go func() {
 		for {
 			<-time.After(1000 * time.Millisecond)
@@ -265,6 +266,17 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t) {
 	} else {
 		(*o)["Output"] = float64(0)
 	}
+	(*o)["NextOutput"] = (*o)["Output"]
+	term0 := intify((*o)["Terminals"].([]interface{})[0])
+	(*Objects[term0])["NextOutput"] = (*o)["Output"]
+}
+
+func ProcessTimer(o *Object_t, Objects map[int]*Object_t) {
+	if o.CheckTerminals(1) {
+		return
+	}
+	//var on = o.GetProperty("on duration")
+	//var off = o.GetProperty("off duration")
 	(*o)["NextOutput"] = (*o)["Output"]
 	term0 := intify((*o)["Terminals"].([]interface{})[0])
 	(*Objects[term0])["NextOutput"] = (*o)["Output"]

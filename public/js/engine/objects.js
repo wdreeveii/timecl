@@ -653,6 +653,55 @@ function timerange_type (o)
 }
 
 
+object_list.push("timer");
+
+function timer_type (o)
+{
+	o.Xsize = 80;
+	o.Ysize = 40;
+	o.show_output = 1;
+
+//	o.add_output_terminal(0);		
+	
+	o.input_termcount = 0;
+	o.output_termcount = 1; 
+
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+		o.add_property("on duration", "time", "5:00");
+		o.add_property("off duration", "time", "10:00");	}					 
+	
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);					
+	}
+	
+	o.draw_properties = function(ctx, x, y)
+	{
+		//alert("draw");
+		var on = this.get_property("on duration");
+		var off = o.get_property("off duration");
+		var name = o.get_property("name");
+	
+		var old_fill  = ctx.fillStyle;
+	
+		ctx.fillStyle = "rgb(0,0,0)";
+		ctx.font = "16pt Arial";
+
+		var f_size = 12 * zoom;
+
+		ctx.font = format(f_size) + "pt Arial";
+
+	    ctx.fillText(name, get_x(x + this.Xsize * 0.1 ), get_y(y) - f_size  / 2);
+
+	    ctx.fillText(on, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) - f_size  / 2);
+	
+	    ctx.fillText(off, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  / 2 * 1.5);
+	
+		ctx.fillStyle = old_fill;
+	}
+}
 
 
 
