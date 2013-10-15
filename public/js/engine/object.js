@@ -217,6 +217,13 @@ function add_object(objects, x, y, type, attached, dir, root_id)
 	return index;
 }
 
+function load_object(newobject) {
+	var o = new object_type;
+	$.extend(o, newobject);
+	construct(o);
+	return o;
+}
+
 function load_objects(objects) {
 	var results = Array();
 	for (var i = 0; i < objects.length; i++) {

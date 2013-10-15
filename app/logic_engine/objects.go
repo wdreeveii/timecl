@@ -33,7 +33,7 @@ func init() {
 	processors["timerange"] = ProcessTimeRange
 	go func() {
 		for {
-			<-time.After(200 * time.Millisecond)
+			<-time.After(1000 * time.Millisecond)
 			tbmu.Lock()
 			tick += 1
 			tbmu.Unlock()
@@ -251,17 +251,19 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t) {
 	var current_time = time.Now().UTC()
 	var year, month, day = current_time.Date()
 	m := int(month)
-	var on_time, _ = time.Parse("15:04", on)
+	var on_time, _ = time.Parse("15:04", on.(string))
 	on_time = on_time.AddDate(year, m-1, day-1)
-	var off_time, _ = time.Parse("15:04", off)
+	var off_time, _ = time.Parse("15:04", off.(string))
 	off_time = off_time.AddDate(year, m-1, day-1)
-
+	//fmt.Println("current:", current_time)
+	//fmt.Println("on:", on_time)
+	//fmt.Println("off:", off_time)
 	if current_time.After(on_time) && current_time.Before(off_time) {
-		(*o)["Output"] = 1
+		(*o)["Output"] = float64(1)
 	} else {
-		(*o)["Output"] = 0
+		(*o)["Output"] = float64(0)
 	}
 	(*o)["NextOutput"] = (*o)["Output"]
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	term0 := intify((*o)["Terminals"].([]interface{})[0])
 	(*Objects[term0])["NextOutput"] = (*o)["Output"]
 }

@@ -104,17 +104,18 @@ func (o Object_t) GetTerminal(Objects map[int]*Object_t, term int) float64 {
 	return obj["Output"].(float64)
 }
 
-func (o Object_t) GetProperty(name string) string {
-	if o["PropertyCount"].(PropertyCount) <= 0 {
-		return ""
+func (o Object_t) GetProperty(name string) interface{} {
+	PCount := o["PropertyCount"].(int)
+	if PCount <= 0 {
+		return nil
 	}
-	for ii := PropertyCount(0); ii < o["PropertyCount"].(PropertyCount); ii++ {
-		if o["PropertyNames"].(PropertyNames)[ii] == name {
-			return o["PropertyValues"].(PropertyValues)[ii]
+	for ii := 0; ii < PCount; ii++ {
+		if stringify(o["PropertyNames"].([]interface{})[ii]) == name {
+			return o["PropertyValues"].([]interface{})[ii]
 		}
 	}
 	fmt.Println("Unable to find property ", name, " for ", o["Type"])
-	return ""
+	return nil
 }
 
 type Engine_t struct {
@@ -325,7 +326,7 @@ func sanitize(obj Object_t) Object_t {
 		switch {
 		case PTypes[k] == "float":
 			PValues = append(PValues, floatify(v))
-		case PTypes[k] == "string":
+		case PTypes[k] == "string" || PTypes[k] == "time":
 			PValues = append(PValues, stringify(v))
 		case PTypes[k] == "int":
 			PValues = append(PValues, intify(v))
@@ -338,9 +339,9 @@ func sanitize(obj Object_t) Object_t {
 func (e *Engine_t) AddObject(obj Object_t) {
 	e.mu.Lock()
 	var id int
-	id = int(obj["Id"].(float64))
+	id = intify(obj["Id"])
 	obj["Id"] = id
-	obj["process"] = processors[obj["Type"].(string)]
+	obj["process"] = processors[stringify(obj["Type"])]
 	obj = sanitize(obj)
 	e.Objects[id] = &obj
 	e.Save()

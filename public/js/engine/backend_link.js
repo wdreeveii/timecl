@@ -147,7 +147,11 @@ var socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
 socket.onmessage = function(event) {
 	console.log(event.data);
 	var event_msg = JSON.parse(event.data);
-	if (event_msg["Type"] == "edit") {
+	if (event_msg["Type"] == "add") {
+		var event_data = event_msg["Data"];
+		var object = load_object(event_data);
+		obj[object["Id"]] = object;
+	} else if (event_msg["Type"] == "edit") {
 		console.log("changestate");
 		var event_data = event_msg["Data"];
 		var id = event_data["Id"]
@@ -156,8 +160,8 @@ socket.onmessage = function(event) {
 			obj[id][change] = changes[change];
 		}
 	} else if (event_msg["Type"] == "init") {
-		var event_data = event_msg["Data"]
-		obj = load_objects(event_data)
+		var event_data = event_msg["Data"];
+		obj = load_objects(event_data);
 	}
 }
 
