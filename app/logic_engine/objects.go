@@ -1,7 +1,7 @@
 package logic_engine
 
 import (
-	//"fmt"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -275,8 +275,39 @@ func ProcessTimer(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	//var on = o.GetProperty("on duration")
-	//var off = o.GetProperty("off duration")
+	var start int64
+	var ok bool
+	_, ok = (*o)["_timer_start"]
+	if ok {
+		start = (*o)["_timer_start"].(int64)
+	}
+	if !ok {
+		start = time.Now().UTC().Unix()
+		(*o)["_timer_start"] = start
+	}
+	now := time.Now().UTC().Unix()
+	on := o.GetProperty("on duration")
+	off := o.GetProperty("off duration")
+	on_dur, err := time.ParseDuration(stringify(on))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	off_dur, err := time.ParseDuration(stringify(off))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	on_secs := int64(on_dur / time.Second)
+	off_secs := int64(off_dur / time.Second)
+	fmt.Println("on_secs", on_secs)
+	fmt.Println("off_secs", off_secs)
+	modsecs := (now - start) % (on_secs + off_secs)
+	if modsecs >= 0 && modsecs < on_secs {
+		(*o)["Output"] = float64(1)
+	} else if modsecs >= on_secs {
+		(*o)["Output"] = float64(0)
+	}
 	(*o)["NextOutput"] = (*o)["Output"]
 	term0 := intify((*o)["Terminals"].([]interface{})[0])
 	(*Objects[term0])["NextOutput"] = (*o)["Output"]

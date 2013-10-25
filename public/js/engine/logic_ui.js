@@ -10,7 +10,7 @@
 var snap = 5;
 var min_zoom = 0.20;
 var max_zoom = 2.0;
-var update_rate = 10;
+var update_rate = 3;
 
 var obj = new Array();
 
@@ -552,7 +552,7 @@ function show_properties(o)
 	p_str += "</div>";
 		
 	if (o.PropertyCount > 0)
-		p_str += "<input value='Save' onclick='save_properties(" +sel_obj + ");' type='submit'>  ";
+		p_str += "<input class='btn btn-danger' value='Save' onclick='save_properties(" +sel_obj + ");' type='submit'>  ";
 	
 	document.getElementById("property_area").innerHTML = p_str;
 }

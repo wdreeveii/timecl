@@ -167,7 +167,10 @@ func (e *Engine_t) Run() {
 
 func (e *Engine_t) Process() {
 	for _, val := range e.Objects {
-		(*val)["process"].(processor)(val, e.Objects)
+		process := (*val)["process"].(processor)
+		if process != nil {
+			process(val, e.Objects)
+		}
 	}
 
 	for _, val := range e.Objects {
