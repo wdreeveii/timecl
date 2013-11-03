@@ -1,13 +1,12 @@
-
 package network_manager
 
 import (
 	"fmt"
+	"github.com/coopernurse/gorp"
 	"github.com/robfig/revel"
 	"github.com/robfig/revel/modules/db/app"
-	"github.com/coopernurse/gorp"
-	"timecl/app/models"
 	"sort"
+	"timecl/app/models"
 )
 
 type network_manager struct {
@@ -20,13 +19,14 @@ type DriverInterface interface {
 	Get(cmd GetDrvCmd)
 	Set(cmd SetDrvCmd)
 	Copy() DriverInterface
+	GetBusList() map[int]string
+	GetDeviceList(bus int) map[int]string
 }
 
 type driverListItem struct {
-	Name		string
-	Instance	DriverInterface
+	Name     string
+	Instance DriverInterface
 }
-
 
 var (
 	driver_collection []driverListItem
@@ -53,9 +53,9 @@ func init_networkconfig_table(dbm *gorp.DbMap) {
 	}
 	t := dbm.AddTable(models.NetworkConfig{}).SetKeys(true, "NetworkID")
 	setColumnSizes(t, map[string]int{
-		"ConfigKey":	100,
-		"DevicePath":	1000,
-		"Driver":		100,
+		"ConfigKey":  100,
+		"DevicePath": 1000,
+		"Driver":     100,
 	})
 	err := dbm.CreateTablesIfNotExists()
 	if err != nil {
@@ -70,36 +70,36 @@ func GetHardwareInterfaces() []string {
 }
 
 type interfaceItem struct {
-	Driver		driverListItem
-	ConfigKey	string
+	Driver    driverListItem
+	ConfigKey string
 }
 
 type restartConfig struct {
-	NetworkID	int
-	Driver		string
+	NetworkID int
+	Driver    string
 }
 type GetDrvCmd struct {
-	Bus			int
-	Device		int
-	Port		int
-	RecvChan	chan interface{}
+	Bus      int
+	Device   int
+	Port     int
+	RecvChan chan interface{}
 }
 
 type getCmd struct {
-	NetworkID	int
-	Cmd			GetDrvCmd
+	NetworkID int
+	Cmd       GetDrvCmd
 }
 
 type SetDrvCmd struct {
-	Bus			int
-	Device		int
-	Port		int
-	Value		interface{}
+	Bus    int
+	Device int
+	Port   int
+	Value  interface{}
 }
 
 type setCmd struct {
-	NetworkID	int
-	Cmd			SetDrvCmd
+	NetworkID int
+	Cmd       SetDrvCmd
 }
 
 var restartInterface = make(chan restartConfig)
@@ -110,8 +110,8 @@ var setInterface = make(chan setCmd)
 //get (network number, bus number, device number, port number
 func Get(NetworkID int, bus int, device int, port int) interface{} {
 	var cmd = getCmd{NetworkID: NetworkID, Cmd: GetDrvCmd{Bus: bus, Device: device, Port: port, RecvChan: make(chan interface{})}}
-	getInterface <-cmd
-	return <- cmd.Cmd.RecvChan
+	getInterface <- cmd
+	return <-cmd.Cmd.RecvChan
 }
 
 func Set(NetworkID int, bus int, device int, port int, value interface{}) {
@@ -126,24 +126,24 @@ func RestartDriver(NetworkID int, driver string) {
 func interfacesManager() {
 	var interfaces []interfaceItem
 	for {
-		var reConfig 		restartConfig
-		var newIntConfig 	interfaceItem
-		var getIntCmd		getCmd
-		var setIntCmd		setCmd
-		
+		var reConfig restartConfig
+		var newIntConfig interfaceItem
+		var getIntCmd getCmd
+		var setIntCmd setCmd
+
 		select {
-		case getIntCmd = <- getInterface:
+		case getIntCmd = <-getInterface:
 			interfaces[getIntCmd.NetworkID].Driver.Instance.Get(getIntCmd.Cmd)
-		case setIntCmd = <- setInterface:
+		case setIntCmd = <-setInterface:
 			interfaces[setIntCmd.NetworkID].Driver.Instance.Set(setIntCmd.Cmd)
-		case reConfig = <- restartInterface:
+		case reConfig = <-restartInterface:
 			for _, val := range driver_collection {
 				if val.Name == reConfig.Driver {
 					if interfaces[reConfig.NetworkID].Driver.Name != "" {
 						interfaces[reConfig.NetworkID].Driver.Instance.Stop()
 					}
 					copy := val.Instance.Copy()
-					d:= driverListItem{Name: val.Name, Instance: copy}
+					d := driverListItem{Name: val.Name, Instance: copy}
 					interfaces[reConfig.NetworkID].Driver = d
 					val, found := revel.Config.String(interfaces[reConfig.NetworkID].ConfigKey)
 					if found {
@@ -151,12 +151,12 @@ func interfacesManager() {
 					}
 				}
 			}
-		case newIntConfig = <- newInterface:
+		case newIntConfig = <-newInterface:
 			val, found := revel.Config.String(newIntConfig.ConfigKey)
 			if found {
 				interfaces = append(interfaces, newIntConfig)
 				if interfaces[len(interfaces)-1].Driver.Name != "" {
-					interfaces[len(interfaces) - 1].Driver.Instance.Init(val)
+					interfaces[len(interfaces)-1].Driver.Instance.Init(val)
 				}
 			}
 		}
@@ -170,7 +170,7 @@ func Init() {
 	dbm := &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
 
 	init_networkconfig_table(dbm)
-	
+
 	result := GetHardwareInterfaces()
 	fmt.Println("results: ", result)
 	for _, config_key := range result {

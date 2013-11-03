@@ -12,26 +12,34 @@ type DummyDriver struct {
 }
 
 func (p DummyDriver) Init(port string) {
-    fmt.Println("Init Dummy Driver")
+	fmt.Println("Init Dummy Driver")
 }
 
 func (p DummyDriver) Stop() {
-    fmt.Println("DUMMY STOP")
+	fmt.Println("DUMMY STOP")
 }
 
 func (p DummyDriver) Copy() network_manager.DriverInterface {
-    a := p
-    return a
+	a := p
+	return a
 }
 
 func (p DummyDriver) Get(cmd network_manager.GetDrvCmd) {
-    
+
 }
 
 func (p DummyDriver) Set(cmd network_manager.SetDrvCmd) {
-    
+
 }
-    
+
+func (p DummyDriver) GetBusList() map[int]string {
+	return map[int]string{}
+}
+
+func (p DummyDriver) GetDeviceList(bus int) map[int]string {
+	return map[int]string{}
+}
+
 func init() {
 	fmt.Println("Dummy Driver")
 	network_manager.RegisterDriver("dummy", DummyDriver{})
