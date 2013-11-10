@@ -1,8 +1,11 @@
 {{set . "title" "Logic Home"}}
 {{append . "moreStyles" "/css/south-street/jquery-ui-1.10.3.custom.min.css"}}
+{{append . "moreStyles" "/css/layout-default.css"}}
 {{append . "moreScripts" "js/jquery-ui-1.10.3.custom.min.js"}}
+{{append . "moreScripts" "js/jquery.layout-latest.min.js"}}
 {{append . "moreScripts" "js/tz.json"}}
 {{append . "moreScripts" "js/jstz-1.0.4.min.js"}}
+{{append . "moreScripts" "js/Ractive.js"}}
 {{append . "moreScripts" "js/engine/object.js"}}
 {{append . "moreScripts" "js/engine/objects.js"}}
 {{append . "moreScripts" "js/engine/graphics.js"}}
@@ -11,7 +14,7 @@
 {{append . "moreScripts" "js/engine/logic_ui.js"}}
 {{append . "moreScripts" "js/engine/engine.js"}}
 {{template "header.html" .}}
-<div>
+<div class='toolbar'>
     <div class="btn-group">
         <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">IO<span class="caret"></span></a>
         <ul class="dropdown-menu">
@@ -90,16 +93,24 @@
     </div>
 </div>
 <div id='property_and_canvas'>
-    <div id='property_sidebar'>
+    <div id='property_sidebar' class='pane ui-layout-west'>
+        <p>Hello! Welcome.</p>
         <ul id="property_area">
         </ul>
         <div id="debug">
         </div>
     </div>
-    <div id='canvas_container'>
-        <canvas id="canvas"></canvas>
+    <div id='canvas_container' class='pane ui-layout-center'>
+        <canvas class='ui-layout-content' id="canvas"></canvas>
     </div>
     <!--<div class="clearfix"></div>-->
 </div>
+<div></div>
+<script id="propertyTemplate" type="ractive">
+<ul id="property_area">
+</ul>
+<div id="debug">
+</div>
+</script>
 {{template "footer.html" .}}
 

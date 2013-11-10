@@ -35,6 +35,14 @@ var x_ofs = 0;
 var y_ofs = 0;
 
 var port_list = new Array();
+
+$(function (){
+	//alert("setting up layout");
+	$('#property_and_canvas').layout({applyDefaultStyles: false,
+				center__onresize: resize_canvas,
+	});
+});
+
 /* 
 	High level UI 
 */
@@ -54,8 +62,6 @@ function start()
 	window.onmousewheel = document.onmousewheel = mouse_wheel;
 	$(canvas).scroll(mouse_wheel);
 	$(canvas).keydown(key_down); 
-
-	window.onresize =  resize_canvas;
 
 	resize_canvas();
 	set_timer();
@@ -107,14 +113,13 @@ function set_value(name, value)
 */
 function resize_canvas()
 {
+	var container = $(document.getElementById("canvas_container"));
 	var canvas = document.getElementById("canvas");
-
-	canvas.width = window.innerWidth - $(canvas).offset().left - 5;
-	canvas.height = window.innerHeight- $(canvas).offset().top - 5;
+	canvas.width = parseInt(container.css("width"));
+	canvas.height = parseInt(container.css("height"));
 }
 
-function draw_display()
-{
+function draw_display() {
  	var canvas = document.getElementById("canvas");
  	var ctx = canvas.getContext("2d");
 	
@@ -147,16 +152,11 @@ function set_timer()
 
 function mouse_pos(ev)
 {
-	var canvas_x_ofs = document.getElementById("canvas").offsetLeft;
-	var canvas_y_ofs = document.getElementById("canvas").offsetTop;
-
-	//console.log("x_ofs: " + canvas_x_ofs);
-	//console.log("y_ofs: " + canvas_y_ofs);
+	var coords = $('#canvas').offset();
 	if(ev.pageX || ev.pageY)
 	{ 
-		return {x:ev.pageX - canvas_x_ofs, y:ev.pageY - canvas_y_ofs}; 
+		return {x:ev.pageX - coords.left, y:ev.pageY - coords.top}; 
 	} 
-	//console.log("clienttop: " + document.body.clientTop);
 	return 	{ x:ev.clientX + document.body.scrollLeft - document.body.clientLeft  - canvas_x_ofs, 
 			  y:ev.clientY + document.body.scrollTop  - document.body.clientTop   - canvas_y_ofs}; 
 }
@@ -502,6 +502,12 @@ function select_object( o )
 	draw_display();
 }
 
+var property_window = new Ractive({
+	el: $('#property_sidebar'),
+	template: $('#propertyTemplate'),
+	data: {}
+
+});
 
 function format_type(type, name, value) {
 	var p_str = "";
