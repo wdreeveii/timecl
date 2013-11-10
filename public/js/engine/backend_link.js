@@ -146,6 +146,8 @@ socket.onmessage = function(event) {
 	} else if (event_msg["Type"] == "init") {
 		var event_data = event_msg["Data"];
 		obj = load_objects(event_data);
+	} else if (event_msg["Type"] == "init_ports") {
+		port_list = event_msg["Data"]
 	}
 }
 

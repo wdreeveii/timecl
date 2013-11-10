@@ -7,11 +7,18 @@ import (
 	"fmt"
 	"github.com/robfig/revel"
 	"io/ioutil"
+	"log"
 	"os"
 	"strconv"
 	"sync"
 	"time"
+	"timecl/app/network_manager"
 )
+
+var output = ioutil.Discard
+
+//var output = os.Stderr
+var LOG = log.New(output, "LogicEngine ", log.Ldate|log.Ltime)
 
 type processor func(o *Object_t, objs map[int]*Object_t)
 
@@ -68,15 +75,16 @@ type Object_t map[string]interface{}
 }*/
 
 func (o Object_t) Display() {
-	fmt.Printf("ID %4d  ", o["Id"])
-	fmt.Printf("Type %10s  ", o["Type"])
-	fmt.Printf("Source %3d  ", int(o["Source"].(int)))
-	fmt.Printf("Output %10f  ", o["Output"])
-	fmt.Printf("Terminals: ")
+	var output string
+	output += fmt.Sprintf("ID %4d  ", o["Id"])
+	output += fmt.Sprintf("Type %10s  ", o["Type"])
+	output += fmt.Sprintf("Source %3d  ", int(o["Source"].(int)))
+	output += fmt.Sprintf("Output %10f  ", o["Output"])
+	output += fmt.Sprintf("Terminals: ")
 	for _, val := range o["Terminals"].([]interface{}) {
-		fmt.Printf("%d ", int(val.(float64)))
+		output += fmt.Sprintf("%d ", int(val.(float64)))
 	}
-	fmt.Printf("\n")
+	LOG.Println(output)
 }
 
 func (o Object_t) Process(Objects map[int]*Object_t) {
@@ -91,7 +99,7 @@ func (o Object_t) AssignOutput(objs map[int]*Object_t, terminal int) {
 func (o Object_t) CheckTerminals(count int) bool {
 	terms := o["Terminals"].([]interface{})
 	if len(terms) < count {
-		fmt.Println("Invalid ", o["Type"])
+		LOG.Println("Invalid ", o["Type"])
 		return true
 	}
 	return false
@@ -99,7 +107,7 @@ func (o Object_t) CheckTerminals(count int) bool {
 func (o Object_t) GetTerminal(Objects map[int]*Object_t, term int) float64 {
 	terms := o["Terminals"].([]interface{})
 	theterm := int(terms[term].(float64))
-	//fmt.Println("theterm:", theterm)
+	//LOG.Println("theterm:", theterm)
 	obj := (*Objects[theterm])
 	return obj["Output"].(float64)
 }
@@ -114,7 +122,7 @@ func (o Object_t) GetProperty(name string) interface{} {
 			return o["PropertyValues"].([]interface{})[ii]
 		}
 	}
-	fmt.Println("Unable to find property ", name, " for ", o["Type"])
+	LOG.Println("Unable to find property ", name, " for ", o["Type"])
 	return nil
 }
 
@@ -191,7 +199,7 @@ func (e *Engine_t) Save() {
 	enc := gob.NewEncoder(m)
 	err := enc.Encode(e)
 	if err != nil {
-		fmt.Println("Encoding:", err)
+		LOG.Println("Encoding:", err)
 	}
 	err = ioutil.WriteFile(path, m.Bytes(), 0600)
 	if err != nil {
@@ -209,7 +217,7 @@ func (e *Engine_t) LoadObjects() {
 	}
 	n, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Println(err)
+		LOG.Println(err)
 		return
 	}
 	tmp := make([]interface{}, 0)
@@ -221,7 +229,7 @@ func (e *Engine_t) LoadObjects() {
 
 	err = dec.Decode(e)
 	if err != nil {
-		fmt.Println(err)
+		LOG.Println(err)
 		return
 	}
 	for k, _ := range e.Objects {
@@ -262,6 +270,13 @@ func (e *Engine_t) ListObjects() Event {
 	return event
 }
 
+func (e *Engine_t) ListPorts() Event {
+	fmt.Println("engine list port")
+	var ports = network_manager.ListPorts()
+	event := newEvent("init_ports", ports)
+	return event
+}
+
 func floatify(in interface{}) float64 {
 	var result float64
 	var err error
@@ -269,7 +284,7 @@ func floatify(in interface{}) float64 {
 	case string:
 		result, err = strconv.ParseFloat(v, 64)
 		if err != nil {
-			fmt.Println(err)
+			LOG.Println(err)
 		}
 	case float64:
 		result = v
@@ -329,7 +344,10 @@ func sanitize(obj Object_t) Object_t {
 		switch {
 		case PTypes[k] == "float":
 			PValues = append(PValues, floatify(v))
-		case PTypes[k] == "string", PTypes[k] == "time", PTypes[k] == "timezone":
+		case PTypes[k] == "string",
+			PTypes[k] == "time",
+			PTypes[k] == "timezone",
+			PTypes[k] == "port":
 			PValues = append(PValues, stringify(v))
 		case PTypes[k] == "int":
 			PValues = append(PValues, intify(v))
@@ -371,38 +389,61 @@ func (e *Engine_t) EditObject(new_states StateChange) {
 		e.Objects[id] = &newobj
 		e.Save()
 	} else {
-		fmt.Println("Edit: Unknown object")
+		LOG.Println("Edit: Unknown object")
 	}
 	e.mu.Unlock()
 }
 
+func (e *Engine_t) handle_engine_sub_event(event Event) {
+	switch {
+	case event.Type == "add":
+		LOG.Println("add")
+		obj := event.Data.(map[string]interface{})
+		e.AddObject(obj)
+	case event.Type == "edit":
+		var s StateChange
+		switch v := event.Data.(type) {
+		case map[string]interface{}:
+			s = StateChange{Id: int(v["Id"].(float64)), State: v["State"].(map[string]interface{})}
+		case StateChange:
+			s = v
+		}
+		e.EditObject(s)
+		LOG.Println("edit recv")
+	case event.Type == "del":
+		var id int
+		data := event.Data.(map[string]interface{})
+		id = intify(data["Id"])
+		e.DeleteObject(id)
+		LOG.Println("del recv")
+	}
+}
+
+func (e *Engine_t) handle_network_sub_event(event network_manager.Event) {
+	LOG.Println("Engine Event")
+	LOG.Println(event.NetworkID)
+	LOG.Println(event.Type)
+	switch {
+	case event.Type == "port_change":
+		// send port list to the clients
+	case event.Type == "state_change":
+		// update the engine with the new state
+	}
+}
+
 func (e *Engine_t) EngineClient() {
-	subscription := e.Subscribe()
-	defer subscription.Cancel()
+	engine_subscription := e.Subscribe()
+	defer engine_subscription.Cancel()
+
+	network_subscription := network_manager.Subscribe()
+	defer network_subscription.Cancel()
 
 	for {
-		event := <-subscription.New
-		switch {
-		case event.Type == "add":
-			fmt.Println("add")
-			obj := event.Data.(map[string]interface{})
-			e.AddObject(obj)
-		case event.Type == "edit":
-			var s StateChange
-			switch v := event.Data.(type) {
-			case map[string]interface{}:
-				s = StateChange{Id: int(v["Id"].(float64)), State: v["State"].(map[string]interface{})}
-			case StateChange:
-				s = v
-			}
-			e.EditObject(s)
-			fmt.Println("edit recv")
-		case event.Type == "del":
-			var id int
-			data := event.Data.(map[string]interface{})
-			id = intify(data["Id"])
-			e.DeleteObject(id)
-			fmt.Println("del recv")
+		select {
+		case event := <-engine_subscription.New:
+			e.handle_engine_sub_event(event)
+		case event := <-network_subscription.New:
+			e.handle_network_sub_event(event)
 		}
 
 	}
@@ -457,7 +498,7 @@ func testPublish() {
 			"a": 123,
 			"b": "hello",
 		}
-		fmt.Println("create state:", new_state)
+		LOG.Println("create state:", new_state)
 		PublishStateChange(0, new_state)
 		time.Sleep(5 * time.Second)
 	}
@@ -508,7 +549,7 @@ func engine_pub_sub() {
 }
 
 func Init() {
-	fmt.Println("engine start")
+	LOG.Println("engine start")
 }
 
 func init() {

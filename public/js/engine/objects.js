@@ -26,6 +26,7 @@ function binput_type (o)
 	{
 		o.add_property("name", "string", "");
 		o.add_property("value", "float", "0");
+		o.add_property("port", "port", "None");
 	}
 
 	o.save_properties = function()
@@ -669,8 +670,9 @@ function timer_type (o)
 	if (o.PropertyCount == 0)
 	{
 		o.add_property("name", "string", "");
-		o.add_property("on duration", "time", "5:00");
-		o.add_property("off duration", "time", "10:00");	}					 
+		o.add_property("on duration", "time", "2s");
+		o.add_property("off duration", "time", "2s");
+	}					 
 	
 	o.draw_icon = function(ctx) 
 	{

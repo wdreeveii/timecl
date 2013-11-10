@@ -1,11 +1,13 @@
 package network_manager
 
 import (
+	"container/list"
 	"fmt"
 	"github.com/coopernurse/gorp"
 	"github.com/robfig/revel"
 	"github.com/robfig/revel/modules/db/app"
 	"sort"
+	"time"
 	"timecl/app/models"
 )
 
@@ -14,13 +16,10 @@ type network_manager struct {
 }
 type DriverInterface interface {
 	// Called on server startup
-	Init(port string)
+	Init(port string, network_id int)
 	Stop()
-	Get(cmd GetDrvCmd)
-	Set(cmd SetDrvCmd)
 	Copy() DriverInterface
-	GetBusList() map[int]string
-	GetDeviceList(bus int) map[int]string
+	ListPorts() []BusDef
 }
 
 type driverListItem struct {
@@ -78,65 +77,178 @@ type restartConfig struct {
 	NetworkID int
 	Driver    string
 }
-type GetDrvCmd struct {
-	Bus      int
-	Device   int
-	Port     int
-	RecvChan chan interface{}
-}
 
-type getCmd struct {
+var (
+	restartInterface = make(chan restartConfig)
+	newInterface     = make(chan interfaceItem)
+	subscribe        = make(chan SubscriptionRequest, 10)
+	unsubscribe      = make(chan (<-chan Event), 10)
+	publish          = make(chan Event, 10)
+	list_ports       = make(chan (chan []NetInterfaceDef))
+)
+
+type EventArgument interface{}
+
+type Event struct {
 	NetworkID int
-	Cmd       GetDrvCmd
+	Type      string
+	Data      EventArgument
+	Timestamp int
+}
+type SubscriptionRequest struct {
+	NetworkID     int
+	FilterNetwork bool
+	Types         []string
+	FilterTypes   bool
+	Response      chan Subscription
 }
 
-type SetDrvCmd struct {
-	Bus    int
-	Device int
-	Port   int
-	Value  interface{}
+type Subscription struct {
+	NetworkID     int
+	FilterNetwork bool
+	Types         []string
+	FilterTypes   bool
+	New           <-chan Event
+	newSendable   chan Event
 }
 
-type setCmd struct {
-	NetworkID int
-	Cmd       SetDrvCmd
+func (s Subscription) Cancel() {
+	unsubscribe <- s.New
+	drain(s.New)
 }
 
-var restartInterface = make(chan restartConfig)
-var newInterface = make(chan interfaceItem)
-var getInterface = make(chan getCmd)
-var setInterface = make(chan setCmd)
+func subscribeBase(netid int,
+	filter_net bool,
+	types []string,
+	filter_type bool) Subscription {
+	var req SubscriptionRequest
+	req.Response = make(chan Subscription)
+	req.NetworkID = netid
+	req.FilterNetwork = filter_net
+	req.Types = types
+	req.FilterTypes = filter_type
+	subscribe <- req
+	return <-req.Response
+}
+
+func Subscribe() Subscription {
+	return subscribeBase(0, false, []string{}, false)
+}
+func SubscribeNetwork(NetworkID int) Subscription {
+	return subscribeBase(NetworkID, true, []string{}, false)
+}
+func SubscribeType(Types []string) Subscription {
+	return subscribeBase(0, false, Types, true)
+}
+func SubscribeNetworkTypes(NetworkID int, Types []string) Subscription {
+	return subscribeBase(NetworkID, true, Types, true)
+}
+
+func NewEvent(net_id int, typ string, data EventArgument) Event {
+	return Event{net_id, typ, data, int(time.Now().Unix())}
+}
+
+func Publish(event Event) {
+	publish <- event
+}
 
 //get (network number, bus number, device number, port number
-func Get(NetworkID int, bus int, device int, port int) interface{} {
-	var cmd = getCmd{NetworkID: NetworkID, Cmd: GetDrvCmd{Bus: bus, Device: device, Port: port, RecvChan: make(chan interface{})}}
-	getInterface <- cmd
-	return <-cmd.Cmd.RecvChan
-}
-
-func Set(NetworkID int, bus int, device int, port int, value interface{}) {
-	var cmd = setCmd{NetworkID: NetworkID, Cmd: SetDrvCmd{Bus: bus, Device: device, Port: port, Value: value}}
-	setInterface <- cmd
-}
-
 func RestartDriver(NetworkID int, driver string) {
 	restartInterface <- restartConfig{NetworkID: NetworkID, Driver: driver}
 }
 
+type PortFunction int
+
+const (
+	Input PortFunction = iota
+	Output
+)
+
+type PortDef struct {
+	PortID int
+	Type   PortFunction
+}
+type DeviceDef struct {
+	DeviceID int
+	PortList []PortDef
+}
+type BusDef struct {
+	BusID      int
+	DeviceList []DeviceDef
+}
+type NetInterfaceDef struct {
+	NetworkID int
+	BusList   []BusDef
+}
+
+func ListPorts() []NetInterfaceDef {
+	fmt.Println("network list port")
+	var m = make(chan []NetInterfaceDef)
+	list_ports <- m
+	return <-m
+}
+
 func interfacesManager() {
 	var interfaces []interfaceItem
+	subscribers := list.New()
 	for {
-		var reConfig restartConfig
-		var newIntConfig interfaceItem
-		var getIntCmd getCmd
-		var setIntCmd setCmd
-
 		select {
-		case getIntCmd = <-getInterface:
-			interfaces[getIntCmd.NetworkID].Driver.Instance.Get(getIntCmd.Cmd)
-		case setIntCmd = <-setInterface:
-			interfaces[setIntCmd.NetworkID].Driver.Instance.Set(setIntCmd.Cmd)
-		case reConfig = <-restartInterface:
+		case req := <-list_ports:
+			fmt.Println("network recv list port")
+			var res = make([]NetInterfaceDef, 0)
+			for idx, aInterface := range interfaces {
+				fmt.Println("network recv interface query", aInterface.Driver.Name, " | ", aInterface.Driver.Instance)
+				if aInterface.Driver.Instance != nil {
+					var item NetInterfaceDef
+					item.NetworkID = idx
+					item.BusList = aInterface.Driver.Instance.ListPorts()
+					res = append(res, item)
+				}
+				fmt.Println("network recv interface end query")
+			}
+			fmt.Println("network recv list port sending")
+			req <- res
+		case ch := <-subscribe:
+			subscriber := make(chan Event, 10)
+			sub := Subscription{NetworkID: ch.NetworkID,
+				FilterNetwork: ch.FilterNetwork,
+				Types:         ch.Types,
+				FilterTypes:   ch.FilterTypes,
+				New:           subscriber,
+				newSendable:   subscriber}
+			ch.Response <- sub
+			subscribers.PushBack(sub)
+		case event := <-publish:
+			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
+				subscription := ch.Value.(Subscription)
+				var network_match bool = false
+				if subscription.FilterNetwork {
+					if event.NetworkID == subscription.NetworkID {
+						network_match = true
+					}
+				} else {
+					network_match = true
+				}
+				var type_match bool = false
+				if subscription.FilterTypes {
+					if sort.SearchStrings(subscription.Types, event.Type) == len(subscription.Types) {
+						type_match = true
+					}
+				} else {
+					type_match = true
+				}
+				if network_match == true && type_match == true {
+					subscription.newSendable <- event
+				}
+			}
+		case unsub := <-unsubscribe:
+			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
+				if ch.Value.(Subscription).New == unsub {
+					subscribers.Remove(ch)
+					break
+				}
+			}
+		case reConfig := <-restartInterface:
 			for _, val := range driver_collection {
 				if val.Name == reConfig.Driver {
 					if interfaces[reConfig.NetworkID].Driver.Name != "" {
@@ -147,16 +259,16 @@ func interfacesManager() {
 					interfaces[reConfig.NetworkID].Driver = d
 					val, found := revel.Config.String(interfaces[reConfig.NetworkID].ConfigKey)
 					if found {
-						interfaces[reConfig.NetworkID].Driver.Instance.Init(val)
+						interfaces[reConfig.NetworkID].Driver.Instance.Init(val, reConfig.NetworkID)
 					}
 				}
 			}
-		case newIntConfig = <-newInterface:
+		case newIntConfig := <-newInterface:
 			val, found := revel.Config.String(newIntConfig.ConfigKey)
 			if found {
 				interfaces = append(interfaces, newIntConfig)
 				if interfaces[len(interfaces)-1].Driver.Name != "" {
-					interfaces[len(interfaces)-1].Driver.Instance.Init(val)
+					interfaces[len(interfaces)-1].Driver.Instance.Init(val, len(interfaces)-1)
 				}
 			}
 		}
@@ -202,4 +314,18 @@ func init() {
 	//fmt.Println("net0 found: ",result)
 	//fmt.Println("net0 result: ", result, " ", found)
 	//revel.RegisterPlugin(network_manager{})
+}
+
+// Drains a given channel of any messages.
+func drain(ch <-chan Event) {
+	for {
+		select {
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+		default:
+			return
+		}
+	}
 }

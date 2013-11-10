@@ -55,6 +55,13 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 		fmt.Println(err)
 		return nil
 	}
+	fmt.Println("Websocket")
+	ports := engine.ListPorts()
+	if err := websocket.JSON.Send(ws, &ports); err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	fmt.Println(ports)
 	for _, event := range subscription.Archive {
 		if websocket.JSON.Send(ws, &event) != nil {
 			return nil
@@ -88,7 +95,7 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 				fmt.Println("recving", ok)
 				return nil
 			}
-			fmt.Println("new msg:", msg)
+			//fmt.Println("new msg:", msg)
 			engine.Publish(msg)
 		}
 	}

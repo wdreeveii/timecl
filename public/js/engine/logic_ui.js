@@ -34,6 +34,7 @@ var zoom = 1;
 var x_ofs = 0;
 var y_ofs = 0;
 
+var port_list = new Array();
 /* 
 	High level UI 
 */
@@ -518,7 +519,20 @@ function format_type(type, name, value) {
 			p_str += "<option value='" + tzdb[tz] + "' " + selected + ">" + tzdb[tz] + "</option>\n";
 		}
 		p_str += "</select>";
+	} else if (type == "port") {
+		p_str += "<select class='input-block-level' id='" + name + "_field'>";
+		p_str += "<option value='None' " + (value == 'None'?"selected":"") + ">None</option>";
+		console.log(p_str);
+		for (var port in port_list) {
+			var selected = "";
+			if (value == port_list[port])
+				selected = "selected";
+
+			p_str += "<option value='" + port_list[port] + "' " + selected + ">" + port_list[port] + "</option>\n";
+		}
+		p_str += "</select>";
 	} else {
+		console.log(value);
 		p_str += "<input class='input-block-level' id='" + name + "_field' size='6' type='text' value='" + value + "'/>"
 	}
 	return p_str;
