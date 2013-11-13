@@ -147,7 +147,7 @@ socket.onmessage = function(event) {
 		var event_data = event_msg["Data"];
 		obj = load_objects(event_data);
 	} else if (event_msg["Type"] == "init_ports") {
-		port_list = event_msg["Data"]
+		property_window.set('port_list', event_msg["Data"]);
 	}
 }
 

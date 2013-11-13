@@ -495,86 +495,34 @@ function select_object( o )
 	
 		
 	o.selected = 1;
-	
-	show_properties(o);
+	property_window.set('current_obj', o);
+	//show_properties(o);
 	
 
 	draw_display();
 }
 
-var property_window = new Ractive({
-	el: $('#property_sidebar'),
-	template: $('#propertyTemplate'),
-	data: {}
-
+var property_window;
+$(function() {
+	// rewrite to use $.ajax
+	$('#propertyTemplate').load('/public/property_window.html', function() {
+		console.log($('#propertyTemplate').html());
+		property_window = new Ractive({
+			el: $('#property_sidebar'),
+			template: $('#propertyTemplate').html(),
+			data: {
+				current_obj: false,
+				tzdb: tzdb,
+				current_timezone: jstz.determine().name(),
+				port_list: new Array(),
+			}
+		});
+	});
 });
-
-function format_type(type, name, value) {
-	var p_str = "";
-
-	if (type == "timezone") {
-		var current_timezone = jstz.determine().name();
-		p_str += "<select class='input-block-level' id='" + name + "_field'>";
-		for (var tz in tzdb) {
-			var selected = "";
-			if (!value && current_timezone == tzdb[tz])
-				selected = "selected";
-			else if (value == tzdb[tz])
-				selected = "selected";
-
-			p_str += "<option value='" + tzdb[tz] + "' " + selected + ">" + tzdb[tz] + "</option>\n";
-		}
-		p_str += "</select>";
-	} else if (type == "port") {
-		p_str += "<select class='input-block-level' id='" + name + "_field'>";
-		p_str += "<option value='None' " + (value == 'None'?"selected":"") + ">None</option>";
-		console.log(p_str);
-		for (var port in port_list) {
-			var selected = "";
-			if (value == port_list[port])
-				selected = "selected";
-
-			p_str += "<option value='" + port_list[port] + "' " + selected + ">" + port_list[port] + "</option>\n";
-		}
-		p_str += "</select>";
-	} else {
-		console.log(value);
-		p_str += "<input class='input-block-level' id='" + name + "_field' size='6' type='text' value='" + value + "'/>"
-	}
-	return p_str;
-}
 
 function show_properties(o)
 {
 	show_div("property_area");
-
-	var p_str = "";
-	p_str += "<div>Type: " + o.Type + "</div>";
-	p_str += "<div>Properties:</div>";
-	p_str += "<div class='accordion' id='property_accordion'>";
-
-	for (var i = 0; i < o.PropertyCount; i++)
-	{
-		p_str += "<div class='accordion-group accordion-caret'>";
-		p_str += "<div class='accordion-heading'>";
-		p_str += "<a class='accordion-toggle collapsed' data-toggle='collapse' data-parent='#property_accordion' href='#collapse" + i + "'>";
-		p_str += o.PropertyNames[i];
-		p_str += "</a>";
-		p_str += "</div>";
-		p_str += "<div id='collapse" + i + "' class='accordion-body collapse'>";
-		p_str += "<div class='accordion-inner'>";
-		p_str += format_type(o.PropertyTypes[i], o.PropertyNames[i], o.PropertyValues[i]);
-		p_str += "</div>";
-		p_str += "</div>";
-		p_str += "</div>";
-	}
-
-	p_str += "</div>";
-		
-	if (o.PropertyCount > 0)
-		p_str += "<input class='btn btn-danger' value='Save' onclick='save_properties(" +sel_obj + ");' type='submit'>  ";
-	
-	document.getElementById("property_area").innerHTML = p_str;
 }
 
 function hide_properties()

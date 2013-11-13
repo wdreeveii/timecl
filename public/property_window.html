@@ -1,0 +1,52 @@
+<div>
+	{{#current_obj}}
+	<h4>Device Info</h4>
+	<div>Type: {{.Type}}</div>
+	<h4>Device Properties</h4>
+	<div class="panel-group" id="accordion">
+		{{#.PropertyNames:i}}
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h4 class="panel-title">
+					<a data-toggle="collapse" data-parent="#accordion" href="#collapse{{i}}">
+	    				{{.}} - {{current_obj.PropertyTypes[i]}}
+					</a>
+	  			</h4>
+			</div>
+			<div id="collapse{{i}}" class="panel-collapse collapse">
+				<div class="panel-body">
+				{{#current_obj.PropertyTypes[i] == "string" ||
+				   current_obj.PropertyTypes[i] == "float" ||
+				   current_obj.PropertyTypes[i] == "time"}}
+					<input class='form-control' id='{{.}}_field' size='6' type='text' value='{{current_obj.PropertyValues[i]}}'/>
+				{{/current_obj.PropertyTypes[i]}}
+				{{#current_obj.PropertyTypes[i] == "timezone"}}
+					<select class='form-control' id='{{.}}_field' value='{{current_timezone}}'>
+					{{#tzdb:j}}
+						<option value='{{.}}'>{{.}}</option>
+					{{/tzdb}}
+					</select>
+				{{/current_obj.PropertyTypes[i]}}
+				{{#current_obj.PropertyTypes[i] == "port"}}
+					<select class='form-control' id='{{.}}_field' value='{{current_obj.PropertyValues[i]}}'>
+						<option value='None'>None</option>
+						{{#port_list:p}}
+						<option value='{{.}}'>{{.}}</option>
+						{{/port_list}}
+					</select>
+				{{/current_obj.PropertyTypes[i]}}
+				</div>
+			</div>
+		</div>
+		{{/.PropertyNames}}
+		{{#current_obj.PropertyCount > 0}}
+		<input class='btn btn-danger' value='Save' onclick='save_properties({{current_obj.Id}});' type='submit'>
+		{{/current_obj.PropertyCount}}
+	</div>
+	{{/current_obj}}
+</div>
+<p>{{test}}</p>
+<ul id="property_area">
+</ul>
+<div id="debug">
+</div>
