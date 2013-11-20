@@ -9,6 +9,10 @@
 #define PORT_AINPUT 4
 
 void io_init();
+
+uint8_t io_num_ports();
+uint8_t io_get_type(uint8_t port);
+
 void iocontrol(unsigned char port, unsigned char state);
 void ioflip(unsigned char port);
 

@@ -30,8 +30,18 @@
 				{{#current_obj.PropertyTypes[i] == "port"}}
 					<select class='form-control' id='{{.}}_field' value='{{current_obj.PropertyValues[i]}}'>
 						<option value='None'>None</option>
-						{{#port_list:p}}
-						<option value='{{.}}'>{{.}}</option>
+						{{#port_list:n}}
+							{{#BusList:b}}
+									{{#DeviceList:d}}
+										<optgroup label="Network: {{NetworkID}} Bus: {{BusID}} Device {{DeviceID}}">
+											{{#PortList:p}}
+											{{#Type == current_obj.Type}}
+											<option value='{{PortID}}'>{{Type}}</option>
+											{{/Type}}
+											{{/PortList}}
+										</optgroup>
+									{{/DeviceList}}
+							{{/BusList}}
 						{{/port_list}}
 					</select>
 				{{/current_obj.PropertyTypes[i]}}

@@ -127,27 +127,28 @@ function backend_moveobject(id, x_pos, y_pos)
 	}
 	socket.send(JSON.stringify(eevent));
 }
-
-var socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
-socket.onmessage = function(event) {
-	console.log(event.data);
-	var event_msg = JSON.parse(event.data);
-	if (event_msg["Type"] == "add") {
-		var event_data = event_msg["Data"];
-		var object = load_object(event_data);
-		obj[object["Id"]] = object;
-	} else if (event_msg["Type"] == "edit") {
-		var event_data = event_msg["Data"];
-		var id = event_data["Id"]
-		var changes = event_data["State"]
-		for (var change in changes) {
-			obj[id][change] = changes[change];
+function backend_start() {
+	var socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
+	socket.onmessage = function(event) {
+		console.log(event.data);
+		var event_msg = JSON.parse(event.data);
+		if (event_msg["Type"] == "add") {
+			var event_data = event_msg["Data"];
+			var object = load_object(event_data);
+			obj[object["Id"]] = object;
+		} else if (event_msg["Type"] == "edit") {
+			var event_data = event_msg["Data"];
+			var id = event_data["Id"]
+			var changes = event_data["State"]
+			for (var change in changes) {
+				obj[id][change] = changes[change];
+			}
+		} else if (event_msg["Type"] == "init") {
+			var event_data = event_msg["Data"];
+			obj = load_objects(event_data);
+		} else if (event_msg["Type"] == "init_ports") {
+			property_window.set('port_list', event_msg["Data"]);
 		}
-	} else if (event_msg["Type"] == "init") {
-		var event_data = event_msg["Data"];
-		obj = load_objects(event_data);
-	} else if (event_msg["Type"] == "init_ports") {
-		property_window.set('port_list', event_msg["Data"]);
 	}
 }
 

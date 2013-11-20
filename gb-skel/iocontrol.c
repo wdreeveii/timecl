@@ -78,6 +78,22 @@ void io_set_type(uint8_t port, uint8_t type)
 	}
 }
 
+uint8_t io_num_ports() {
+	return NUM_PORTS;
+}
+
+uint8_t io_get_type(uint8_t port) {
+	uint8_t type;
+	if (port >= NUM_PORTS)
+		return 0;
+
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		type = iotypes[port];
+	}
+
+	return type;
+}
+
 void io_init()
 {		
 	config_get_io_types(iotypes);

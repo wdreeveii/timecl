@@ -75,7 +75,7 @@ type GreenBusDevice struct {
 }
 
 func (d GreenBusDevice) String() string {
-	return fmt.Sprintf("<Addr: %v, Mac: %v>", d.Addr, d.Mac)
+	return fmt.Sprintf("<Addr: %v, Mac: %v, Model: %v>", d.Addr, d.Mac, d.ModelName)
 }
 
 type DeviceList []GreenBusDevice
@@ -120,7 +120,7 @@ func (payload interrogate_payload) ToStruct() (dst interrogate_reply) {
 					ports_offset := 2 + model_len + serial_len
 					if len(payload) > 2+int(model_len)+int(serial_len) {
 						num_ports := uint8(payload[ports_offset])
-						if len(payload) > int(ports_offset+1+(2*num_ports)) {
+						if len(payload) == int(ports_offset+1+(2*num_ports)) {
 							for ii := uint8(0); ii < uint8(num_ports); ii++ {
 								portdef_start := ports_offset + 1 + (ii * 2)
 								dst.Ports = append(dst.Ports, portdef_payload(payload[portdef_start:portdef_start+2]).ToStruct())
@@ -139,6 +139,10 @@ func (structure interrogate_reply) ToByte() (payload interrogate_payload) {
 }
 
 const (
+	PORT_OUTPUT uint8 = 0
+	PORT_DINPUT uint8 = 2
+	PORT_AINPUT uint8 = 4
+
 	FIND_DEVICES uint8 = 72
 	NEED_ADDR    uint8 = 73
 	ACK_DEVICE   uint8 = 74
@@ -567,10 +571,26 @@ func (d GreenBus) runmaster(port string, network_id int) {
 						devices[rmsg.device_addr].ModelName = dev_properties.Model
 						devices[rmsg.device_addr].Serial = dev_properties.Serial
 
-						LOG.Println("model: ", dev_properties.Model)
+						LOG.Println("model: ", devices[rmsg.device_addr].ModelName)
 						LOG.Println("Serial: ", dev_properties.Serial)
 						// parse the msg and init the ports
-						//devices[new_device_addr].Ports
+						var ports []Port_t
+						fmt.Println("rports:", dev_properties.Ports)
+						for _, val := range dev_properties.Ports {
+							fmt.Println("SETTING UP PORT")
+							var port Port_t
+							switch {
+							case val.Type == PORT_OUTPUT:
+								port.Type = network_manager.Output
+							case val.Type == PORT_DINPUT:
+								port.Type = network_manager.Input
+							case val.Type == PORT_AINPUT:
+								port.Type = network_manager.Input
+							}
+							ports = append(ports, port)
+						}
+						fmt.Println("PORTS:", ports)
+						devices[rmsg.device_addr].Ports = ports
 						network_manager.Publish(network_manager.NewEvent(network_id, "port_change", nil))
 					}}}
 				device_idx, device_in_list := devices.Find(rmsg.device_mac)

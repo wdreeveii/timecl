@@ -506,7 +506,6 @@ var property_window;
 $(function() {
 	// rewrite to use $.ajax
 	$('#propertyTemplate').load('/public/property_window.html', function() {
-		console.log($('#propertyTemplate').html());
 		property_window = new Ractive({
 			el: $('#property_sidebar'),
 			template: $('#propertyTemplate').html(),
@@ -517,6 +516,7 @@ $(function() {
 				port_list: new Array(),
 			}
 		});
+		backend_start();
 	});
 });
 
@@ -577,5 +577,4 @@ function reset()
 	x_ofs = 0;
 	y_ofs = 0;
 }
-
-$(start);
+$(start)

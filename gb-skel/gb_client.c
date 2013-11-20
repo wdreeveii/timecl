@@ -7,6 +7,7 @@
 
 #include "usart.h"
 #include "gb_client.h"
+#include "iocontrol.h"
 
 uint16_t crc16_update(uint16_t crc, uint8_t a)
 {
@@ -68,6 +69,25 @@ void send_packet(struct message_t * msg) {
 	*((uint16_t *)(data + sizeof(struct mheader_t) + 2 + msg->payload_len)) = checksum;
 	USART_Send(1, (uint8_t *)data, sizeof(struct mheader_t) + 2 + msg->payload_len + 2);
 }
+
+void mk_interrogate_reply(struct message_t * msg) {
+	uint8_t num_ports = io_num_ports();
+	uint8_t payload_len = (num_ports*2)+1+6+11;
+	char payload[payload_len];
+	payload[0] = 5;
+	strcpy(payload+1, "DEV01");
+	payload[1 + 5] = 10;
+	strcpy(payload+1+5+1, "1234567890");
+	payload[1 + 5 + 1 + 10] = num_ports;
+	for(int i = 0; i < num_ports; i++) {
+		payload[1+5+1+10+1+(i*2)] = io_get_type(i);
+		payload[1+5+1+10+1+(i*2)+1] = i;
+	}
+	msg->header.mtype = INTERROGATE_REPLY;
+	msg->payload = payload;
+	msg->payload_len = payload_len;
+	send_packet(msg);
+}
 	
 void process_packet(char *buffer, int length) {
 	struct mheader_t *header;
@@ -116,9 +136,7 @@ void process_packet(char *buffer, int length) {
 			}
 			else if (header->mtype == INTERROGATE)
 			{
-				msg.header.mtype = INTERROGATE_REPLY;
-				msg.payload = "\x05" "DEV01" "\x0A" "1234567890";
-				msg.payload_len = 6 + 11;
+				return mk_interrogate_reply(&msg);
 			}
 			else {
 				msg.header.mtype = UNKNOWN_REPLY;
