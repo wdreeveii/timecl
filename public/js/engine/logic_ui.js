@@ -27,8 +27,6 @@ var mouse_y = 0;
 var	x_ofs_start = 0;
 var	y_ofs_start = 0;
 
-var updates = 0;
-
 // Pan / Zoom
 var zoom = 1;
 var x_ofs = 0;
@@ -36,10 +34,29 @@ var y_ofs = 0;
 
 var port_list = new Array();
 
-$(function (){
-	//alert("setting up layout");
+var property_window;
+$(function() {
 	$('#property_and_canvas').layout({applyDefaultStyles: false,
 				center__onresize: resize_canvas,
+	});
+	$('#propertyTemplate').load('/public/property_window.html', function() {
+		property_window = new Ractive({
+			el: $('#property_sidebar'),
+			template: $('#propertyTemplate').html(),
+			data: {
+				current_obj: false,
+				tzdb: tzdb,
+				current_timezone: jstz.determine().name(),
+				port_list: new Array(),
+				netmgrTypes: function(t) {
+					var types = new Array("binput", "ainput", "boutput", "aoutput");
+					t = parseInt(t);
+					return types[t];
+				}
+			}
+		});
+		backend_start();
+		start();
 	});
 });
 
@@ -60,14 +77,9 @@ function start()
 
 	// Mouse Wheel IE
 	window.onmousewheel = document.onmousewheel = mouse_wheel;
-	$(canvas).scroll(mouse_wheel);
-	$(canvas).keydown(key_down); 
 
 	resize_canvas();
-	set_timer();
-	update();
-	//test_scope();
-	data_source_start();
+	//data_source_start();
 }
 
 /* 
@@ -76,22 +88,6 @@ function start()
 function snap_val(x)
 {
 	return (Math.round((x)/snap)*snap);
-}
-
-function debug(m)
-{
-	document.getElementById("debug").innerHTML =m + "<br>" + 	document.getElementById("debug").innerHTML;
-	//alert(m);
-}
-
-function show_div(name)
-{
-	document.getElementById(name).style.display = "block";
-}
-
-function hide_div(name)
-{
-	document.getElementById(name).style.display = "none";
 }
 
 function get_value(name)
@@ -113,10 +109,13 @@ function set_value(name, value)
 */
 function resize_canvas()
 {
+	console.log("resize canvas");
 	var container = $(document.getElementById("canvas_container"));
 	var canvas = document.getElementById("canvas");
 	canvas.width = parseInt(container.css("width"));
 	canvas.height = parseInt(container.css("height"));
+
+	draw_display();
 }
 
 function draw_display() {
@@ -124,22 +123,6 @@ function draw_display() {
  	var ctx = canvas.getContext("2d");
 	
 	draw_objects(ctx, obj, canvas.width, canvas.height);
-}
-
-function update( )
-{
-	draw_display();
-	
-	updates++;
-	
-	//debug("Update: " + updates);
-}
-
-function set_timer() 
-{ 
-//	debug("set timer");
-		
-	setInterval(function() { update(); }.bind(this), 1000/update_rate);
 }
 
 /* 
@@ -164,7 +147,6 @@ function mouse_pos(ev)
 function mouse_up(ev)
 { 
 	var pos = mouse_pos(ev);    		
-	//document.getElementById("debug").innerHTML += "Up  " + pos.x + " " + pos.y +"<br>";
 	mouse_state = "up";
 	if (ui_mode == "moving")
 	{
@@ -179,7 +161,6 @@ function mouse_up(ev)
 			for (var i in obj[sel_obj].Terminals)
 			{
 				var k = obj[sel_obj].Terminals[i];
-				//debug (i);
 				backend_moveobject(obj[k].Id, obj[k].Xpos, obj[k].Ypos);
 			}
 		}
@@ -197,13 +178,8 @@ function mouse_down(ev)
 	
 	x_ofs_start = x_ofs;	
 	y_ofs_start = y_ofs;
-	console.log("x : " + pos.x);
-	console.log("y : " + pos.y);
 	mouse_x = pos.x;
 	mouse_y = pos.y;
-	
-	//document.getElementById("debug").innerHTML += "Down  " + pos.x + " " + pos.y +"<br>";
-	//debug("mode: " + ui_mode);
 
 	has_moved = 0;
 
@@ -212,6 +188,7 @@ function mouse_down(ev)
 	if (ui_mode == "none")// No mode, either find an obj or clear mode
 	{
 		var i = find_object(pos.x, pos.y);
+		console.log("found:", i);
 		if (i == -1) // No object found, go clear selection
 		{
 			select_none();
@@ -226,29 +203,25 @@ function mouse_down(ev)
 	if (ui_mode == "add_pipe2")  ui_add_pipe2(pos); else		// Select second object for adding wire
 	if (ui_mode == "delete")     ui_delete_object(pos); else	// Delete
 	if (ui_mode == "unhook")     ui_unhook_object(pos); else	// Unhook
-
 		set_mode("none");
 
 	draw_display();
 } 
 
-
-
-
 function mouse_move(ev)
-{ 
+{
+	console.log("moving");
  	var pos = mouse_pos(ev); 
+ 	if (ui_mode == "add_pipe2") {
 
-
+ 	} else
 	if (ui_mode == "moving")
 	{
-		
 		var new_x = snap_val(get_world_x(pos.x) - obj_x_ofs);
 		var new_y = snap_val(get_world_y(pos.y) - obj_y_ofs);
 
 		var delta_x = new_x - obj[sel_obj].Xpos ;
 		var delta_y = new_y - obj[sel_obj].Ypos;
-
 
 		obj[sel_obj].Xpos = new_x;
 		obj[sel_obj].Ypos = new_y;
@@ -264,8 +237,6 @@ function mouse_move(ev)
 
 		draw_display();
 	} else
-
-
 	// Pan grid if dragging mouse
 	if (mouse_state == "down")
 	{
@@ -275,22 +246,16 @@ function mouse_move(ev)
 	
 		x_ofs = x_ofs_start + dx;
 		y_ofs = y_ofs_start + dy;
-		
-		//debug(x_ofs + " " + y_ofs);
 	}
-
-
 	has_moved = 1;
 }
-
 
 function mouse_wheel( event )
 {
 	console.log("scrolling");
-   var delta = 0;
-
-   if (!event)
-   	event = window.event;
+	var delta = 0;
+	if (!event)
+   		event = window.event;
    	
    	if (event.wheelDelta) 
     { 
@@ -323,56 +288,16 @@ function mouse_wheel( event )
     if (event.preventDefault) event.preventDefault();
 	
 	event.returnValue = false;
-
-	//debug("zoom: " + zoom);
+	draw_display();
 }
-
-
-function key_down(ev)
-{
- 	var ch = (typeof ev.which == "number") ? ev.which : ev.keyCode;
- 	
- /*	if (ch == 46)  // Delete key
-	{
-		if (sel_obj < 0) return;
-
-		delete_object(sel_obj);
-
-		sel_obj = -1;
-
-		set_mode("none");
-	} 	
-	
- 	if (ch == 85)  // Delete key
-	{
-		if (sel_obj < 0) return;
-
-		unhook_object(sel_obj);
-
-		sel_obj = -1;
-
-		set_mode("none");
-	} 	
-	if (ch == 87) // Wire command
-	{
-		set_mode('add_pipe');
-	}
-	*/
-}
-
 
 /*
 	End keyboard / Mouse
 */
 
-
-
 /*
 	UI Service 
 */
-
-
-
 function ui_add_pipe1(pos) 
 {
 	//add_object(pos.x, pos.y, "pipe");
@@ -384,14 +309,13 @@ function ui_add_pipe1(pos)
 		console.log("adding 1 pipe");
 		obj[i].selected  =1;
 
-		ui_mode = "add_pipe2";
+		set_mode("add_pipe2");
 		sel_obj = i;
 
 		draw_display();
 	} else
-		ui_mode = "none";
+		set_mode("none");
 }
-
 
 function ui_add_pipe2(pos)
 {
@@ -408,11 +332,10 @@ function ui_add_pipe2(pos)
 		obj[i].selected  =0;
 		obj[sel_obj].selected  =0;
 
-		ui_mode = "add_pipe";
+		set_mode("add_pipe");
 	} else
 		set_mode ("none");
 }
-
 
 function ui_move_object(pos, i)
 {
@@ -427,9 +350,10 @@ function ui_move_object(pos, i)
 
 		sel_obj = i;
 		set_mode("moving");
+	} else {
+
 	}
 }
-
 
 function ui_delete_object(pos)
 {
@@ -441,7 +365,6 @@ function ui_delete_object(pos)
 	set_mode("none");
 }
 
-
 function ui_unhook_object(pos)
 {
 	var i = find_object(pos.x, pos.y);
@@ -452,13 +375,12 @@ function ui_unhook_object(pos)
 	}
 
 	set_mode("none");
-} 
-
+}
 
 function ui_add_object(pos)
 {
 	var index = add_object(obj, pos.x, pos.y, ui_addtype, 0, -1);
-	ui_mode = "none";
+	set_mode("none");
 	ui_addtype = "";
 
 }
@@ -473,12 +395,12 @@ function set_guide(s)
 
 function select_none()
 {
-	hide_properties();
 	// more like blank_properties
 	for (var i in obj)
 		obj[i].selected = 0;
 	
 	sel_obj = -1;
+	property_window.set('current_obj', {});
 }
 
 function select_object( o )
@@ -495,39 +417,9 @@ function select_object( o )
 	
 		
 	o.selected = 1;
-	property_window.set('current_obj', o);
-	//show_properties(o);
-	
+	property_window.set('current_obj', o);	
 
 	draw_display();
-}
-
-var property_window;
-$(function() {
-	// rewrite to use $.ajax
-	$('#propertyTemplate').load('/public/property_window.html', function() {
-		property_window = new Ractive({
-			el: $('#property_sidebar'),
-			template: $('#propertyTemplate').html(),
-			data: {
-				current_obj: false,
-				tzdb: tzdb,
-				current_timezone: jstz.determine().name(),
-				port_list: new Array(),
-			}
-		});
-		backend_start();
-	});
-});
-
-function show_properties(o)
-{
-	show_div("property_area");
-}
-
-function hide_properties()
-{
-	hide_div("property_area");
 }
 
 function save_properties(sel_obs)
@@ -545,25 +437,23 @@ function save_properties(sel_obs)
 	// Need to save peoperties to database
 
 	o.save_properties();
-	
-	//hide_properties();
-	
+		
 	draw_display();
 
 	return false;
 }
 
-
 function set_mode(m)
 {
+	if (m == 'delete')
+		$('#canvas').css('cursor', 'crosshair');
+	else
+		$('#canvas').css('cursor', 'auto');
 	ui_mode = m;
 }
 
 function set_addmode(obj_type)
 {
-	//ui_mode = "add_object";
-	//ui_addtype = obj_type;
-	
 	var index = add_object(obj, get_world_x(100), get_world_y(100), obj_type, 0, 0, -1);
 }
 
@@ -577,4 +467,3 @@ function reset()
 	x_ofs = 0;
 	y_ofs = 0;
 }
-$(start)

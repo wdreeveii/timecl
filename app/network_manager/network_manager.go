@@ -6,7 +6,9 @@ import (
 	"github.com/coopernurse/gorp"
 	"github.com/robfig/revel"
 	"github.com/robfig/revel/modules/db/app"
+	"regexp"
 	"sort"
+	"strconv"
 	"time"
 	"timecl/app/models"
 )
@@ -144,6 +146,46 @@ func SubscribeNetworkTypes(NetworkID int, Types []string) Subscription {
 	return subscribeBase(NetworkID, true, Types, true)
 }
 
+type SetData struct {
+	BusID    int
+	DeviceID int
+	PortID   int
+	Value    float64
+}
+
+func PublishSetEvent(port_uri string, value float64) {
+	var err error
+	defer func(err error) {
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(err)
+	re, err := regexp.Compile(`(\d+)-(\d+)-(\d+)-(\d+)`)
+	if err != nil {
+		return
+	}
+	result := re.FindStringSubmatch(port_uri)
+	if len(result) > 0 {
+		networkid, err := strconv.ParseInt(result[1], 0, 0)
+		if err != nil {
+			return
+		}
+		busid, err := strconv.ParseInt(result[2], 0, 0)
+		if err != nil {
+			return
+		}
+		deviceid, err := strconv.ParseInt(result[3], 0, 0)
+		if err != nil {
+			return
+		}
+		portid, err := strconv.ParseInt(result[4], 0, 0)
+		if err != nil {
+			return
+		}
+		Publish(NewEvent(int(networkid), "set", SetData{BusID: int(busid), DeviceID: int(deviceid), PortID: int(portid), Value: value}))
+	}
+}
+
 func NewEvent(net_id int, typ string, data EventArgument) Event {
 	return Event{net_id, typ, data, int(time.Now().Unix())}
 }
@@ -160,8 +202,10 @@ func RestartDriver(NetworkID int, driver string) {
 type PortFunction int
 
 const (
-	Input PortFunction = iota
-	Output
+	BInput PortFunction = iota
+	AInput
+	BOutput
+	AOutput
 )
 
 type PortDef struct {

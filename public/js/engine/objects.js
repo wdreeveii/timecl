@@ -74,29 +74,66 @@ function binput_type (o)
 	}
 }
 
-object_list.push("httpsource");
+object_list.push("ainput");
 
-function httpsource_type (o)
+function ainput_type (o)
 {
-	o.Xsize = 80;
+	o.Xsize = 30;
 	o.Ysize = 30;
 	o.show_output = 1;
-	
+
 	o.input_termcount = 0;
 	o.output_termcount = 1;
-	
+
 	if (o.PropertyCount == 0)
 	{
 		o.add_property("name", "string", "");
-	}					 
+		o.add_property("value", "float", "0");
+		o.add_property("port", "port", "None");
+	}
+
+	o.save_properties = function()
+	{
+		backend_setproperties(o.Id, o.PropertyCount, o.PropertyNames, o.PropertyTypes, o.PropertyValues);
 		
+		for (var i = 0; i < o.PropertyCount; i++)
+		{
+			if (o.PropertyNames[i] == "value")
+			{
+				backend_setoutput(o.Id, o.PropertyValues[i]);
+				break;
+			}
+		}
+	}
+
+	o.set_output = function(output)
+	{
+		o.Output = output;
 		
-	o.source_name = "counter";			
-							 
+		backend_setoutput(o.Id, o.Output);
+		
+		for (var i = 0; i < o.PropertyCount; i++)
+		{
+			if (o.PropertyNames[i] == "value")
+			{
+				o.PropertyValues[i] = o.Output;
+				break;
+			}
+		}		
+		
+		backend_setproperties(o.Id, o.PropertyCount, o.PropertyNames, o.PropertyTypes, o.PropertyValues);
+	}
+					 
 	o.draw_icon = function(ctx) 
 	{
-		bounding_rect(ctx, this);
-								
+		ctx.beginPath();
+		
+		ctx.arc(get_x(this.Xpos + this.Xsize/2), 
+				get_y(this.Ypos + this.Ysize/2), 
+				(this.Xsize/2)*zoom, 0, Math.PI*2, true);
+		
+		ctx.fill();
+		ctx.stroke();				
 	}
 }
 
@@ -111,6 +148,7 @@ function boutput_type (o)
 	if (o.PropertyCount == 0)
 	{
 		o.add_property("name", "string", "");
+		o.add_property("port", "port", "None");
 	}					 
 	
 	o.input_termcount = 1;
@@ -137,6 +175,7 @@ function aoutput_type (o)
 	if (o.PropertyCount == 0)
 	{
 		o.add_property("name", "string", "");
+		o.add_property("port", "port", "None");
 	}
 
 	o.draw_icon = function(ctx) 

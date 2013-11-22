@@ -62,11 +62,11 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 		return nil
 	}
 	fmt.Println(ports)
-	for _, event := range subscription.Archive {
+	/*for _, event := range subscription.Archive {
 		if websocket.JSON.Send(ws, &event) != nil {
 			return nil
 		}
-	}
+	}*/
 
 	newMessages := make(chan logic_engine.Event)
 	go func() {

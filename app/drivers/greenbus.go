@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	//"io/ioutil"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -14,9 +14,9 @@ import (
 	"timecl/app/network_manager"
 )
 
-//var output = ioutil.Discard
+var output = ioutil.Discard
 
-var output = os.Stderr
+//var output = os.Stderr
 var LOG = log.New(output, "GreenBus ", log.Ldate|log.Ltime)
 
 type GreenBus struct {
@@ -28,7 +28,6 @@ func (d *GreenBus) Init(port string, network_id int) {
 	LOG.Println("CHANNEL: ", d.StopChan, " again ", d.List_ports)
 	var list = make(chan (chan []network_manager.BusDef))
 	d.List_ports = list
-	fmt.Println("init list ports ", d.List_ports)
 	go d.runmaster(port, network_id)
 }
 
@@ -45,7 +44,7 @@ func (d *GreenBus) Copy() network_manager.DriverInterface {
 }
 
 func (d *GreenBus) ListPorts() []network_manager.BusDef {
-	fmt.Println("GreenBus list ports", d.List_ports)
+	LOG.Println("GreenBus list ports", d.List_ports)
 	var res = make(chan []network_manager.BusDef)
 	d.List_ports <- res
 	return <-res
@@ -140,7 +139,7 @@ func (structure interrogate_reply) ToByte() (payload interrogate_payload) {
 
 const (
 	PORT_OUTPUT uint8 = 0
-	PORT_DINPUT uint8 = 2
+	PORT_BINPUT uint8 = 2
 	PORT_AINPUT uint8 = 4
 
 	FIND_DEVICES uint8 = 72
@@ -519,12 +518,12 @@ func (d GreenBus) runmaster(port string, network_id int) {
 		}
 		select {
 		case req := <-d.List_ports:
-			fmt.Println("Greenbus recv list ports")
+			LOG.Println("Greenbus recv list ports")
 			var res = make([]network_manager.BusDef, 0)
 			res = append(res, network_manager.BusDef{BusID: 0})
 			res[0].DeviceList = make([]network_manager.DeviceDef, 0)
 			for idx, device := range devices[2:] {
-				fmt.Println("device: ", idx, " ", device)
+				LOG.Println("device: ", idx, " ", device)
 				var dev network_manager.DeviceDef
 				dev.DeviceID = idx + 2
 				var ports = make([]network_manager.PortDef, 0)
@@ -534,10 +533,10 @@ func (d GreenBus) runmaster(port string, network_id int) {
 				dev.PortList = ports
 				res[0].DeviceList = append(res[0].DeviceList, dev)
 			}
-			fmt.Println("Greenbus recv list sending")
+			LOG.Println("Greenbus recv list sending")
 			req <- res
 		case event := <-network_subscription.New:
-			LOG.Println("Driver Event")
+			fmt.Println("Driver Event")
 			switch {
 			case event.Type == "set":
 				// set a port
@@ -575,21 +574,21 @@ func (d GreenBus) runmaster(port string, network_id int) {
 						LOG.Println("Serial: ", dev_properties.Serial)
 						// parse the msg and init the ports
 						var ports []Port_t
-						fmt.Println("rports:", dev_properties.Ports)
+						LOG.Println("rports:", dev_properties.Ports)
 						for _, val := range dev_properties.Ports {
-							fmt.Println("SETTING UP PORT")
+							LOG.Println("SETTING UP PORT")
 							var port Port_t
 							switch {
 							case val.Type == PORT_OUTPUT:
-								port.Type = network_manager.Output
-							case val.Type == PORT_DINPUT:
-								port.Type = network_manager.Input
+								port.Type = network_manager.BOutput
+							case val.Type == PORT_BINPUT:
+								port.Type = network_manager.BInput
 							case val.Type == PORT_AINPUT:
-								port.Type = network_manager.Input
+								port.Type = network_manager.AInput
 							}
 							ports = append(ports, port)
 						}
-						fmt.Println("PORTS:", ports)
+						LOG.Println("PORTS:", ports)
 						devices[rmsg.device_addr].Ports = ports
 						network_manager.Publish(network_manager.NewEvent(network_id, "port_change", nil))
 					}}}

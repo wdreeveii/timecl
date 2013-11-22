@@ -127,8 +127,9 @@ function backend_moveobject(id, x_pos, y_pos)
 	}
 	socket.send(JSON.stringify(eevent));
 }
+var socket;
 function backend_start() {
-	var socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
+	socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
 	socket.onmessage = function(event) {
 		console.log(event.data);
 		var event_msg = JSON.parse(event.data);
@@ -136,6 +137,7 @@ function backend_start() {
 			var event_data = event_msg["Data"];
 			var object = load_object(event_data);
 			obj[object["Id"]] = object;
+			draw_display();
 		} else if (event_msg["Type"] == "edit") {
 			var event_data = event_msg["Data"];
 			var id = event_data["Id"]
@@ -143,9 +145,11 @@ function backend_start() {
 			for (var change in changes) {
 				obj[id][change] = changes[change];
 			}
+			draw_display();
 		} else if (event_msg["Type"] == "init") {
 			var event_data = event_msg["Data"];
 			obj = load_objects(event_data);
+			draw_display();
 		} else if (event_msg["Type"] == "init_ports") {
 			property_window.set('port_list', event_msg["Data"]);
 		}

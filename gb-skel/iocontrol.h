@@ -5,7 +5,7 @@
 
 #define NUM_PORTS 14
 #define PORT_OUTPUT 0
-#define PORT_DINPUT 2
+#define PORT_BINPUT 2
 #define PORT_AINPUT 4
 
 void io_init();

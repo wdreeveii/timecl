@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 	"time"
+	"timecl/app/network_manager"
 )
 
 var processors = make(map[string]processor)
@@ -12,6 +13,7 @@ var processors = make(map[string]processor)
 func init() {
 	processors["guide"] = ProcessGuide
 	processors["binput"] = ProcessBinput
+	processors["ainput"] = ProcessAinput
 	processors["boutput"] = ProcessBoutput
 	processors["aoutput"] = ProcessAoutput
 	processors["notgate"] = ProcessNotGate
@@ -60,12 +62,26 @@ func ProcessBinput(o *Object_t, Objects map[int]*Object_t) {
 	(*Objects[term])["NextOutput"] = (*o)["Output"]
 }
 
+func ProcessAinput(o *Object_t, Objects map[int]*Object_t) {
+	if o.CheckTerminals(1) {
+		return
+	}
+	(*o)["NextOutput"] = (*o)["Output"]
+	term := int((*o)["Terminals"].([]interface{})[0].(float64))
+	(*Objects[term])["NextOutput"] = (*o)["Output"]
+}
+
 func ProcessBoutput(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
 	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	(*o)["NextOutput"] = (*Objects[term])["Output"]
+	value := (*Objects[term])["Output"].(float64)
+	if (*o)["NextOutput"] != value {
+		port_uri := o.GetProperty("port").(string)
+		network_manager.PublishSetEvent(port_uri, value)
+	}
+	(*o)["NextOutput"] = value
 }
 
 func ProcessAoutput(o *Object_t, Objects map[int]*Object_t) {
@@ -73,7 +89,12 @@ func ProcessAoutput(o *Object_t, Objects map[int]*Object_t) {
 		return
 	}
 	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	(*o)["NextOutput"] = (*Objects[term])["Output"]
+	value := (*Objects[term])["Output"]
+	if (*o)["NextOutput"] != value {
+		port_uri := o.GetProperty("port").(string)
+		network_manager.PublishSetEvent(port_uri, value)
+	}
+	(*o)["NextOutput"] = value
 }
 
 func ProcessNotGate(o *Object_t, Objects map[int]*Object_t) {

@@ -97,6 +97,11 @@ uint8_t io_get_type(uint8_t port) {
 void io_init()
 {		
 	config_get_io_types(iotypes);
+	io_set_type(0, PORT_BINPUT);
+	io_set_type(1, PORT_BINPUT);
+	io_set_type(2, PORT_BINPUT);
+	io_set_type(3, PORT_BINPUT);
+
 	build_analog_tables();
 	
 	if (num_channels)
@@ -136,7 +141,7 @@ uint8_t io_read(uint8_t index)
 	if (index >= NUM_PORTS)
 		return 0;
 		
-	if (iotypes[index] == PORT_DINPUT)
+	if (iotypes[index] == PORT_BINPUT)
 	{
 		return !!(*(ports[index].valaddr) & (1U << ports[index].bit));
 	}
