@@ -88,7 +88,30 @@ void mk_interrogate_reply(struct message_t * msg) {
 	msg->payload_len = payload_len;
 	send_packet(msg);
 }
+
+void mk_set_reply(struct message_t * msg) {
+	msg->header.mtype = SET_REPLY;
+	msg->payload = "";
+	msg->payload_len = 0;
+	send_packet(msg);
+}
 	
+void do_set(struct message_t * msg, char * payload, int length) {
+	if (length > 0) {
+		uint8_t num_ports = *payload;
+		if (length >= 1 + (num_ports * 3)) {
+			for (int i = 0; i < num_ports; i++) {
+				uint8_t port = *(payload + 1 + (i*3));
+				uint16_t value = *( (uint16_t *)( payload + 2 + (i*3) ));
+				uint8_t val = value;
+				iocontrol(port, val);
+				printf("set: %d : %d\n", port, val);
+			}
+		}
+	}
+	mk_set_reply(msg);
+}
+
 void process_packet(char *buffer, int length) {
 	struct mheader_t *header;
 	struct message_t msg;
@@ -128,7 +151,12 @@ void process_packet(char *buffer, int length) {
 			msg.header.destination = 1;
 			msg.header.mac = 128;
 			
-			if (header->mtype == PING) {
+			if (header->mtype == SET) {
+				return do_set(&msg, 
+							buffer + 2 + sizeof(struct mheader_t),
+							length-(2+2+sizeof(struct mheader_t)));
+			}
+			else if (header->mtype == PING) {
 
 				msg.header.mtype = PING_REPLY;
 				msg.payload = "HAHAHA";

@@ -89,7 +89,7 @@ func ProcessAoutput(o *Object_t, Objects map[int]*Object_t) {
 		return
 	}
 	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	value := (*Objects[term])["Output"]
+	value := (*Objects[term])["Output"].(float64)
 	if (*o)["NextOutput"] != value {
 		port_uri := o.GetProperty("port").(string)
 		network_manager.PublishSetEvent(port_uri, value)

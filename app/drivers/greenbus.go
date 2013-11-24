@@ -539,6 +539,18 @@ func (d GreenBus) runmaster(port string, network_id int) {
 			fmt.Println("Driver Event")
 			switch {
 			case event.Type == "set":
+				fmt.Println("Set Event", event.Data)
+				cmd := event.Data.(network_manager.SetData)
+				val := make([]byte, 2, 2)
+				binary.LittleEndian.PutUint16(val, uint16(cmd.Value))
+				payload := []byte{1, uint8(cmd.PortID), val[0], val[1]}
+				set_cmd := []Cmd_t{Cmd_t{Payload: payload,
+					Mtype: SET,
+					Rtype: SET_REPLY,
+					ReplyHandler: func(msg Message_t) {
+
+					}}}
+				devices[cmd.DeviceID].Cmds = append(set_cmd, devices[cmd.DeviceID].Cmds...)
 				// set a port
 			case event.Type == "get":
 				// emit a state change describing the requested value
