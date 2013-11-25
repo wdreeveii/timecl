@@ -136,7 +136,7 @@ type Engine_t struct {
 
 func (e *Engine_t) Init() {
 	e.UpdateRate = 10
-	e.SolveIterations = 10
+	e.SolveIterations = 30
 	e.Objects = make(map[int]*Object_t)
 	e.LoadObjects()
 	e.printObjects()
@@ -164,6 +164,14 @@ func (e *Engine_t) Run() {
 				newstate := make(map[string]interface{})
 				newstate["Output"] = (*val)["Output"].(float64)
 				PublishStateChange(k, newstate)
+				switch {
+				case (*val)["Type"] == "boutput":
+					port_uri := (*val).GetProperty("port").(string)
+					network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
+				case (*val)["Type"] == "aoutput":
+					port_uri := (*val).GetProperty("port").(string)
+					network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
+				}
 			}
 		}
 		e.mu.Unlock()
@@ -509,7 +517,7 @@ const archiveSize = 10
 var (
 	subscribe   = make(chan (chan<- Subscription), 10)
 	unsubscribe = make(chan (<-chan Event), 10)
-	publish     = make(chan Event, 10)
+	publish     = make(chan Event, 100)
 )
 
 // This function loops forever, handling the chat room pubsub
@@ -524,7 +532,7 @@ func engine_pub_sub() {
 			for e := archive.Front(); e != nil; e = e.Next() {
 				events = append(events, e.Value.(Event))
 			}
-			subscriber := make(chan Event, 10)
+			subscriber := make(chan Event, 100)
 			subscribers.PushBack(subscriber)
 			ch <- Subscription{events, subscriber}
 

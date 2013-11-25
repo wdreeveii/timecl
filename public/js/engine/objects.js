@@ -202,9 +202,9 @@ function notgate_type (o)
 	o.draw_icon = function(ctx) 
 	{
 		ctx.beginPath();	
-		ctx.moveTo(get_x(this.Xpos), get_y(this.Ypos));		
-		ctx.lineTo(get_x(this.Xpos), get_y(this.Ypos + this.Ysize));
-		ctx.lineTo(get_x(this.Xpos + this.Xsize), get_y(this.Ypos + this.Ysize/2));
+		ctx.moveTo(Math.round(get_x(this.Xpos)), Math.round(get_y(this.Ypos)));		
+		ctx.lineTo(Math.round(get_x(this.Xpos)), Math.round(get_y(this.Ypos + this.Ysize)));
+		ctx.lineTo(Math.round(get_x(this.Xpos + this.Xsize)), Math.round(get_y(this.Ypos + this.Ysize/2)));
 		ctx.closePath();	
 		
 		ctx.fill();
@@ -687,7 +687,7 @@ function timerange_type (o)
 	    ctx.fillText(on, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) - f_size  / 2);
 	
 	    ctx.fillText(off, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  / 2 * 1.5);
-	
+
 		ctx.fillStyle = old_fill;
 	}
 }

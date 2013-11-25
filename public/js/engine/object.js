@@ -119,17 +119,17 @@ function object_type(name)
 	
 		var name = this.get_property("name");
 	
-	   	ctx.fillText(name, get_x(x + this.Xsize * 0.1 ), get_y(y) - f_size  / 2);
+	   	ctx.fillText(name, Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y) - f_size  / 2));
 	
 		if (this.show_output)
-	    	ctx.fillText(bformat(this.Output), get_x(x + this.Xsize * 0.3 ), get_y(y + this.Ysize/2) + f_size  / 2);
+	    	ctx.fillText(bformat(this.Output), Math.round(get_x(x + this.Xsize * 0.3 )), Math.round(get_y(y + this.Ysize/2) + f_size  / 2));
 	
 		if (this.show_analog)
-	    	ctx.fillText(format(this.Output), get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  / 2);
+	    	ctx.fillText(format(this.Output), Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y + this.Ysize/2) + f_size  / 2));
 	
 		if (this.show_name)
-	    	ctx.fillText(this.Type, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) - f_size  / 2 * 1.5);
-		    
+	    	ctx.fillText(this.Type, Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y + this.Ysize/2) - f_size  / 2 * 1.5));
+	    
 		ctx.fillStyle = old_fill;
 	}	
 
@@ -155,10 +155,10 @@ function object_type(name)
 function bounding_rect(ctx, o)
 {
 	ctx.beginPath();	
-	ctx.moveTo(get_x(o.Xpos), get_y(o.Ypos));		
-	ctx.lineTo(get_x(o.Xpos+o.Xsize), get_y(o.Ypos));
-	ctx.lineTo(get_x(o.Xpos+o.Xsize), get_y(o.Ypos+o.Ysize));
-	ctx.lineTo(get_x(o.Xpos), get_y(o.Ypos+o.Ysize));
+	ctx.moveTo(Math.round(get_x(o.Xpos)), Math.round(get_y(o.Ypos)));		
+	ctx.lineTo(Math.round(get_x(o.Xpos+o.Xsize)), Math.round(get_y(o.Ypos)));
+	ctx.lineTo(Math.round(get_x(o.Xpos+o.Xsize)), Math.round(get_y(o.Ypos+o.Ysize)));
+	ctx.lineTo(Math.round(get_x(o.Xpos)), Math.round(get_y(o.Ypos+o.Ysize)));
 		
 	ctx.closePath();	
 		

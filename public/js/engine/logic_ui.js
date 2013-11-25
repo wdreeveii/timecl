@@ -115,7 +115,7 @@ function resize_canvas()
 	canvas.width = parseInt(container.css("width"));
 	canvas.height = parseInt(container.css("height"));
 
-	draw_display();
+	requestAnimationFrame(draw_display);
 }
 
 function draw_display() {
@@ -123,6 +123,7 @@ function draw_display() {
  	var ctx = canvas.getContext("2d");
 	
 	draw_objects(ctx, obj, canvas.width, canvas.height);
+	requestAnimationFrame(draw_display);
 }
 
 /* 
@@ -167,7 +168,7 @@ function mouse_up(ev)
 			
 		set_mode("none");
 	}
-	draw_display();
+	requestAnimationFrame(draw_display);
 } 
 
 function mouse_down(ev)
@@ -205,7 +206,7 @@ function mouse_down(ev)
 	if (ui_mode == "unhook")     ui_unhook_object(pos); else	// Unhook
 		set_mode("none");
 
-	draw_display();
+	requestAnimationFrame(draw_display);
 } 
 
 function mouse_move(ev)
@@ -235,7 +236,7 @@ function mouse_move(ev)
 			obj[k].Ypos += delta_y;
 		}
 
-		draw_display();
+		requestAnimationFrame(draw_display);
 	} else
 	// Pan grid if dragging mouse
 	if (mouse_state == "down")
@@ -288,7 +289,7 @@ function mouse_wheel( event )
     if (event.preventDefault) event.preventDefault();
 	
 	event.returnValue = false;
-	draw_display();
+	requestAnimationFrame(draw_display);
 }
 
 /*
@@ -303,7 +304,7 @@ function ui_add_pipe1(pos)
 	//add_object(pos.x, pos.y, "pipe");
 
 	var i = find_object(pos.x, pos.y) 
-
+	console.log("find:", i);
 	if (i != -1 && obj[i].Type == "guide")
 	{
 		console.log("adding 1 pipe");
@@ -312,7 +313,7 @@ function ui_add_pipe1(pos)
 		set_mode("add_pipe2");
 		sel_obj = i;
 
-		draw_display();
+		requestAnimationFrame(draw_display);
 	} else
 		set_mode("none");
 }
@@ -320,21 +321,22 @@ function ui_add_pipe1(pos)
 function ui_add_pipe2(pos)
 {
 	var i = find_object(pos.x, pos.y) 
-
+	console.log("find2:", i);
 	if (i != -1 && i != sel_obj)
 	{
 		if (obj[sel_obj].Type == "guide" && obj[i].Type == "guide")
 		{
 			object_connect(sel_obj, i);
-			draw_display();
+			requestAnimationFrame(draw_display);
 		}
 
 		obj[i].selected  =0;
 		obj[sel_obj].selected  =0;
 
-		set_mode("add_pipe");
-	} else
-		set_mode ("none");
+		//set_mode("add_pipe");
+		set_mode("none");
+	} /*else
+		set_mode ("none");*/
 }
 
 function ui_move_object(pos, i)
@@ -346,7 +348,7 @@ function ui_move_object(pos, i)
 
 		//obj[i].selected = 1;//!obj[i].selected;
 
-		draw_display();
+		requestAnimationFrame(draw_display);
 
 		sel_obj = i;
 		set_mode("moving");
@@ -390,7 +392,7 @@ function set_guide(s)
 	if (s == "show") show_guide = 1;
 	if (s == "hide") show_guide = 0;
 
-	draw_display();
+	requestAnimationFrame(draw_display);
 }
 
 function select_none()
@@ -419,7 +421,7 @@ function select_object( o )
 	o.selected = 1;
 	property_window.set('current_obj', o);	
 
-	draw_display();
+	requestAnimationFrame(draw_display);
 }
 
 function save_properties(sel_obs)
@@ -438,14 +440,14 @@ function save_properties(sel_obs)
 
 	o.save_properties();
 		
-	draw_display();
+	requestAnimationFrame(draw_display);
 
 	return false;
 }
 
 function set_mode(m)
 {
-	if (m == 'delete')
+	if (m == 'delete' || m == 'unhook' || m == 'add_pipe' || m == 'add_pipe2')
 		$('#canvas').css('cursor', 'crosshair');
 	else
 		$('#canvas').css('cursor', 'auto');
@@ -461,7 +463,7 @@ function reset()
 {
 	obj = [];
 
-	draw_display();	
+	requestAnimationFrame(draw_display);
 	
 	zoom = 1;
 	x_ofs = 0;

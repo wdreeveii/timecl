@@ -25,8 +25,6 @@ function get_world_y(y) { return (y-y_ofs)/zoom; }  // Get world y from screen y
 
 function draw_wire(ctx, objects, i1, i2, p1, p2)
 {
-	ctx.beginPath();
-
 	var o1 = objects[i1];
 	var o2 = objects[i2];
 
@@ -35,7 +33,6 @@ function draw_wire(ctx, objects, i1, i2, p1, p2)
 
 	var x2 = o2.Xpos + o1.Xsize/2;
 	var y2 = o2.Ypos + o1.Ysize/2;
-
 
 	if (show_guide == 0)
 	{
@@ -50,41 +47,9 @@ function draw_wire(ctx, objects, i1, i2, p1, p2)
 		if (o2.Dir == dir_type.down)  y2 -= handle_size/2;
 	}
 
-
- 	ctx.moveTo(get_x(x1), get_y(y1));
- 	ctx.lineTo(get_x(x2), get_y(y2));
-
-	ctx.stroke();
-	ctx.closePath();
+ 	ctx.moveTo(Math.round(get_x(x1)), Math.round(get_y(y1)));
+ 	ctx.lineTo(Math.round(get_x(x2)), Math.round(get_y(y2)));
 }
-
-
-
-
-function draw_properties(ctx, o, x, y)
-{
-	var old_fill  = ctx.fillStyle;
-	
-	ctx.fillStyle = "rgb(0,0,0)";
-	ctx.font = "16pt Arial";
-
-	var f_size = 12 * zoom;
-
-	ctx.font = format(f_size) + "pt Arial";
-
-	if (o.show_output)
-	    ctx.fillText(bformat(o.Output), get_x(x + o.Xsize * 0.3 ), get_y(y + o.Ysize/2) + f_size  / 2);
-
-	if (o.show_analog)
-	    ctx.fillText(format(o.Output), get_x(x + o.Xsize * 0.1 ), get_y(y + o.Ysize/2) + f_size  / 2);
-
-	if (o.show_name)
-	    ctx.fillText(o.Type, get_x(x + o.Xsize * 0.1 ), get_y(y + o.Ysize/2) - f_size  / 2 * 1.5);
-	    
-	ctx.fillStyle = old_fill;
-	    
-}
-
 
 function draw_object(ctx, o, x_size, y_size)
 {
@@ -94,11 +59,8 @@ function draw_object(ctx, o, x_size, y_size)
 	//if (o.Xpos + o.Xsize < Xsize) return;
 	//if (o.Ypos + o.Xsize < Ysize) return;
 
-//	if (o.Xpos  > Xsize) return;
+	//if (o.Xpos  > Xsize) return;
 	//if (o.Ypos  > Ysize) return;
-	
-
-
 	if (o.selected)
 	{			
 		var old_fill  = ctx.fillStyle;
@@ -106,7 +68,7 @@ function draw_object(ctx, o, x_size, y_size)
 		var border = 4;
 
 		ctx.fillStyle = "rgb(255,0,0)";
-		ctx.fillRect (get_x(o.Xpos - border ), get_y(o.Ypos - border), (o.Xsize + 2*border)*zoom,(o.Ysize + 2*border)*zoom);
+		ctx.fillRect (Math.round(get_x(o.Xpos - border )), Math.round(get_y(o.Ypos - border)), Math.round((o.Xsize + 2*border)*zoom),Math.round((o.Ysize + 2*border)*zoom));
 
 		ctx.fillStyle = old_fill;
 	}
@@ -114,11 +76,7 @@ function draw_object(ctx, o, x_size, y_size)
 	o.draw_icon(ctx);
 	
 	o.draw_properties(ctx, o.Xpos, o.Ypos);
-	
-
-	//draw_properties(ctx, o, o.Xpos, o.Ypos);
 }
-
 
 function draw_objects(ctx, objects, x_size, y_size)
 {
@@ -129,20 +87,20 @@ function draw_objects(ctx, objects, x_size, y_size)
 
 	ctx.fillRect (0, 0, x_size, y_size);
 
-
 	ctx.lineWidth = 1;
 	ctx.strokeStyle = "rgb(0,0,0)";
 	ctx.fillStyle = "rgb(255,255,255)";
 
-
 	// Draw all wires
+	ctx.beginPath();
 	for (var i in objects)
 	{
 		var idx = objects[i].Source;
-			
 		if (idx >= 0)
 			draw_wire(ctx, objects, i, idx, 1, 0);
 	}
+	ctx.stroke();
+	ctx.closePath();
 
 
 	ctx.lineWidth = 2;

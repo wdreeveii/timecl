@@ -5,7 +5,7 @@ import (
 	"math"
 	"sync"
 	"time"
-	"timecl/app/network_manager"
+	//"timecl/app/network_manager"
 )
 
 var processors = make(map[string]processor)
@@ -76,12 +76,7 @@ func ProcessBoutput(o *Object_t, Objects map[int]*Object_t) {
 		return
 	}
 	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	value := (*Objects[term])["Output"].(float64)
-	if (*o)["NextOutput"] != value {
-		port_uri := o.GetProperty("port").(string)
-		network_manager.PublishSetEvent(port_uri, value)
-	}
-	(*o)["NextOutput"] = value
+	(*o)["NextOutput"] = (*Objects[term])["Output"].(float64)
 }
 
 func ProcessAoutput(o *Object_t, Objects map[int]*Object_t) {
@@ -89,12 +84,7 @@ func ProcessAoutput(o *Object_t, Objects map[int]*Object_t) {
 		return
 	}
 	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	value := (*Objects[term])["Output"].(float64)
-	if (*o)["NextOutput"] != value {
-		port_uri := o.GetProperty("port").(string)
-		network_manager.PublishSetEvent(port_uri, value)
-	}
-	(*o)["NextOutput"] = value
+	(*o)["NextOutput"] = (*Objects[term])["Output"].(float64)
 }
 
 func ProcessNotGate(o *Object_t, Objects map[int]*Object_t) {
@@ -321,8 +311,8 @@ func ProcessTimer(o *Object_t, Objects map[int]*Object_t) {
 	}
 	on_secs := int64(on_dur / time.Second)
 	off_secs := int64(off_dur / time.Second)
-	fmt.Println("on_secs", on_secs)
-	fmt.Println("off_secs", off_secs)
+	//fmt.Println("on_secs", on_secs)
+	//fmt.Println("off_secs", off_secs)
 	modsecs := (now - start) % (on_secs + off_secs)
 	if modsecs >= 0 && modsecs < on_secs {
 		(*o)["Output"] = float64(1)

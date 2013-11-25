@@ -85,7 +85,7 @@ var (
 	newInterface     = make(chan interfaceItem)
 	subscribe        = make(chan SubscriptionRequest, 10)
 	unsubscribe      = make(chan (<-chan Event), 10)
-	publish          = make(chan Event, 10)
+	publish          = make(chan Event, 100)
 	list_ports       = make(chan (chan []NetInterfaceDef))
 )
 
@@ -253,7 +253,7 @@ func interfacesManager() {
 			fmt.Println("network recv list port sending")
 			req <- res
 		case ch := <-subscribe:
-			subscriber := make(chan Event, 10)
+			subscriber := make(chan Event, 100)
 			sub := Subscription{NetworkID: ch.NetworkID,
 				FilterNetwork: ch.FilterNetwork,
 				Types:         ch.Types,
