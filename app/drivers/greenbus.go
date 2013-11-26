@@ -88,6 +88,32 @@ func (d DeviceList) Find(Mac uint32) (int, bool) {
 	return 0, false
 }
 
+type portval_payload []byte
+type portval_struct struct {
+	Id    uint8
+	Value uint16
+}
+
+func (def portval_payload) ToStruct() (dst portval_struct) {
+	dst.Id = def[0]
+	dst.Value = binary.LittleEndian.Uint16(def[1:])
+	return
+}
+
+type values_payload []byte
+
+func (def values_payload) ToStruct() (dst []portval_struct) {
+	if len(def) > 0 {
+		num_ports := uint8(def[0])
+		if len(def) >= int(1+(3*num_ports)) {
+			for i := 0; i < int(num_ports); i++ {
+				dst = append(dst, portval_payload(def[1+(i*3):4+(i*3)]).ToStruct())
+			}
+		}
+	}
+	return
+}
+
 type portdef_payload []byte
 type portdef_struct struct {
 	Type  uint8
@@ -360,6 +386,17 @@ func AckDevice(r chan Message_t, w chan Message_t, ack_reply chan AckReplyInfo, 
 	ack_reply <- msg
 }
 
+func (d *GreenBusDevice) getNextCmd() Cmd_t {
+	var cmd Cmd_t
+	if len(d.Cmds) > 0 {
+		cmd = d.Cmds[0]
+		d.Cmds = d.Cmds[1:]
+	} else {
+		cmd = Cmd_t{Payload: []byte("PING"), Mtype: PING, Rtype: PING_REPLY}
+	}
+	return cmd
+}
+
 func (d GreenBus) runmaster(port string, network_id int) {
 	var (
 		err          error
@@ -449,12 +486,7 @@ func (d GreenBus) runmaster(port string, network_id int) {
 					ping_reply = make(chan ReplyInfo, 1)
 					LOG.Println("Cmds: ", devices[next_device+2].Cmds)
 					var cmd Cmd_t
-					if len(devices[next_device+2].Cmds) > 0 {
-						cmd = devices[next_device+2].Cmds[0]
-						devices[next_device+2].Cmds = devices[next_device+2].Cmds[1:]
-					} else {
-						cmd = Cmd_t{Payload: []byte("PING"), Mtype: PING, Rtype: PING_REPLY}
-					}
+					cmd = devices[next_device+2].getNextCmd()
 
 					go PingDevice(r, w, ping_reply, devices[next_device+2].Addr, devices[next_device+2].Mac, cmd)
 					LOG.Println("Cmds2: ", devices[next_device+2].Cmds)
@@ -489,12 +521,7 @@ func (d GreenBus) runmaster(port string, network_id int) {
 							ping_reply = make(chan ReplyInfo, 1)
 							LOG.Println("Cmds: ", devices[next_device+2].Cmds)
 							var cmd Cmd_t
-							if len(devices[next_device+2].Cmds) > 0 {
-								cmd = devices[next_device+2].Cmds[0]
-								devices[next_device+2].Cmds = devices[next_device+2].Cmds[1:]
-							} else {
-								cmd = Cmd_t{Payload: []byte("PING"), Mtype: PING, Rtype: PING_REPLY}
-							}
+							cmd = devices[next_device+2].getNextCmd()
 
 							go PingDevice(r, w, ping_reply, devices[next_device+2].Addr, devices[next_device+2].Mac, cmd)
 							LOG.Println("Cmds2: ", devices[next_device+2].Cmds)
@@ -550,6 +577,7 @@ func (d GreenBus) runmaster(port string, network_id int) {
 						Rtype: SET_REPLY,
 						ReplyHandler: func(msg Message_t) {
 
+							fmt.Println(values_payload(msg.Payload).ToStruct())
 						}}}
 					devices[cmd.DeviceID].Cmds = append(set_cmd, devices[cmd.DeviceID].Cmds...)
 				}

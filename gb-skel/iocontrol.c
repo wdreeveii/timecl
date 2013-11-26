@@ -97,10 +97,10 @@ uint8_t io_get_type(uint8_t port) {
 void io_init()
 {		
 	config_get_io_types(iotypes);
-	/*io_set_type(0, PORT_BINPUT);
+	io_set_type(0, PORT_BINPUT);
 	io_set_type(1, PORT_BINPUT);
 	io_set_type(2, PORT_BINPUT);
-	io_set_type(3, PORT_BINPUT);*/
+	io_set_type(3, PORT_BINPUT);
 
 	build_analog_tables();
 	
@@ -169,11 +169,9 @@ uint16_t io_aread(uint8_t index)
 
 void iocontrol(uint8_t port, uint8_t on)
 {
-	printf("iocontrol\n");
 	if (port >= NUM_PORTS || iotypes[port] != PORT_OUTPUT)
 		return;
 		
-	printf("setting\n");
 	struct io_port ctrl;
 	ctrl.regaddr = (uint8_t *)pgm_read_word(&(ports[port].regaddr));
 	ctrl.bit = pgm_read_byte(&(ports[port].bit));

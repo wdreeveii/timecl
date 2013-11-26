@@ -89,10 +89,30 @@ void mk_interrogate_reply(struct message_t * msg) {
 	send_packet(msg);
 }
 
-void mk_set_reply(struct message_t * msg) {
-	msg->header.mtype = SET_REPLY;
-	msg->payload = "";
-	msg->payload_len = 0;
+void send_value_reply(struct message_t * msg, uint8_t message_type) {
+	uint8_t num_ports = io_num_ports();
+	char payload[1+(3*num_ports)];
+	payload[0] = 0;
+	for (int i = 0; i < num_ports; i++) {
+		uint8_t type = io_get_type(i);
+		if (type == PORT_BINPUT) {
+			payload[0]++;
+			payload[1+(3*i)] = i;
+			payload[2+(3*i)] = io_read(i);
+			payload[3+(3*i)] = 0;
+		} else
+		if (type == PORT_AINPUT) {
+			payload[0]++;
+			payload[1+(3*i)] = i;
+			uint16_t val = io_aread(i);
+			payload[2+(3*i)] = (uint8_t)val;
+			payload[3+(3*i)] = (uint8_t)(val>>8);
+		}
+	}
+
+	msg->header.mtype = message_type;
+	msg->payload = payload;
+	msg->payload_len = 1 + payload[0]*3;
 	send_packet(msg);
 }
 	
@@ -109,7 +129,7 @@ void do_set(struct message_t * msg, char * payload, int length) {
 			}
 		}
 	}
-	mk_set_reply(msg);
+	send_value_reply(msg, SET_REPLY);
 }
 
 void process_packet(char *buffer, int length) {
