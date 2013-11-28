@@ -2,6 +2,7 @@ package network_manager
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"github.com/coopernurse/gorp"
 	"github.com/robfig/revel"
@@ -145,6 +146,61 @@ func SubscribeType(Types []string) Subscription {
 func SubscribeNetworkTypes(NetworkID int, Types []string) Subscription {
 	return subscribeBase(NetworkID, true, Types, true)
 }
+func decode_port_uri(port_uri string) (network, bus, device, port int, err error) {
+	re, err := regexp.Compile(`(\d+)-(\d+)-(\d+)-(\d+)`)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	result := re.FindStringSubmatch(port_uri)
+	if len(result) > 0 {
+		id, err := strconv.ParseInt(result[1], 0, 0)
+		if err != nil {
+			return 0, 0, 0, 0, err
+		}
+		networkid := int(id)
+		id, err = strconv.ParseInt(result[2], 0, 0)
+		if err != nil {
+			return networkid, 0, 0, 0, err
+		}
+		busid := int(id)
+		id, err = strconv.ParseInt(result[3], 0, 0)
+		if err != nil {
+			return networkid, busid, 0, 0, err
+		}
+		deviceid := int(id)
+		id, err = strconv.ParseInt(result[4], 0, 0)
+		if err != nil {
+			return networkid, busid, deviceid, 0, err
+		}
+		portid := int(id)
+		return networkid, busid, deviceid, portid, nil
+	}
+	return 0, 0, 0, 0, errors.New("Port Not Found")
+}
+
+type GetData struct {
+	BusID    int
+	DeviceID int
+	PortID   int
+	Recv     chan float64
+}
+
+func Get(port_uri string) (float64, error) {
+	var m = make(chan float64)
+	network, bus, device, port, err := decode_port_uri(port_uri)
+	if err != nil {
+		return 0, err
+	}
+	Publish(NewEvent(network, "get", GetData{BusID: bus, DeviceID: device, PortID: port, Recv: m}))
+	select {
+	case newval := <-m:
+		return newval, nil
+	case <-time.After(20 * time.Millisecond):
+		return 0, errors.New("Get Time Out")
+	}
+	return <-m, nil
+}
 
 type SetData struct {
 	BusID    int
@@ -154,36 +210,11 @@ type SetData struct {
 }
 
 func PublishSetEvent(port_uri string, value float64) {
-	var err error
-	defer func(err error) {
-		if err != nil {
-			fmt.Println(err)
-		}
-	}(err)
-	re, err := regexp.Compile(`(\d+)-(\d+)-(\d+)-(\d+)`)
+	network, bus, device, port, err := decode_port_uri(port_uri)
 	if err != nil {
 		return
 	}
-	result := re.FindStringSubmatch(port_uri)
-	if len(result) > 0 {
-		networkid, err := strconv.ParseInt(result[1], 0, 0)
-		if err != nil {
-			return
-		}
-		busid, err := strconv.ParseInt(result[2], 0, 0)
-		if err != nil {
-			return
-		}
-		deviceid, err := strconv.ParseInt(result[3], 0, 0)
-		if err != nil {
-			return
-		}
-		portid, err := strconv.ParseInt(result[4], 0, 0)
-		if err != nil {
-			return
-		}
-		Publish(NewEvent(int(networkid), "set", SetData{BusID: int(busid), DeviceID: int(deviceid), PortID: int(portid), Value: value}))
-	}
+	Publish(NewEvent(network, "set", SetData{BusID: bus, DeviceID: device, PortID: port, Value: value}))
 }
 
 func NewEvent(net_id int, typ string, data EventArgument) Event {
@@ -238,19 +269,15 @@ func interfacesManager() {
 	for {
 		select {
 		case req := <-list_ports:
-			fmt.Println("network recv list port")
 			var res = make([]NetInterfaceDef, 0)
 			for idx, aInterface := range interfaces {
-				fmt.Println("network recv interface query", aInterface.Driver.Name, " | ", aInterface.Driver.Instance)
 				if aInterface.Driver.Instance != nil {
 					var item NetInterfaceDef
 					item.NetworkID = idx
 					item.BusList = aInterface.Driver.Instance.ListPorts()
 					res = append(res, item)
 				}
-				fmt.Println("network recv interface end query")
 			}
-			fmt.Println("network recv list port sending")
 			req <- res
 		case ch := <-subscribe:
 			subscriber := make(chan Event, 100)

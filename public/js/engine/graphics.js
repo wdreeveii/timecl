@@ -55,12 +55,6 @@ function draw_object(ctx, o, x_size, y_size)
 {
 	if (o.Type == "guide" && show_guide == 0) return;
 
-
-	//if (o.Xpos + o.Xsize < Xsize) return;
-	//if (o.Ypos + o.Xsize < Ysize) return;
-
-	//if (o.Xpos  > Xsize) return;
-	//if (o.Ypos  > Ysize) return;
 	if (o.selected)
 	{			
 		var old_fill  = ctx.fillStyle;
@@ -80,12 +74,7 @@ function draw_object(ctx, o, x_size, y_size)
 
 function draw_objects(ctx, objects, x_size, y_size)
 {
-	// Clear background
-	ctx.fillStyle = "rgb(240,240,240)";
-
-	ctx.fillStyle = "rgb(245,255,255)";
-
-	ctx.fillRect (0, 0, x_size, y_size);
+	ctx.clearRect (0, 0, x_size, y_size);
 
 	ctx.lineWidth = 1;
 	ctx.strokeStyle = "rgb(0,0,0)";

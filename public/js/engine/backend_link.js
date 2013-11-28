@@ -131,7 +131,7 @@ var socket;
 function backend_start() {
 	socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
 	socket.onmessage = function(event) {
-		console.log("."); //event.data);
+		console.log(".");//event.data);
 		var event_msg = JSON.parse(event.data);
 		if (event_msg["Type"] == "add") {
 			var event_data = event_msg["Data"];

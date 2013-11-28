@@ -60,7 +60,7 @@ type Cmd_t struct {
 
 type Port_t struct {
 	Type  network_manager.PortFunction
-	Value interface{}
+	Value uint16
 }
 
 type GreenBusDevice struct {
@@ -545,12 +545,10 @@ func (d GreenBus) runmaster(port string, network_id int) {
 		}
 		select {
 		case req := <-d.List_ports:
-			LOG.Println("Greenbus recv list ports")
 			var res = make([]network_manager.BusDef, 0)
 			res = append(res, network_manager.BusDef{BusID: 0})
 			res[0].DeviceList = make([]network_manager.DeviceDef, 0)
 			for idx, device := range devices[2:] {
-				LOG.Println("device: ", idx, " ", device)
 				var dev network_manager.DeviceDef
 				dev.DeviceID = idx + 2
 				var ports = make([]network_manager.PortDef, 0)
@@ -560,13 +558,11 @@ func (d GreenBus) runmaster(port string, network_id int) {
 				dev.PortList = ports
 				res[0].DeviceList = append(res[0].DeviceList, dev)
 			}
-			LOG.Println("Greenbus recv list sending")
 			req <- res
 		case event := <-network_subscription.New:
-			fmt.Println("Driver Event")
+			//fmt.Println("Driver event", event.Type)
 			switch {
 			case event.Type == "set":
-				fmt.Println("Set Event", event.Data)
 				cmd := event.Data.(network_manager.SetData)
 				if cmd.DeviceID < len(devices) {
 					val := make([]byte, 2, 2)
@@ -576,16 +572,26 @@ func (d GreenBus) runmaster(port string, network_id int) {
 						Mtype: SET,
 						Rtype: SET_REPLY,
 						ReplyHandler: func(msg Message_t) {
-
-							fmt.Println(values_payload(msg.Payload).ToStruct())
+							data := values_payload(msg.Payload).ToStruct()
+							for _, v := range data {
+								devices[cmd.DeviceID].Ports[v.Id].Value = v.Value
+							}
 						}}}
 					devices[cmd.DeviceID].Cmds = append(set_cmd, devices[cmd.DeviceID].Cmds...)
 				}
 				// set a port
 			case event.Type == "get":
-				// emit a state change describing the requested value
-			case event.Type == "get_ports":
-				// emit a port_change describing the ports
+				cmd := event.Data.(network_manager.GetData)
+				sent := false
+				if cmd.DeviceID < len(devices) {
+					if cmd.PortID < len(devices[cmd.DeviceID].Ports) {
+						sent = true
+						cmd.Recv <- float64(devices[cmd.DeviceID].Ports[cmd.PortID].Value)
+					}
+				}
+				if !sent {
+					close(cmd.Recv)
+				}
 			}
 		case reply := <-ping_reply:
 			LOG.Println("Do Ping Reply")

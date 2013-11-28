@@ -135,6 +135,7 @@ type Engine_t struct {
 }
 
 func (e *Engine_t) Init() {
+	fmt.Println("Logic Engine Start")
 	e.UpdateRate = 10
 	e.SolveIterations = 30
 	e.Objects = make(map[int]*Object_t)
@@ -152,13 +153,33 @@ func (e *Engine_t) Start() {
 func (e *Engine_t) Run() {
 	for {
 		e.mu.Lock()
+		//fmt.Println("ENGINE RUNNING", len(e.Objects))
 		outputs := make(map[int]float64, len(e.Objects))
 		for k, val := range e.Objects {
+			//fmt.Println("obj", (*val)["Type"], (*val)["Id"])
 			outputs[k] = (*val)["Output"].(float64)
 		}
+		for k, val := range e.Objects {
+			switch {
+			case (*val)["Type"] == "binput":
+				port_uri := (*val).GetProperty("port").(string)
+				newvalue, err := network_manager.Get(port_uri)
+				if err == nil {
+					(*e.Objects[k])["Output"] = newvalue
+				}
+			case (*val)["Type"] == "ainput":
+				port_uri := (*val).GetProperty("port").(string)
+				newvalue, err := network_manager.Get(port_uri)
+				if err == nil {
+					(*e.Objects[k])["Output"] = newvalue
+				}
+			}
+		}
+
 		for ii := 0; ii < e.SolveIterations; ii++ {
 			e.Process()
 		}
+
 		for k, val := range e.Objects {
 			if outputs[k] != (*val)["Output"] {
 				newstate := make(map[string]interface{})
@@ -237,7 +258,7 @@ func (e *Engine_t) LoadObjects() {
 
 	err = dec.Decode(e)
 	if err != nil {
-		LOG.Println(err)
+		fmt.Println("Decode objects err:", err)
 		return
 	}
 	for k, _ := range e.Objects {

@@ -198,6 +198,7 @@ form .buttons {
 #canvas {
     overflow: scroll;
     width: auto;
+    background-color: #F5FFFF;
 }
 .accordion-heading .accordion-toggle {
     padding: 0px;
