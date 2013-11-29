@@ -1,38 +1,41 @@
 
 {{set . "title" "Network Settings"}}
 {{template "header.html" .}}
-
-<div id="Device_List">
-    <h2>Device List</h2>
-{{if .network}}
-<form method="post">
-{{with $field := field "network.ConfigKey" .}}
-<p>Network: {{$.network.ConfigKey}}</p>
-<input type="hidden" name="{{$field.Name}}" value="{{$field.Value}}"/>
-{{end}}
-
-{{with $field := field "network.DevicePath" .}}
-<p>Device: {{$.network.DevicePath}}</p>
-<input type="hidden" name="{{$field.Name}}" value="{{$field.Value}}"/>
-{{end}}
-
-<p>Driver:
-    {{with $field := field "network.Driver" .}}
-    <select name="{{$field.Name}}">
-        {{option $field $.network.Driver $.network.Driver}}
-    {{range $.available_drivers}}
-        {{option $field . .}} 
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h2>Edit Interface</h2>
+  </div>
+  <div class="panel-body"> 
+    {{if .network}}
+    <form method="post">
+    {{with $field := field "network.ConfigKey" .}}
+    <p>Network: {{$.network.ConfigKey}}</p>
+    <input type="hidden" name="{{$field.Name}}" value="{{$field.Value}}"/>
     {{end}}
-    </select>
+
+    {{with $field := field "network.DevicePath" .}}
+    <p>Device: {{$.network.DevicePath}}</p>
+    <input type="hidden" name="{{$field.Name}}" value="{{$field.Value}}"/>
     {{end}}
-</p>
-<input type="submit" value="Save">
-</form>
-{{else}}
-<p>
-  Network not found.
-</p>
-{{end}}
+
+    <p>Driver:
+        {{with $field := field "network.Driver" .}}
+        <select name="{{$field.Name}}">
+            {{option $field $.network.Driver $.network.Driver}}
+        {{range $.available_drivers}}
+            {{option $field . .}} 
+        {{end}}
+        </select>
+        {{end}}
+    </p>
+    <input type="submit" value="Save">
+    </form>
+    {{else}}
+    <p>
+      Network not found.
+    </p>
+    {{end}}
+  </div>
 </div>
 
 {{template "footer.html" .}}

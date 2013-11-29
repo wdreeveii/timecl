@@ -1,37 +1,40 @@
 {{set . "title" "Add A New User."}}
 {{template "header.html" .}}
-
-<h1>New User:</h1>
-
-<form action="{{url "Admin.SaveUser"}}" method="POST">
-  {{with $field := field "user.Username" .}}
-    <p class="{{$field.ErrorClass}}">
-      <strong>Username:</strong>
-      <input type="text" name="{{$field.Name}}" size="16" value="{{$field.Flash}}"> *
-      <span class="error">{{$field.Error}}</span>
-    </p>
-  {{end}}
-  {{with $field := field "user.Name" .}}
-    <p class="{{$field.ErrorClass}}">
-      <strong>Real name:</strong> <input type="text" name="{{$field.Name}}" size="16" value="{{$field.Flash}}"> *
-      <span class="error">{{$field.Error}}</span>
-    </p>
-  {{end}}
-  {{with $field := field "user.Password" .}}
-    <p class="{{$field.ErrorClass}}">
-      <strong>Password:</strong> <input type="password" name="{{$field.Name}}" size="16" value="{{$field.Flash}}"> *
-      <span class="error">{{$field.Error}}</span>
-    </p>
-  {{end}}
-  {{with $field := field "verifyPassword" .}}
-    <p class="{{$field.ErrorClass}}">
-      <strong>Verify password:</strong> <input type="password" name="{{$field.Name}}" size="16" value="{{$field.Flash}}"> *
-      <span class="error">{{$field.Error}}</span>
-    </p>
-  {{end}}
-  <p class="buttons">
-    <input type="submit" value="Add"> <a href="{{url "Admin.Index"}}">Cancel</a>
-  </p>
-</form>
-
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h1>New User:</h1>
+  </div>
+  <div class="panel-body">
+    <form action="{{url "Admin.SaveUser"}}" method="POST">
+      {{with $field := field "user.Username" .}}
+        <p class="{{$field.ErrorClass}}">
+          <strong>Username:</strong>
+          <input type="text" name="{{$field.Name}}" size="16" value="{{$field.Flash}}"> *
+          <span class="error">{{$field.Error}}</span>
+        </p>
+      {{end}}
+      {{with $field := field "user.Name" .}}
+        <p class="{{$field.ErrorClass}}">
+          <strong>Real name:</strong> <input type="text" name="{{$field.Name}}" size="16" value="{{$field.Flash}}"> *
+          <span class="error">{{$field.Error}}</span>
+        </p>
+      {{end}}
+      {{with $field := field "user.Password" .}}
+        <p class="{{$field.ErrorClass}}">
+          <strong>Password:</strong> <input type="password" name="{{$field.Name}}" size="16" value="{{$field.Flash}}"> *
+          <span class="error">{{$field.Error}}</span>
+        </p>
+      {{end}}
+      {{with $field := field "verifyPassword" .}}
+        <p class="{{$field.ErrorClass}}">
+          <strong>Verify password:</strong> <input type="password" name="{{$field.Name}}" size="16" value="{{$field.Flash}}"> *
+          <span class="error">{{$field.Error}}</span>
+        </p>
+      {{end}}
+      <p class="buttons">
+        <input type="submit" value="Add"> <a href="{{url "Admin.Index"}}">Cancel</a>
+      </p>
+    </form>
+  </div>
+</div>
 {{template "footer.html" .}}

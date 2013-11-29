@@ -1,8 +1,11 @@
 {{set . "title" "Home"}}
 {{template "header.html" .}}
-
-<div id="User List">
+<div class="panel panel-default">
+  <div class="panel-heading">
     <h2>User List</h2>
+  </div>
+  <div class="panel-body">
+<div id="User List">
 {{if .users}}
 <table>
   <thead>
@@ -35,5 +38,6 @@
     <a href='{{url "Admin.AddUser" }}'>Add User</a>
 </p>
 </div>
-
+</div>
+</div>
 {{template "footer.html" .}}
