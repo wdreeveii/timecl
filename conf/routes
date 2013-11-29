@@ -3,12 +3,6 @@
 # ~~~~
 
 GET     /                                       Application.Index
-GET     /hotels                                 Hotels.Index
-GET     /hotels/list                            Hotels.List
-GET     /hotels/:id                             Hotels.Show
-GET     /hotels/:id/booking                     Hotels.Book
-POST    /hotels/:id/booking                     Hotels.ConfirmBooking
-POST    /bookings/:id/cancel                    Hotels.CancelBooking
 GET     /admin/adduser                          Admin.AddUser
 POST    /admin/adduser                          Admin.SaveUser
 GET     /admin/edituser                         Admin.EditMyUser

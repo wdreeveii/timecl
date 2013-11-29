@@ -9,7 +9,6 @@ func init() {
 	revel.InterceptMethod(Admin.checkUser, revel.BEFORE)
 	revel.InterceptMethod(Engine.checkUser, revel.BEFORE)
 	revel.InterceptMethod(Network.checkUser, revel.BEFORE)
-	revel.InterceptMethod(Hotels.checkUser, revel.BEFORE)
 	revel.InterceptMethod((*GorpController).Commit, revel.AFTER)
 	revel.InterceptMethod((*GorpController).Rollback, revel.FINALLY)
 }
