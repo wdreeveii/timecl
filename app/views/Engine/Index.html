@@ -15,82 +15,79 @@
 {{append . "moreScripts" "js/engine/engine.js"}}
 {{template "header.html" .}}
 <div class='toolbar'>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">IO<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="set_addmode('binput');"  class="btn">B Input</li>
-            <li onclick="set_addmode('ainput');" class="btn">A Input</li>
-            <li onclick="set_addmode('boutput');" class="btn">B Output</li>
-            <li onclick="set_addmode('aoutput');" class="btn">A Output</li>
-            <!--<li onclick="set_addmode('httpsource');" class="btn">HTTP Val</li>-->
-        </ul>   
-    </div>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Gates<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="set_addmode('notgate');" class="btn">Not</li>
-            <li onclick="set_addmode('andgate');" class="btn">And</li>
-            <li onclick="set_addmode('orgate');" class="btn"> Or </li>
-            <li onclick="set_addmode('xorgate');" class="btn">XOr</li>
-        </ul>
-    </div>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Math<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="set_addmode('mult');" class="btn"> Mult</li>
-            <li onclick="set_addmode('div');" class="btn"> Div</li>
-            <li onclick="set_addmode('add');" class="btn">  Add</li>
-            <li onclick="set_addmode('sub');" class="btn">  Sub</li>
-            <li onclick="set_addmode('power');" class="btn"> Power</li>
-            <li onclick="set_addmode('sine');" class="btn"> Sine</li>
-            <li onclick="set_addmode('cosine');" class="btn">Cosine</li>
-        </ul>
-    </div>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Utility<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="set_addmode('timerange');" class="btn"> Timerange </li>
-            <li onclick="set_addmode('timebase');" class="btn"> Timebase </li>
-            <li onclick="set_addmode('timer');" class="btn"> Timer </li>
-            <li onclick="set_addmode('xyscope');" class="btn"> XYScope </li>
-            <li onclick="set_addmode('guide');" class="btn"> Terminal </li>
-        </ul>
-    </div>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">World<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="set_addmode('block');" class="btn"> Block </li>
-            <li onclick="set_addmode('vbar');" class="btn"> Vert Bar </li>
-            <li onclick="set_addmode('hbar');" class="btn"> Horz Bar </li>
-        </ul>
-    </div>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Tools<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="set_mode('add_pipe');" class="btn"> Wire</li>
-            <li onclick="set_mode('unhook');" class="btn">  <font color="#dd3333">Unhook</font></li>
-            <li onclick="set_mode('delete');" class="btn"> <font color="#dd3333">Delete</font></li>
-        </ul>
-    </div>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">System<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="reset();" class="btn">Reset</li>
-            <li onclick="location.reload();" class="btn">Reload</li>
-        </ul>
-    </div>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">View<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="set_guide('show');" class="btn">Show Term</li>
-            <li onclick="set_guide('hide');" class="btn">Hide Term</li>
-        </ul>
-    </div>
-    <div class="btn-group">
-        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Engine<span class="caret"></span></a>
-        <ul class="dropdown-menu">
-            <li onclick="new_engine();" class="btn">New</li>
-        </ul>
+    <span onclick="set_mode('add_pipe');" class="btn glyphicon glyphicon-pencil"></span>
+    <span onclick="set_mode('unhook');" class="btn glyphicon glyphicon-resize-full"></span>
+    <span onclick="set_mode('delete');" class="btn glyphicon glyphicon-remove"></span>
+    <div class="pull-right">
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">IO<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="set_addmode('binput');"  class="btn">B Input</li>
+                <li onclick="set_addmode('ainput');" class="btn">A Input</li>
+                <li onclick="set_addmode('boutput');" class="btn">B Output</li>
+                <li onclick="set_addmode('aoutput');" class="btn">A Output</li>
+                <!--<li onclick="set_addmode('httpsource');" class="btn">HTTP Val</li>-->
+            </ul>   
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Gates<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="set_addmode('notgate');" class="btn">Not</li>
+                <li onclick="set_addmode('andgate');" class="btn">And</li>
+                <li onclick="set_addmode('orgate');" class="btn"> Or </li>
+                <li onclick="set_addmode('xorgate');" class="btn">XOr</li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Math<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="set_addmode('mult');" class="btn"> Mult</li>
+                <li onclick="set_addmode('div');" class="btn"> Div</li>
+                <li onclick="set_addmode('add');" class="btn">  Add</li>
+                <li onclick="set_addmode('sub');" class="btn">  Sub</li>
+                <li onclick="set_addmode('power');" class="btn"> Power</li>
+                <li onclick="set_addmode('sine');" class="btn"> Sine</li>
+                <li onclick="set_addmode('cosine');" class="btn">Cosine</li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Utility<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="set_addmode('timerange');" class="btn"> Timerange </li>
+                <li onclick="set_addmode('timebase');" class="btn"> Timebase </li>
+                <li onclick="set_addmode('timer');" class="btn"> Timer </li>
+                <li onclick="set_addmode('xyscope');" class="btn"> XYScope </li>
+                <li onclick="set_addmode('guide');" class="btn"> Terminal </li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">World<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="set_addmode('block');" class="btn"> Block </li>
+                <li onclick="set_addmode('vbar');" class="btn"> Vert Bar </li>
+                <li onclick="set_addmode('hbar');" class="btn"> Horz Bar </li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">System<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="reset();" class="btn">Reset</li>
+                <li onclick="location.reload();" class="btn">Reload</li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">View<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="set_guide('show');" class="btn">Show Term</li>
+                <li onclick="set_guide('hide');" class="btn">Hide Term</li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Engine<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="new_engine();" class="btn">New</li>
+            </ul>
+        </div>
     </div>
 </div>
 <div id='property_and_canvas'>
