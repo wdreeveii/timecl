@@ -248,14 +248,16 @@ func (e *Engine_t) Save() {
 func (e *Engine_t) LoadObjects() {
 	path, found := revel.Config.String("engine.savefile")
 	if !found {
+		fmt.Println("No save file in configuration.")
 		return
 	}
 	if _, err := os.Stat(path); os.IsNotExist(err) {
+		fmt.Println(err)
 		return
 	}
 	n, err := ioutil.ReadFile(path)
 	if err != nil {
-		LOG.Println(err)
+		fmt.Println(err)
 		return
 	}
 	tmp := make([]interface{}, 0)
