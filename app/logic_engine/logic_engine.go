@@ -203,12 +203,13 @@ func (e *Engine_t) Run() {
 					(*val)["Output"] = (*val)["NextOutput"]
 				}
 			}
-
+			var state_changes []StateChange
 			for k, val := range e.Objects {
 				if outputs[k] != (*val)["Output"] {
 					newstate := make(map[string]interface{})
 					newstate["Output"] = (*val)["Output"].(float64)
-					PublishStateChange(k, newstate)
+					change := StateChange{Id: k, State: newstate}
+					state_changes = append(state_changes, change)
 					otype := (*val)["Type"]
 					switch {
 					case otype == "boutput":
@@ -219,6 +220,9 @@ func (e *Engine_t) Run() {
 						network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
 					}
 				}
+			}
+			if len(state_changes) > 0 {
+				PublishMultipleStateChanges(state_changes)
 			}
 			e.mu.Unlock()
 			//e.printObjects()
@@ -443,6 +447,11 @@ func (e *Engine_t) handle_engine_sub_event(event Event) {
 	case event.Type == "add":
 		obj := event.Data.(map[string]interface{})
 		e.AddObject(obj)
+	case event.Type == "edit_many":
+		state_changes := event.Data.([]StateChange)
+		for _, v := range state_changes {
+			e.EditObject(v)
+		}
 	case event.Type == "edit":
 		var s StateChange
 		switch v := event.Data.(type) {
@@ -524,25 +533,12 @@ type StateChange struct {
 type EventArgument interface {
 }
 
-func PublishStateChange(id int, state map[string]interface{}) {
-	change_event := StateChange{Id: id, State: state}
-	publish <- newEvent("edit", change_event)
+func PublishMultipleStateChanges(updates []StateChange) {
+	publish <- newEvent("edit_many", updates)
 }
 
 func (e *Engine_t) Publish(event Event) {
 	publish <- event
-}
-
-func testPublish() {
-	for {
-		new_state := map[string]interface{}{
-			"a": 123,
-			"b": "hello",
-		}
-		LOG.Println("create state:", new_state)
-		PublishStateChange(0, new_state)
-		time.Sleep(5 * time.Second)
-	}
 }
 
 const archiveSize = 10

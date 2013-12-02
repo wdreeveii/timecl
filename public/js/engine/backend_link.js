@@ -131,13 +131,24 @@ var socket;
 function backend_start() {
 	socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
 	socket.onmessage = function(event) {
-		console.log(".");//event.data);
 		var event_msg = JSON.parse(event.data);
 		if (event_msg["Type"] == "add") {
 			var event_data = event_msg["Data"];
 			var object = load_object(event_data);
 			obj[object["Id"]] = object;
+		} else if (event_msg["Type"] == "edit_many") {
+			console.log("edit_many event");
+			var event_data = event_msg["Data"];
+			for (var i = 0; i < event_data.length; i++ ) {
+				var state_change = event_data[i];
+				var id = state_change["Id"];
+				var changes = state_change["State"];
+				for (var change in changes) {
+					obj[id][change] = changes[change];
+				}
+			}
 		} else if (event_msg["Type"] == "edit") {
+			console.log("edit event");
 			var event_data = event_msg["Data"];
 			var id = event_data["Id"]
 			var changes = event_data["State"]
@@ -150,6 +161,7 @@ function backend_start() {
 		} else if (event_msg["Type"] == "init_ports") {
 			property_window.set('port_list', event_msg["Data"]);
 		}
+		requestAnimationFrame(draw_display);
 	}
 }
 

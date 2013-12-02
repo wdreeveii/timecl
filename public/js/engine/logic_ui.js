@@ -123,7 +123,6 @@ function draw_display() {
  	var ctx = canvas.getContext("2d");
 	
 	draw_objects(ctx, obj, canvas.width, canvas.height);
-	requestAnimationFrame(draw_display);
 }
 
 /* 
