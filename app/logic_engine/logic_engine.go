@@ -153,13 +153,17 @@ func (e *Engine_t) Start() {
 }
 
 func (e *Engine_t) Run() {
-	f, err := os.Create("timecl.profile")
-	if err != nil {
-		panic("Can't create profile.")
+	var timeout <-chan time.Time
+	path, found := revel.Config.String("engine.profilepath")
+	if found {
+		f, err := os.Create(path)
+		if err != nil {
+			panic("Can't create profile.")
+		}
+		timeout = time.After(30 * time.Minute)
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
 	}
-	timeout := time.After(30 * time.Minute)
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
 	for {
 		select {
 		case <-timeout:

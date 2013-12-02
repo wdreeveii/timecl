@@ -264,7 +264,7 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t) {
 	if err != nil {
 		return
 	}
-	var current_time = time.Now().UTC()
+	var current_time = time.Now()
 	var year, month, day = current_time.Date()
 	m := int(month)
 	var on_time, _ = time.ParseInLocation("15:04", on.(string), loc)
