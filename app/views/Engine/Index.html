@@ -15,9 +15,9 @@
 {{append . "moreScripts" "js/engine/engine.js"}}
 {{template "header.html" .}}
 <div class='toolbar'>
-    <span onclick="set_mode('add_pipe');" class="btn glyphicon glyphicon-pencil"></span>
-    <span onclick="set_mode('unhook');" class="btn glyphicon glyphicon-resize-full"></span>
-    <span onclick="set_mode('delete');" class="btn glyphicon glyphicon-remove"></span>
+    <span onclick="set_mode('add_pipe');" title="Wire" class="tool btn glyphicon glyphicon-pencil"></span>
+    <span onclick="set_mode('unhook');" title="Unwire" class="tool btn glyphicon glyphicon-resize-full"></span>
+    <span onclick="set_mode('delete');" title="Delete" class="tool btn glyphicon glyphicon-remove"></span>
     <div class="pull-right">
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">IO<span class="caret"></span></a>

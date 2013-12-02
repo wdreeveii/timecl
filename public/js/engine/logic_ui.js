@@ -36,6 +36,7 @@ var port_list = new Array();
 
 var property_window;
 $(function() {
+	$('.tool').tooltip();
 	$('#property_and_canvas').layout({applyDefaultStyles: false,
 				center__onresize: resize_canvas,
 	});
