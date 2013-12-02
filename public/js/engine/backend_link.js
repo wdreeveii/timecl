@@ -127,6 +127,7 @@ function backend_moveobject(id, x_pos, y_pos)
 	}
 	socket.send(JSON.stringify(eevent));
 }
+
 var socket;
 function backend_start() {
 	socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
@@ -162,6 +163,12 @@ function backend_start() {
 			property_window.set('port_list', event_msg["Data"]);
 		}
 		requestAnimationFrame(draw_display);
+	}
+	socket.onerror = function(event) {
+		console.log("socket error", event);
+	}
+	socket.onclose = function(event) {
+		setTimeout(backend_start, 10000);
 	}
 }
 
