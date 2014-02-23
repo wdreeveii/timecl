@@ -183,8 +183,18 @@ type SetData struct {
 	Value    float64
 }
 
-func PublishSetEvent(port PortURI, value float64) {
-	Publish(NewEvent(port.Network, "set", SetData{BusID: port.Bus, DeviceID: port.Device, PortID: port.Port, Value: value}))
+func PublishSetEvents(in []PortChange) {
+	var sorted_events = make(map[int][]PortChange)
+	for _, v := range in {
+		sorted_events[v.URI.Network] = append(sorted_events[v.URI.Network], v)
+	}
+	for network, v := range sorted_events {
+		var sd []SetData
+		for _, data := range v {
+			sd = append(sd, SetData{BusID: data.URI.Bus, DeviceID: data.URI.Device, PortID: data.URI.Port, Value: data.Value})
+		}
+		Publish(NewEvent(network, "set", sd))
+	}
 }
 
 func NewEvent(net_id int, typ string, data EventArgument) Event {

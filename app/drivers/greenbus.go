@@ -564,21 +564,34 @@ func (d GreenBus) runmaster(port string, network_id int) {
 			//fmt.Println("Driver event", event.Type)
 			switch {
 			case event.Type == "set":
-				cmd := event.Data.(network_manager.SetData)
-				if cmd.DeviceID < len(devices) {
-					val := make([]byte, 2, 2)
-					binary.LittleEndian.PutUint16(val, uint16(cmd.Value))
-					payload := []byte{1, uint8(cmd.PortID), val[0], val[1]}
-					set_cmd := []Cmd_t{Cmd_t{Payload: payload,
-						Mtype: SET,
-						Rtype: SET_REPLY,
-						ReplyHandler: func(msg Message_t) {
-							data := values_payload(msg.Payload).ToStruct()
-							for _, v := range data {
-								devices[cmd.DeviceID].Ports[v.Id].Value = v.Value
-							}
-						}}}
-					devices[cmd.DeviceID].Cmds = append(set_cmd, devices[cmd.DeviceID].Cmds...)
+				cmd := event.Data.([]network_manager.SetData)
+				var ports_on_valid_devices = make(map[int][]network_manager.SetData)
+				for _, v := range cmd {
+					device_idx, device_in_list := devices.Find(uint32(v.DeviceID))
+					if device_in_list {
+						ports_on_valid_devices[device_idx] = append(ports_on_valid_devices[device_idx], v)
+					}
+				}
+				tmpval := make([]byte, 2, 2)
+				for k, ports_on_one_device := range ports_on_valid_devices {
+					if len(ports_on_one_device) > 0 {
+						payload := []byte{uint8(len(ports_on_one_device))}
+						for _, v := range ports_on_one_device {
+							binary.LittleEndian.PutUint16(tmpval, uint16(v.Value))
+							payload = append(payload, uint8(v.PortID), tmpval[0], tmpval[1])
+						}
+						set_cmd := []Cmd_t{Cmd_t{Payload: payload,
+							Mtype: SET,
+							Rtype: SET_REPLY,
+							ReplyHandler: func(msg Message_t) {
+								data := values_payload(msg.Payload).ToStruct()
+								for _, v := range data {
+									// i think use of k here is problematic
+									devices[k].Ports[v.Id].Value = v.Value
+								}
+							}}}
+						devices[k].Cmds = append(set_cmd, devices[k].Cmds...)
+					}
 				}
 				// set a port
 			case event.Type == "get":

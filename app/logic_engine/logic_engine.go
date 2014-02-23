@@ -225,9 +225,7 @@ func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
 		}
 	}
 	if len(output_changes) > 0 {
-		for _, v := range output_changes {
-			network_manager.PublishSetEvent(v.URI, v.Value)
-		}
+		network_manager.PublishSetEvents(output_changes)
 	}
 	if len(state_changes) > 0 {
 		PublishMultipleStateChanges(state_changes)
