@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -14,9 +14,9 @@ import (
 	"timecl/app/network_manager"
 )
 
-var output = ioutil.Discard
+//var output = ioutil.Discard
 
-//var output = os.Stderr
+var output = os.Stderr
 var LOG = log.New(output, "GreenBus ", log.Ldate|log.Ltime)
 
 type GreenBus struct {
@@ -25,9 +25,6 @@ type GreenBus struct {
 }
 
 func (d *GreenBus) Init(port string, network_id int) {
-	LOG.Println("CHANNEL: ", d.StopChan, " again ", d.List_ports)
-	var list = make(chan (chan []network_manager.BusDef))
-	d.List_ports = list
 	go d.runmaster(port, network_id)
 }
 
@@ -38,16 +35,17 @@ func (d *GreenBus) Stop() {
 func (d *GreenBus) Copy() network_manager.DriverInterface {
 	b := d
 	b.StopChan = make(chan bool)
-	var list = make(chan (chan []network_manager.BusDef))
-	b.List_ports = list
 	return b
 }
 
-func (d *GreenBus) ListPorts() []network_manager.BusDef {
+func (d *GreenBus) ListPorts() (result []network_manager.BusDef) {
 	LOG.Println("GreenBus list ports", d.List_ports)
-	var res = make(chan []network_manager.BusDef)
-	d.List_ports <- res
-	return <-res
+	if d.List_ports != nil {
+		var res = make(chan []network_manager.BusDef)
+		d.List_ports <- res
+		result = <-res
+	}
+	return
 }
 
 type Cmd_t struct {
@@ -445,6 +443,8 @@ func (d GreenBus) runmaster(port string, network_id int) {
 		LOG.Println("STOPING DRIVER!!!!")
 	}()
 
+	d.List_ports = make(chan (chan []network_manager.BusDef))
+
 	go WriteMessages(ser, w)
 	go ReadMessages(ser, r)
 	LOG.Println("Resetting Client Addrs")
@@ -545,6 +545,7 @@ func (d GreenBus) runmaster(port string, network_id int) {
 		}
 		select {
 		case req := <-d.List_ports:
+			fmt.Println("Greenbus manager list ports")
 			var res = make([]network_manager.BusDef, 0)
 			res = append(res, network_manager.BusDef{BusID: 0})
 			res[0].DeviceList = make([]network_manager.DeviceDef, 0)
@@ -738,6 +739,6 @@ func WriteMessages(c *os.File, w chan Message_t) {
 
 func init() {
 	LOG.Println("blah")
-	network_manager.RegisterDriver("greenbus", &GreenBus{StopChan: make(chan bool), List_ports: make(chan (chan []network_manager.BusDef))})
+	network_manager.RegisterDriver("greenbus", &GreenBus{StopChan: make(chan bool), List_ports: nil})
 	//go runmaster()
 }

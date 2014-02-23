@@ -1,17 +1,13 @@
 package logic_engine
 
 import (
-	"bytes"
 	"container/list"
-	"encoding/gob"
 	"fmt"
 	"github.com/robfig/revel"
 	"io/ioutil"
 	"log"
 	"os"
 	"runtime/pprof"
-	"strconv"
-	"sync"
 	"time"
 	"timecl/app/network_manager"
 )
@@ -22,17 +18,6 @@ var output = ioutil.Discard
 var LOG = log.New(output, "LogicEngine ", log.Ldate|log.Ltime)
 
 type processor func(o *Object_t, objs map[int]*Object_t)
-
-func (p processor) MarshalJSON() ([]byte, error) {
-	return []byte("[]"), nil
-}
-
-func (p *processor) GobEncode() ([]byte, error) {
-	return []byte(""), nil
-}
-func (p *processor) GobDecode([]byte) error {
-	return nil
-}
 
 type Id int
 type Type string
@@ -129,11 +114,11 @@ func (o Object_t) GetProperty(name string) interface{} {
 }
 
 type Engine_t struct {
-	mu              sync.Mutex
 	Objects         map[int]*Object_t
 	Index           int
 	UpdateRate      float32
 	SolveIterations int
+	list_objs       chan chan []Object_t
 }
 
 func (e *Engine_t) Init() {
@@ -142,256 +127,10 @@ func (e *Engine_t) Init() {
 	e.SolveIterations = 30
 	e.Objects = make(map[int]*Object_t)
 	e.LoadObjects()
-	//e.printObjects()
-	go e.Start()
-	go e.EngineClient()
-
+	go e.Run()
 }
 
-func (e *Engine_t) Start() {
-	e.Run()
-}
-
-func (e *Engine_t) Run() {
-	var timeout <-chan time.Time
-	path, found := revel.Config.String("engine.profilepath")
-	if found {
-		f, err := os.Create(path)
-		if err != nil {
-			panic("Can't create profile.")
-		}
-		timeout = time.After(30 * time.Minute)
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-	for {
-		select {
-		case <-timeout:
-			fmt.Println("Profile Done. Exiting...")
-			return
-		default:
-			e.mu.Lock()
-			outputs := make(map[int]float64, len(e.Objects))
-			for k, val := range e.Objects {
-				outputs[k] = (*val)["Output"].(float64)
-				otype := (*val)["type"]
-				switch {
-				case otype == "binput":
-					port_uri := (*val).GetProperty("port").(string)
-					newvalue, err := network_manager.Get(port_uri)
-					if err == nil {
-						(*val)["Output"] = newvalue
-					}
-				case otype == "ainput":
-					port_uri := (*val).GetProperty("port").(string)
-					newvalue, err := network_manager.Get(port_uri)
-					if err == nil {
-						(*val)["Output"] = newvalue
-					}
-				}
-			}
-
-			for ii := 0; ii < e.SolveIterations; ii++ {
-				for _, val := range e.Objects {
-					process := (*val)["process"].(processor)
-					if process != nil {
-						process(val, e.Objects)
-					}
-				}
-
-				for _, val := range e.Objects {
-					(*val)["Output"] = (*val)["NextOutput"]
-				}
-			}
-			var state_changes []StateChange
-			for k, val := range e.Objects {
-				if outputs[k] != (*val)["Output"] {
-					newstate := make(map[string]interface{})
-					newstate["Output"] = (*val)["Output"].(float64)
-					change := StateChange{Id: k, State: newstate}
-					state_changes = append(state_changes, change)
-					otype := (*val)["Type"]
-					switch {
-					case otype == "boutput":
-						port_uri := (*val).GetProperty("port").(string)
-						network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
-					case otype == "aoutput":
-						port_uri := (*val).GetProperty("port").(string)
-						network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
-					}
-				}
-			}
-			if len(state_changes) > 0 {
-				PublishMultipleStateChanges(state_changes)
-			}
-			e.mu.Unlock()
-			//e.printObjects()
-			time.Sleep(time.Duration(1000/e.UpdateRate) * time.Millisecond)
-		}
-	}
-}
-
-func (e *Engine_t) Save() {
-	fmt.Println("Saving")
-	path, found := revel.Config.String("engine.savefile")
-	if !found {
-		return
-	}
-	tmp := make([]interface{}, 0)
-	gob.Register(tmp)
-	var p processor
-	gob.Register(p)
-	m := new(bytes.Buffer)
-	enc := gob.NewEncoder(m)
-	err := enc.Encode(e)
-	if err != nil {
-		LOG.Println("Encoding:", err)
-	}
-	err = ioutil.WriteFile(path, m.Bytes(), 0600)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (e *Engine_t) LoadObjects() {
-	path, found := revel.Config.String("engine.savefile")
-	if !found {
-		fmt.Println("No save file in configuration.")
-		return
-	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		fmt.Println(err)
-		return
-	}
-	n, err := ioutil.ReadFile(path)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	tmp := make([]interface{}, 0)
-	gob.Register(tmp)
-	var proc processor
-	gob.Register(proc)
-	p := bytes.NewBuffer(n)
-	dec := gob.NewDecoder(p)
-
-	err = dec.Decode(e)
-	if err != nil {
-		fmt.Println("Decode objects err:", err)
-		return
-	}
-	for k, _ := range e.Objects {
-		obj := *e.Objects[k]
-		obj["process"] = processors[obj["Type"].(string)]
-	}
-}
-
-func (e *Engine_t) printObjects() {
-	e.mu.Lock()
-	for _, val := range e.Objects {
-		val.Display()
-	}
-	e.mu.Unlock()
-	// new line?
-}
-
-func (e *Engine_t) ListObjects() Event {
-	e.mu.Lock()
-	objs := make([]Object_t, 0, len(e.Objects))
-	for _, val := range e.Objects {
-		objs = append(objs, *val)
-	}
-	e.mu.Unlock()
-	event := newEvent("init", objs)
-	return event
-}
-
-func (e *Engine_t) ListPorts() Event {
-	fmt.Println("engine list port")
-	var ports = network_manager.ListPorts()
-	event := newEvent("init_ports", ports)
-	return event
-}
-
-func floatify(in interface{}) float64 {
-	var result float64
-	var err error
-	switch v := in.(type) {
-	case string:
-		result, err = strconv.ParseFloat(v, 64)
-		if err != nil {
-			LOG.Println(err)
-		}
-	case float64:
-		result = v
-	case int:
-		result = float64(v)
-	}
-	return result
-}
-
-func intify(in interface{}) int {
-	var result int
-	switch v := in.(type) {
-	case float64:
-		result = int(v)
-	case int:
-		result = v
-	}
-	return result
-}
-
-func stringify(in interface{}) string {
-	var result string
-	switch v := in.(type) {
-	case float64:
-		result = strconv.FormatFloat(v, 'f', 3, 64)
-	case string:
-		result = v
-	case int:
-		result = strconv.FormatInt(int64(v), 10)
-	}
-	return result
-}
-
-func sanitize(obj *Object_t) {
-	(*obj)["Source"] = intify((*obj)["Source"])
-
-	var PCount int
-	PCount = intify((*obj)["PropertyCount"])
-	(*obj)["PropertyCount"] = PCount
-
-	PNames := make([]interface{}, 0)
-	for _, v := range (*obj)["PropertyNames"].([]interface{}) {
-		PNames = append(PNames, stringify(v))
-	}
-	(*obj)["PropertyNames"] = PNames
-
-	PTypes := make([]interface{}, 0)
-	for _, v := range (*obj)["PropertyTypes"].([]interface{}) {
-		PTypes = append(PTypes, stringify(v))
-	}
-	(*obj)["PropertyTypes"] = PTypes
-
-	PValues := make([]interface{}, 0)
-	for k, v := range (*obj)["PropertyValues"].([]interface{}) {
-		switch {
-		case PTypes[k] == "float":
-			PValues = append(PValues, floatify(v))
-		case PTypes[k] == "string",
-			PTypes[k] == "time",
-			PTypes[k] == "timezone",
-			PTypes[k] == "port":
-			PValues = append(PValues, stringify(v))
-		case PTypes[k] == "int":
-			PValues = append(PValues, intify(v))
-		}
-	}
-	(*obj)["PropertyValues"] = PValues
-	(*obj)["Output"] = floatify((*obj)["Output"])
-}
 func (e *Engine_t) AddObject(obj Object_t) {
-	e.mu.Lock()
 	var id int
 	id = intify(obj["Id"])
 	obj["Id"] = id
@@ -399,20 +138,16 @@ func (e *Engine_t) AddObject(obj Object_t) {
 	sanitize(&obj)
 	e.Objects[id] = &obj
 	e.Save()
-	e.mu.Unlock()
 }
 
 func (e *Engine_t) DeleteObject(id int) {
-	e.mu.Lock()
 	delete(e.Objects, id)
 	e.Save()
-	e.mu.Unlock()
 }
 
 func (e *Engine_t) EditObject(new_states StateChange) {
 	save_obj := false
 	id := new_states.Id
-	e.mu.Lock()
 	obj, ok := e.Objects[id]
 	if ok {
 		for k, v := range new_states.State {
@@ -439,64 +174,160 @@ func (e *Engine_t) EditObject(new_states StateChange) {
 	} else {
 		LOG.Println("Edit: Unknown object")
 	}
-	e.mu.Unlock()
 }
 
-func (e *Engine_t) handle_engine_sub_event(event Event) {
-	switch {
-	case event.Type == "add":
-		obj := event.Data.(map[string]interface{})
-		e.AddObject(obj)
-	case event.Type == "edit_many":
-		state_changes := event.Data.([]StateChange)
-		for _, v := range state_changes {
-			e.EditObject(v)
+func (e *Engine_t) store_outputs() (outputs map[int]float64) {
+	outputs = make(map[int]float64, len(e.Objects))
+	for k, val := range e.Objects {
+		outputs[k] = (*val)["Output"].(float64)
+		otype := (*val)["type"]
+		switch {
+		case otype == "binput":
+			port_uri := (*val).GetProperty("port").(string)
+			newvalue, err := network_manager.Get(port_uri)
+			if err == nil {
+				(*val)["Output"] = newvalue
+			}
+		case otype == "ainput":
+			port_uri := (*val).GetProperty("port").(string)
+			newvalue, err := network_manager.Get(port_uri)
+			if err == nil {
+				(*val)["Output"] = newvalue
+			}
 		}
-	case event.Type == "edit":
-		var s StateChange
-		switch v := event.Data.(type) {
-		case map[string]interface{}:
-			s = StateChange{Id: int(v["Id"].(float64)), State: v["State"].(map[string]interface{})}
-		case StateChange:
-			s = v
+	}
+	return
+}
+
+func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
+	var state_changes []StateChange
+	for k, val := range e.Objects {
+		if outputs[k] != (*val)["Output"] {
+			newstate := make(map[string]interface{})
+			newstate["Output"] = (*val)["Output"].(float64)
+			change := StateChange{Id: k, State: newstate}
+			state_changes = append(state_changes, change)
+			otype := (*val)["Type"]
+			switch {
+			case otype == "boutput":
+				port_uri := (*val).GetProperty("port").(string)
+				network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
+			case otype == "aoutput":
+				port_uri := (*val).GetProperty("port").(string)
+				network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
+			}
 		}
-		e.EditObject(s)
-	case event.Type == "del":
-		var id int
-		data := event.Data.(map[string]interface{})
-		id = intify(data["Id"])
-		e.DeleteObject(id)
+	}
+	if len(state_changes) > 0 {
+		PublishMultipleStateChanges(state_changes)
 	}
 }
 
-func (e *Engine_t) handle_network_sub_event(event network_manager.Event) {
-	LOG.Println("Engine Event")
-	LOG.Println(event.NetworkID)
-	LOG.Println(event.Type)
-	switch {
-	case event.Type == "port_change":
-		// send port list to the clients
-	case event.Type == "state_change":
-		// update the engine with the new state
+func (e *Engine_t) Run() {
+	var profile_timeout <-chan time.Time
+	path, found := revel.Config.String("engine.profilepath")
+	if found {
+		f, err := os.Create(path)
+		if err != nil {
+			panic("Can't create profile.")
+		}
+		profile_timeout = time.After(30 * time.Minute)
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
 	}
-}
 
-func (e *Engine_t) EngineClient() {
+	var calc_world <-chan time.Time
+	calc_world = time.After(time.Duration(1000/e.UpdateRate) * time.Millisecond)
 	engine_subscription := e.Subscribe()
 	defer engine_subscription.Cancel()
 
 	network_subscription := network_manager.Subscribe()
 	defer network_subscription.Cancel()
-
+	e.list_objs = make(chan chan []Object_t)
 	for {
 		select {
+		case receiver := <-e.list_objs:
+			objs := make([]Object_t, 0, len(e.Objects))
+			for _, val := range e.Objects {
+				objs = append(objs, *val)
+			}
+			receiver <- objs
+		case <-profile_timeout:
+			fmt.Println("Profile Done. Exiting...")
+			return
 		case event := <-engine_subscription.New:
-			e.handle_engine_sub_event(event)
+			switch {
+			case event.Type == "add":
+				obj := event.Data.(map[string]interface{})
+				e.AddObject(obj)
+			case event.Type == "edit_many":
+				state_changes := event.Data.([]StateChange)
+				for _, v := range state_changes {
+					e.EditObject(v)
+				}
+			case event.Type == "edit":
+				var s StateChange
+				switch v := event.Data.(type) {
+				case map[string]interface{}:
+					s = StateChange{Id: int(v["Id"].(float64)), State: v["State"].(map[string]interface{})}
+				case StateChange:
+					s = v
+				}
+				e.EditObject(s)
+			case event.Type == "del":
+				var id int
+				data := event.Data.(map[string]interface{})
+				id = intify(data["Id"])
+				e.DeleteObject(id)
+			}
 		case event := <-network_subscription.New:
-			e.handle_network_sub_event(event)
-		}
+			LOG.Println("Engine Event")
+			LOG.Println(event.NetworkID)
+			LOG.Println(event.Type)
+			switch {
+			case event.Type == "port_change":
+				// send port list to the clients
+			case event.Type == "state_change":
+				// update the engine with the new state
+			}
+		case <-calc_world:
+			calc_world = time.After(time.Duration(1000/e.UpdateRate) * time.Millisecond)
+			var outputs = e.store_outputs()
 
+			for ii := 0; ii < e.SolveIterations; ii++ {
+				for _, val := range e.Objects {
+					process := (*val)["process"].(processor)
+					if process != nil {
+						process(val, e.Objects)
+					}
+				}
+
+				for _, val := range e.Objects {
+					(*val)["Output"] = (*val)["NextOutput"]
+				}
+			}
+
+			e.publish_output_changes(outputs)
+		}
 	}
+}
+
+func (e *Engine_t) ListObjects() Event {
+	var objs []Object_t
+	if e.list_objs != nil {
+		var res = make(chan []Object_t)
+		e.list_objs <- res
+		objs = <-res
+	}
+	event := newEvent("init", objs)
+	return event
+}
+
+func (e *Engine_t) ListPorts() Event {
+	fmt.Println("engine list port")
+	var ports = network_manager.ListPorts()
+	event := newEvent("init_ports", ports)
+	return event
 }
 
 type Subscription struct {

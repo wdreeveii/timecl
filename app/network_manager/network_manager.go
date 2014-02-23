@@ -269,6 +269,7 @@ func interfacesManager() {
 	for {
 		select {
 		case req := <-list_ports:
+			fmt.Println("network manager list port")
 			var res = make([]NetInterfaceDef, 0)
 			for idx, aInterface := range interfaces {
 				if aInterface.Driver.Instance != nil {
