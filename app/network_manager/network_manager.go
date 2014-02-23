@@ -7,9 +7,7 @@ import (
 	"github.com/coopernurse/gorp"
 	"github.com/robfig/revel"
 	"github.com/robfig/revel/modules/db/app"
-	"regexp"
 	"sort"
-	"strconv"
 	"time"
 	"timecl/app/models"
 )
@@ -146,37 +144,17 @@ func SubscribeType(Types []string) Subscription {
 func SubscribeNetworkTypes(NetworkID int, Types []string) Subscription {
 	return subscribeBase(NetworkID, true, Types, true)
 }
-func decode_port_uri(port_uri string) (network, bus, device, port int, err error) {
-	re, err := regexp.Compile(`(\d+)-(\d+)-(\d+)-(\d+)`)
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
 
-	result := re.FindStringSubmatch(port_uri)
-	if len(result) > 0 {
-		id, err := strconv.ParseInt(result[1], 0, 0)
-		if err != nil {
-			return 0, 0, 0, 0, err
-		}
-		networkid := int(id)
-		id, err = strconv.ParseInt(result[2], 0, 0)
-		if err != nil {
-			return networkid, 0, 0, 0, err
-		}
-		busid := int(id)
-		id, err = strconv.ParseInt(result[3], 0, 0)
-		if err != nil {
-			return networkid, busid, 0, 0, err
-		}
-		deviceid := int(id)
-		id, err = strconv.ParseInt(result[4], 0, 0)
-		if err != nil {
-			return networkid, busid, deviceid, 0, err
-		}
-		portid := int(id)
-		return networkid, busid, deviceid, portid, nil
-	}
-	return 0, 0, 0, 0, errors.New("Port Not Found")
+type PortURI struct {
+	Network int
+	Bus     int
+	Device  int
+	Port    int
+}
+
+type PortChange struct {
+	URI   PortURI
+	Value float64
 }
 
 type GetData struct {
@@ -186,13 +164,9 @@ type GetData struct {
 	Recv     chan float64
 }
 
-func Get(port_uri string) (float64, error) {
+func Get(port PortURI) (float64, error) {
 	var m = make(chan float64)
-	network, bus, device, port, err := decode_port_uri(port_uri)
-	if err != nil {
-		return 0, err
-	}
-	Publish(NewEvent(network, "get", GetData{BusID: bus, DeviceID: device, PortID: port, Recv: m}))
+	Publish(NewEvent(port.Network, "get", GetData{BusID: port.Bus, DeviceID: port.Device, PortID: port.Port, Recv: m}))
 	select {
 	case newval := <-m:
 		return newval, nil
@@ -209,12 +183,8 @@ type SetData struct {
 	Value    float64
 }
 
-func PublishSetEvent(port_uri string, value float64) {
-	network, bus, device, port, err := decode_port_uri(port_uri)
-	if err != nil {
-		return
-	}
-	Publish(NewEvent(network, "set", SetData{BusID: bus, DeviceID: device, PortID: port, Value: value}))
+func PublishSetEvent(port PortURI, value float64) {
+	Publish(NewEvent(port.Network, "set", SetData{BusID: port.Bus, DeviceID: port.Device, PortID: port.Port, Value: value}))
 }
 
 func NewEvent(net_id int, typ string, data EventArgument) Event {

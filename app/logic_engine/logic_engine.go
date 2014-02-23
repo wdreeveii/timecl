@@ -183,16 +183,18 @@ func (e *Engine_t) store_outputs() (outputs map[int]float64) {
 		otype := (*val)["type"]
 		switch {
 		case otype == "binput":
-			port_uri := (*val).GetProperty("port").(string)
-			newvalue, err := network_manager.Get(port_uri)
-			if err == nil {
-				(*val)["Output"] = newvalue
+			if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
+				newvalue, err := network_manager.Get(port_uri)
+				if err == nil {
+					(*val)["Output"] = newvalue
+				}
 			}
 		case otype == "ainput":
-			port_uri := (*val).GetProperty("port").(string)
-			newvalue, err := network_manager.Get(port_uri)
-			if err == nil {
-				(*val)["Output"] = newvalue
+			if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
+				newvalue, err := network_manager.Get(port_uri)
+				if err == nil {
+					(*val)["Output"] = newvalue
+				}
 			}
 		}
 	}
@@ -201,6 +203,8 @@ func (e *Engine_t) store_outputs() (outputs map[int]float64) {
 
 func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
 	var state_changes []StateChange
+	var output_changes []network_manager.PortChange
+
 	for k, val := range e.Objects {
 		if outputs[k] != (*val)["Output"] {
 			newstate := make(map[string]interface{})
@@ -210,12 +214,19 @@ func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
 			otype := (*val)["Type"]
 			switch {
 			case otype == "boutput":
-				port_uri := (*val).GetProperty("port").(string)
-				network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
+				if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
+					output_changes = append(output_changes, network_manager.PortChange{URI: port_uri, Value: (*val)["Output"].(float64)})
+				}
 			case otype == "aoutput":
-				port_uri := (*val).GetProperty("port").(string)
-				network_manager.PublishSetEvent(port_uri, (*val)["Output"].(float64))
+				if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
+					output_changes = append(output_changes, network_manager.PortChange{URI: port_uri, Value: (*val)["Output"].(float64)})
+				}
 			}
+		}
+	}
+	if len(output_changes) > 0 {
+		for _, v := range output_changes {
+			network_manager.PublishSetEvent(v.URI, v.Value)
 		}
 	}
 	if len(state_changes) > 0 {

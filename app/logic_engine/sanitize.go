@@ -2,6 +2,8 @@ package logic_engine
 
 import (
 	"strconv"
+	"strings"
+	"timecl/app/network_manager"
 )
 
 func floatify(in interface{}) float64 {
@@ -24,6 +26,12 @@ func floatify(in interface{}) float64 {
 func intify(in interface{}) int {
 	var result int
 	switch v := in.(type) {
+	case string:
+		res, err := strconv.ParseInt(v, 10, 32)
+		if err != nil {
+			LOG.Println(err)
+		}
+		result = int(res)
 	case float64:
 		result = int(v)
 	case int:
@@ -44,7 +52,16 @@ func stringify(in interface{}) string {
 	}
 	return result
 }
-
+func toPortURI(in interface{}) (result network_manager.PortURI) {
+	switch v := in.(type) {
+	case string:
+		split := strings.SplitN(v, "-", 5)
+		if len(split) >= 4 {
+			result = network_manager.PortURI{Network: intify(split[0]), Bus: intify(split[1]), Device: intify(split[2]), Port: intify(split[3])}
+		}
+	}
+	return
+}
 func sanitize(obj *Object_t) {
 	(*obj)["Source"] = intify((*obj)["Source"])
 
@@ -71,9 +88,10 @@ func sanitize(obj *Object_t) {
 			PValues = append(PValues, floatify(v))
 		case PTypes[k] == "string",
 			PTypes[k] == "time",
-			PTypes[k] == "timezone",
-			PTypes[k] == "port":
+			PTypes[k] == "timezone":
 			PValues = append(PValues, stringify(v))
+		case PTypes[k] == "port":
+			PValues = append(PValues, toPortURI(v))
 		case PTypes[k] == "int":
 			PValues = append(PValues, intify(v))
 		}
