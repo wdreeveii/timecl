@@ -538,7 +538,7 @@ function guide_type (o)
 	{	
 		var old_fill = ctx.fillStyle;
 		
-		if (o.Output > 0.5)
+		if (o.Output > 0)
 	    	ctx.fillStyle = "rgb(20, 20, 190)";
 	    else
 		    ctx.fillStyle = "rgb(190, 20, 20)";

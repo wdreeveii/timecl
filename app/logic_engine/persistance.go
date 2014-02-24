@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/revel"
 	"io/ioutil"
 	"os"
+	"timecl/app/network_manager"
 )
 
 func (p processor) MarshalJSON() ([]byte, error) {
@@ -30,11 +31,13 @@ func (e *Engine_t) Save() {
 	gob.Register(tmp)
 	var p processor
 	gob.Register(p)
+	gob.Register(network_manager.PortURI{})
 	m := new(bytes.Buffer)
 	enc := gob.NewEncoder(m)
 	err := enc.Encode(e)
 	if err != nil {
 		LOG.Println("Encoding:", err)
+		return
 	}
 	err = ioutil.WriteFile(path+".new", m.Bytes(), 0600)
 	if err != nil {
@@ -91,6 +94,7 @@ func (e *Engine_t) ReadAndDecode(path string) (err error) {
 	gob.Register(tmp)
 	var proc processor
 	gob.Register(proc)
+	gob.Register(network_manager.PortURI{})
 	p := bytes.NewBuffer(n)
 	dec := gob.NewDecoder(p)
 
