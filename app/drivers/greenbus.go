@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	//"io/ioutil"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -18,6 +18,7 @@ import (
 
 var output = os.Stderr
 var LOG = log.New(output, "GreenBus ", log.Ldate|log.Ltime)
+var DEBUG = log.New(ioutil.Discard, "GreenBus ", log.Ldate|log.Ltime)
 
 type GreenBus struct {
 	StopChan   chan bool
@@ -292,7 +293,7 @@ func SendDeviceCmd(w chan Message_t, addr uint8, mac uint32, cmd Cmd_t) {
 	msg.Header.Mtype = cmd.Mtype
 
 	w <- msg
-	LOG.Println("beat")
+	DEBUG.Println("beat")
 }
 
 type ReplyInfo struct {
@@ -302,18 +303,18 @@ type ReplyInfo struct {
 
 func PingDevice(r chan Message_t, w chan Message_t, ping_reply chan ReplyInfo, addr uint8, mac uint32, cmd Cmd_t) {
 	SendDeviceCmd(w, addr, mac, cmd)
-	LOG.Println("Ping wait ", addr)
+	DEBUG.Println("Ping wait ", addr)
 	var result ReplyInfo
 	result.Cmd = cmd
 	select {
 	case rmsg := <-r:
 		result.ReplyPkt = rmsg
 		// else report protocol error
-		LOG.Printf("ping read: %#v\n", rmsg)
+		DEBUG.Printf("ping read: %#v\n", rmsg)
 		//time.Sleep(1 * time.Second)
 	case <-time.After(200 * time.Millisecond):
 		// report timeout error
-		LOG.Printf("Ping read timeout\n")
+		DEBUG.Printf("Ping read timeout\n")
 	}
 	ping_reply <- result
 }
@@ -327,7 +328,7 @@ func SendFindDevices(w chan Message_t) {
 	msg.Header.Mac = 0
 
 	w <- msg
-	LOG.Println("Looking for new devices..")
+	DEBUG.Println("Looking for new devices..")
 }
 
 func FindDevices(r chan Message_t, w chan Message_t, ack_new_devices chan []uint32) {
@@ -338,18 +339,18 @@ Loop:
 	for {
 		select {
 		case <-timeout:
-			LOG.Println("Find Devices Timeout")
+			DEBUG.Println("Find Devices Timeout")
 			break Loop
 		case rmsg := <-r:
-			LOG.Println("Find Pkt Recv")
+			DEBUG.Println("Find Pkt Recv")
 			if rmsg.Header.Mtype == NEED_ADDR { // and payload == "NEED ADDR"
-				LOG.Println("Found A Device!")
+				DEBUG.Println("Found A Device!")
 				new_devices = append(new_devices, rmsg.Header.Mac)
 			}
 		}
 	}
 	ack_new_devices <- new_devices
-	LOG.Println("Finish Find Devices")
+	DEBUG.Println("Finish Find Devices")
 }
 
 func SendDeviceAck(w chan Message_t, device_addr uint8, mac uint32) {
@@ -379,7 +380,7 @@ func AckDevice(r chan Message_t, w chan Message_t, ack_reply chan AckReplyInfo, 
 	case rmsg := <-r:
 		msg.ReplyPkt = rmsg
 	case <-time.After(40 * time.Millisecond):
-		LOG.Println("Address assignment response not received.")
+		DEBUG.Println("Address assignment response not received.")
 	}
 	ack_reply <- msg
 }
@@ -395,7 +396,7 @@ func (d *GreenBusDevice) getNextCmd() Cmd_t {
 	return cmd
 }
 
-func (d GreenBus) runmaster(port string, network_id int) {
+func (d *GreenBus) runmaster(port string, network_id int) {
 	var (
 		err          error
 		orig_termios *termioslib.Termios
@@ -468,10 +469,10 @@ func (d GreenBus) runmaster(port string, network_id int) {
 	for {
 		// are we pinging devices?
 		if state_ping_devices {
-			LOG.Println("State Ping")
+			DEBUG.Println("State Ping")
 			// are we waiting for a reply? - no
 			if ping_reply == nil {
-				LOG.Println("State Ping Reply")
+				DEBUG.Println("State Ping Reply")
 				device_len := len(devices)
 				if device_len < 2 {
 					device_len = 2
@@ -484,24 +485,24 @@ func (d GreenBus) runmaster(port string, network_id int) {
 					go FindDevices(r, w, ack_new_devices)
 				} else { // we have a device to ping
 					ping_reply = make(chan ReplyInfo, 1)
-					LOG.Println("Cmds: ", devices[next_device+2].Cmds)
+					DEBUG.Println("Cmds: ", devices[next_device+2].Cmds)
 					var cmd Cmd_t
 					cmd = devices[next_device+2].getNextCmd()
 
 					go PingDevice(r, w, ping_reply, devices[next_device+2].Addr, devices[next_device+2].Mac, cmd)
-					LOG.Println("Cmds2: ", devices[next_device+2].Cmds)
+					DEBUG.Println("Cmds2: ", devices[next_device+2].Cmds)
 					next_device += 1
 				}
 			}
 		}
 		if state_find_devices {
-			LOG.Println("State Find")
+			DEBUG.Println("State Find")
 			//are we waiting for new devices? - no
 			if ack_new_devices == nil {
 				// are we waiting for an ack reply? - no
 				if ack_reply == nil {
-					LOG.Println("State Find Ack")
-					LOG.Println("New Devices ", new_devices)
+					DEBUG.Println("State Find Ack")
+					DEBUG.Println("New Devices ", new_devices)
 					if next_device == len(new_devices) { // we have reached the end of devices to ack
 						new_devices = []uint32{}
 						next_device = 0
@@ -519,12 +520,12 @@ func (d GreenBus) runmaster(port string, network_id int) {
 							go FindDevices(r, w, ack_new_devices)
 						} else {
 							ping_reply = make(chan ReplyInfo, 1)
-							LOG.Println("Cmds: ", devices[next_device+2].Cmds)
+							DEBUG.Println("Cmds: ", devices[next_device+2].Cmds)
 							var cmd Cmd_t
 							cmd = devices[next_device+2].getNextCmd()
 
 							go PingDevice(r, w, ping_reply, devices[next_device+2].Addr, devices[next_device+2].Mac, cmd)
-							LOG.Println("Cmds2: ", devices[next_device+2].Cmds)
+							DEBUG.Println("Cmds2: ", devices[next_device+2].Cmds)
 							next_device += 1
 						}
 					} else {
@@ -608,7 +609,7 @@ func (d GreenBus) runmaster(port string, network_id int) {
 				}
 			}
 		case reply := <-ping_reply:
-			LOG.Println("Do Ping Reply")
+			DEBUG.Println("Do Ping Reply")
 			ping_reply = nil
 			if reply.ReplyPkt.Header.Mtype == reply.Cmd.Rtype {
 				if reply.Cmd.ReplyHandler != nil {
@@ -616,18 +617,18 @@ func (d GreenBus) runmaster(port string, network_id int) {
 				}
 			}
 		case msg_devices := <-ack_new_devices:
-			LOG.Println("Do Ack Devices")
+			DEBUG.Println("Do Ack Devices")
 			ack_new_devices = nil
 			new_devices = msg_devices
 		case rmsg := <-ack_reply:
-			LOG.Println("Do Ack Reply")
+			DEBUG.Println("Do Ack Reply")
 			ack_reply = nil
 			if rmsg.ReplyPkt.Header.Mtype == ACK_REPLY && rmsg.ReplyPkt.Header.Mac == rmsg.device_mac { // and payload == "ACK"
 				interrogate_cmd := []Cmd_t{Cmd_t{Payload: []byte("INTERROGATE"),
 					Mtype: INTERROGATE,
 					Rtype: INTERROGATE_REPLY,
 					ReplyHandler: func(msg Message_t) {
-						LOG.Println("INTERROGATE REPLY")
+						DEBUG.Println("INTERROGATE REPLY")
 						dev_properties := interrogate_payload(msg.Payload).ToStruct()
 						devices[rmsg.device_addr].ModelName = dev_properties.Model
 						devices[rmsg.device_addr].Serial = dev_properties.Serial
@@ -638,7 +639,7 @@ func (d GreenBus) runmaster(port string, network_id int) {
 						var ports []Port_t
 						LOG.Println("rports:", dev_properties.Ports)
 						for _, val := range dev_properties.Ports {
-							LOG.Println("SETTING UP PORT")
+							DEBUG.Println("SETTING UP PORT")
 							var port Port_t
 							switch {
 							case val.Type == PORT_OUTPUT:
@@ -650,7 +651,7 @@ func (d GreenBus) runmaster(port string, network_id int) {
 							}
 							ports = append(ports, port)
 						}
-						LOG.Println("PORTS:", ports)
+						DEBUG.Println("PORTS:", ports)
 						devices[rmsg.device_addr].Ports = ports
 						network_manager.Publish(network_manager.NewEvent(network_id, "port_change", nil))
 					}}}
@@ -665,7 +666,7 @@ func (d GreenBus) runmaster(port string, network_id int) {
 				}
 			}
 		}
-		LOG.Println("DEVICES: ", devices)
+		DEBUG.Println("DEVICES: ", devices)
 	}
 }
 
@@ -741,7 +742,7 @@ func WriteMessages(c *os.File, w chan Message_t) {
 			return
 		}
 		msg.Header.Crc = HeaderCRC(&msg)
-		LOG.Printf("Msg To: %d Type: %d Length: %d\n", msg.Header.Destination, msg.Header.Mtype, msg.Header.Length)
+		DEBUG.Printf("Msg To: %d Type: %d Length: %d\n", msg.Header.Destination, msg.Header.Mtype, msg.Header.Length)
 		_, err := c.Write(ToByte(msg))
 		if err != nil {
 			LOG.Println(err)
@@ -751,7 +752,7 @@ func WriteMessages(c *os.File, w chan Message_t) {
 }
 
 func init() {
-	LOG.Println("blah")
+	DEBUG.Println("blah")
 	network_manager.RegisterDriver("greenbus", &GreenBus{StopChan: make(chan bool), List_ports: nil})
 	//go runmaster()
 }
