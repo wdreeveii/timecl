@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/robfig/revel"
-	"io/ioutil"
+	//"io/ioutil"
 	"log"
 	"os"
 	"runtime/pprof"
@@ -12,9 +12,9 @@ import (
 	"timecl/app/network_manager"
 )
 
-var output = ioutil.Discard
+//var output = ioutil.Discard
 
-//var output = os.Stderr
+var output = os.Stderr
 var LOG = log.New(output, "LogicEngine ", log.Ldate|log.Ltime)
 
 type processor func(o *Object_t, objs map[int]*Object_t)

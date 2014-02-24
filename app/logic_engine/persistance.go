@@ -36,25 +36,55 @@ func (e *Engine_t) Save() {
 	if err != nil {
 		LOG.Println("Encoding:", err)
 	}
-	err = ioutil.WriteFile(path, m.Bytes(), 0600)
+	err = ioutil.WriteFile(path+".new", m.Bytes(), 0600)
 	if err != nil {
-		panic(err)
+		LOG.Println(err)
+		return
+	}
+	if _, err = os.Stat(path); err == nil {
+		// main path exists
+		if _, err = os.Stat(path + ".save"); err == nil {
+			// backup exists
+			err = os.Remove(path + ".save")
+			if err != nil {
+				LOG.Println(err)
+				return
+			}
+		}
+		err = os.Link(path, path+".save")
+		if err != nil {
+			LOG.Println(err)
+			return
+		}
+		err = os.Remove(path)
+		if err != nil {
+			LOG.Println(err)
+			return
+		}
+	}
+	err = os.Link(path+".new", path)
+	if err != nil {
+		LOG.Println(err)
+		return
+	}
+	err = os.Remove(path + ".new")
+	if err != nil {
+		LOG.Println(err)
+		return
+	}
+	err = os.Remove(path + ".save")
+	if err != nil {
+		LOG.Println(err)
+		return
 	}
 }
 
-func (e *Engine_t) LoadObjects() {
-	path, found := revel.Config.String("engine.savefile")
-	if !found {
-		fmt.Println("No save file in configuration.")
-		return
-	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		fmt.Println(err)
+func (e *Engine_t) ReadAndDecode(path string) (err error) {
+	if _, err = os.Stat(path); os.IsNotExist(err) {
 		return
 	}
 	n, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 	tmp := make([]interface{}, 0)
@@ -66,8 +96,25 @@ func (e *Engine_t) LoadObjects() {
 
 	err = dec.Decode(e)
 	if err != nil {
-		fmt.Println("Decode objects err:", err)
 		return
+	}
+	return nil
+}
+
+func (e *Engine_t) LoadObjects() {
+	path, found := revel.Config.String("engine.savefile")
+	if !found {
+		fmt.Println("No save file in configuration.")
+		return
+	}
+	err := e.ReadAndDecode(path)
+	if err != nil {
+		LOG.Println(err)
+		eagain := e.ReadAndDecode(path + ".save")
+		if eagain != nil {
+			LOG.Println(eagain)
+			return
+		}
 	}
 	for k, _ := range e.Objects {
 		obj := *e.Objects[k]
