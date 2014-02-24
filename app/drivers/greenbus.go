@@ -550,12 +550,12 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 			var res = make([]network_manager.BusDef, 0)
 			res = append(res, network_manager.BusDef{BusID: 0})
 			res[0].DeviceList = make([]network_manager.DeviceDef, 0)
-			for idx, device := range devices[2:] {
+			for _, device := range devices[2:] {
 				var dev network_manager.DeviceDef
-				dev.DeviceID = idx + 2
+				dev.DeviceID = device.Mac
 				var ports = make([]network_manager.PortDef, 0)
 				for idx, port := range device.Ports {
-					ports = append(ports, network_manager.PortDef{PortID: idx, Type: port.Type})
+					ports = append(ports, network_manager.PortDef{PortID: uint32(idx), Type: port.Type})
 				}
 				dev.PortList = ports
 				res[0].DeviceList = append(res[0].DeviceList, dev)

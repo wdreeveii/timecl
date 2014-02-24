@@ -220,19 +220,19 @@ const (
 )
 
 type PortDef struct {
-	PortID int
+	PortID uint32
 	Type   PortFunction
 }
 type DeviceDef struct {
-	DeviceID int
+	DeviceID uint32
 	PortList []PortDef
 }
 type BusDef struct {
-	BusID      int
+	BusID      uint32
 	DeviceList []DeviceDef
 }
 type NetInterfaceDef struct {
-	NetworkID int
+	NetworkID uint32
 	BusList   []BusDef
 }
 
@@ -254,7 +254,7 @@ func interfacesManager() {
 			for idx, aInterface := range interfaces {
 				if aInterface.Driver.Instance != nil {
 					var item NetInterfaceDef
-					item.NetworkID = idx
+					item.NetworkID = uint32(idx)
 					item.BusList = aInterface.Driver.Instance.ListPorts()
 					res = append(res, item)
 				}
