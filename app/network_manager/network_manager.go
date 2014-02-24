@@ -219,6 +219,20 @@ const (
 	AOutput
 )
 
+func (t PortFunction) String() string {
+	switch t {
+	case BInput:
+		return "BInput"
+	case AInput:
+		return "AInput"
+	case BOutput:
+		return "BOutput"
+	case AOutput:
+		return "AOutput"
+	}
+	return ""
+}
+
 type PortDef struct {
 	PortID uint32
 	Type   PortFunction

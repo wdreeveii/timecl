@@ -1,4 +1,3 @@
-
 package controllers
 
 import (
@@ -53,7 +52,7 @@ func (c Network) NetworkConfig() revel.Result {
 			if !found {
 				continue
 			}
-			c.Txn.Exec("INSERT OR IGNORE INTO NetworkConfig VALUES(?,?,?,?)", index,val, path, "")
+			c.Txn.Exec("INSERT OR IGNORE INTO NetworkConfig VALUES(?,?,?,?)", index, val, path, "")
 			net := &models.NetworkConfig{index, val, path, ""}
 			c.Txn.Update(net)
 			networks = append(networks, net)
@@ -61,6 +60,11 @@ func (c Network) NetworkConfig() revel.Result {
 	}
 	//networks = sort.Reverse(networks)
 	return c.Render(networks)
+}
+
+func (c Network) ShowDevices() revel.Result {
+	network_definition := network_manager.ListPorts()
+	return c.Render(network_definition)
 }
 
 func (c Network) EditNetwork(NetworkID int) revel.Result {
@@ -71,7 +75,7 @@ func (c Network) EditNetwork(NetworkID int) revel.Result {
 	if len(results) > 0 {
 		network := results[0].(*models.NetworkConfig)
 		available_drivers := network_manager.GetDriverList()
-		return c.Render(network,available_drivers)
+		return c.Render(network, available_drivers)
 	} else {
 		return c.NotFound("Could not find network.")
 	}

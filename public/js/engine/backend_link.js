@@ -138,7 +138,6 @@ function backend_start() {
 			var object = load_object(event_data);
 			obj[object["Id"]] = object;
 		} else if (event_msg["Type"] == "edit_many") {
-			console.log("edit_many event");
 			var event_data = event_msg["Data"];
 			for (var i = 0; i < event_data.length; i++ ) {
 				var state_change = event_data[i];
@@ -149,7 +148,6 @@ function backend_start() {
 				}
 			}
 		} else if (event_msg["Type"] == "edit") {
-			console.log("edit event");
 			var event_data = event_msg["Data"];
 			var id = event_data["Id"]
 			var changes = event_data["State"]

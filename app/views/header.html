@@ -19,16 +19,18 @@
   <body>
 
     <div id="header">
-      <h1><a href='{{url "Engine.Index"}}'>NATASHA</a></h1>
+      <h1><a href='{{url "Engine.Index"}}'>Timer Control Logic</a></h1>
       {{if .user}}
         <div id="options">
           Connected as {{.user.Username}}
           |
           <a href='{{url "Engine.Index"}}'>Engine</a>
           |
+          <a href='{{url "Network.ShowDevices"}}'>Devices</a>
+          |
           <a href='{{url "Network.NetworkConfig"}}'>System Settings</a>
                     |
-          <a href='{{url "Admin.Index"}}'>Account Settings</a>
+          <a href='{{url "Admin.Index"}}'>User Accounts</a>
           |
           <a href='{{url "Admin.EditMyUser"}}'>Profile</a>
           |

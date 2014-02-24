@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/robfig/revel"
-	//"io/ioutil"
+	"io/ioutil"
 	"log"
 	"os"
 	"runtime/pprof"
@@ -16,6 +16,7 @@ import (
 
 var output = os.Stderr
 var LOG = log.New(output, "LogicEngine ", log.Ldate|log.Ltime)
+var DEBUG = log.New(ioutil.Discard, "LogicEngine ", log.Ldate|log.Ltime)
 
 type processor func(o *Object_t, objs map[int]*Object_t)
 
@@ -122,9 +123,9 @@ type Engine_t struct {
 }
 
 func (e *Engine_t) Init() {
-	fmt.Println("Logic Engine Start")
+	LOG.Println("Logic Engine Start")
 	e.UpdateRate = 10
-	e.SolveIterations = 30
+	e.SolveIterations = 50
 	e.Objects = make(map[int]*Object_t)
 	e.LoadObjects()
 	go e.Run()
@@ -290,9 +291,9 @@ func (e *Engine_t) Run() {
 				e.DeleteObject(id)
 			}
 		case event := <-network_subscription.New:
-			LOG.Println("Engine Event")
-			LOG.Println(event.NetworkID)
-			LOG.Println(event.Type)
+			DEBUG.Println("Engine Event")
+			DEBUG.Println(event.NetworkID)
+			DEBUG.Println(event.Type)
 			switch {
 			case event.Type == "port_change":
 				// send port list to the clients
