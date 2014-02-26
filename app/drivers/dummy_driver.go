@@ -2,9 +2,9 @@ package drivers
 
 import (
 	"fmt"
-	//"github.com/robfig/revel"
+	//"github.com/revel/revel"
 	//"github.com/mewkiz/pkg/hashutil/crc16"
-	//"github.com/robfig/revel/modules/jobs/app/jobs"
+	//"github.com/revel/revel/modules/jobs/app/jobs"
 	"timecl/app/network_manager"
 )
 

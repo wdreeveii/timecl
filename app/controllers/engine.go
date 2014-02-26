@@ -4,7 +4,7 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"fmt"
 	//"sort"
-	"github.com/robfig/revel"
+	"github.com/revel/revel"
 	"timecl/app/logic_engine"
 	//"timecl/app/network_manager"
 	//"timecl/app/routes"
@@ -87,15 +87,14 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 		select {
 		case event := <-subscription.New:
 			if err := websocket.JSON.Send(ws, &event); err != nil {
-				fmt.Println("jsoning", err)
+				fmt.Println("Error sending msg to client:", err)
 				//return nil
 			}
 		case msg, ok := <-newMessages:
 			if !ok {
-				fmt.Println("recving", ok)
+				//fmt.Println("recving", ok)
 				return nil
 			}
-			//fmt.Println("new msg:", msg)
 			engine.Publish(msg)
 		}
 	}

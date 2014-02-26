@@ -1,8 +1,22 @@
 package app
 
-import "github.com/robfig/revel"
+import (
+	"os"
+	"os/signal"
+	"fmt"
+	"syscall"
+	"github.com/revel/revel"
+)
 
 func init() {
+	go func() {
+		signal_source := make(chan os.Signal)
+		signal.Notify(signal_source, syscall.SIGHUP)
+		for {
+			<- signal_source
+			fmt.Println("Terminal Disconnected")
+		}
+	}()
 	// Filters is the default set of global filters.
 	revel.Filters = []revel.Filter{
 		revel.PanicFilter,             // Recover from panics and display an error page instead.

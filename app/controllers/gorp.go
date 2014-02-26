@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"github.com/coopernurse/gorp"
 	_ "github.com/mattn/go-sqlite3"
-	r "github.com/robfig/revel"
-	"github.com/robfig/revel/modules/db/app"
+	r "github.com/revel/revel"
+	"github.com/revel/revel/modules/db/app"
 	"timecl/app/models"
 	"fmt"
 )
