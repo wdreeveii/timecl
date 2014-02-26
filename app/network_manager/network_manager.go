@@ -3,7 +3,6 @@ package network_manager
 import (
 	"container/list"
 	"errors"
-	"fmt"
 	"github.com/coopernurse/gorp"
 	"github.com/revel/revel"
 	"github.com/revel/revel/modules/db/app"
@@ -41,7 +40,6 @@ func GetDriverList() []string {
 }
 
 func RegisterDriver(drivername string, driver DriverInterface) {
-	fmt.Println("REGISTER DRIVER: ", drivername)
 	driver_collection = append(driver_collection, driverListItem{Name: drivername, Instance: driver})
 }
 
@@ -251,7 +249,6 @@ type NetInterfaceDef struct {
 }
 
 func ListPorts() []NetInterfaceDef {
-	fmt.Println("network list port")
 	var m = make(chan []NetInterfaceDef)
 	list_ports <- m
 	return <-m
@@ -263,7 +260,6 @@ func interfacesManager() {
 	for {
 		select {
 		case req := <-list_ports:
-			fmt.Println("network manager list port")
 			var res = make([]NetInterfaceDef, 0)
 			for idx, aInterface := range interfaces {
 				if aInterface.Driver.Instance != nil {
@@ -342,7 +338,7 @@ func interfacesManager() {
 }
 
 func Init() {
-	fmt.Println("driver start")
+	revel.INFO.Println("Network Manager Start")
 	go interfacesManager()
 	db.Init()
 	dbm := &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
@@ -350,9 +346,7 @@ func Init() {
 	init_networkconfig_table(dbm)
 
 	result := GetHardwareInterfaces()
-	fmt.Println("results: ", result)
 	for _, config_key := range result {
-		fmt.Println(config_key)
 		networks, err := dbm.Select(models.NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, config_key)
 		if err != nil {
 			panic(err)

@@ -40,7 +40,6 @@ func (d *GreenBus) Copy() network_manager.DriverInterface {
 }
 
 func (d *GreenBus) ListPorts() (result []network_manager.BusDef) {
-	LOG.Println("GreenBus list ports", d.List_ports)
 	if d.List_ports != nil {
 		var res = make(chan []network_manager.BusDef)
 		d.List_ports <- res
@@ -441,7 +440,7 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 	}()
 
 	defer func() {
-		LOG.Println("STOPING DRIVER!!!!")
+		LOG.Println("Greenbus stopping!!")
 	}()
 
 	d.List_ports = make(chan (chan []network_manager.BusDef))
@@ -546,7 +545,6 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 		}
 		select {
 		case req := <-d.List_ports:
-			fmt.Println("Greenbus manager list ports")
 			var res = make([]network_manager.BusDef, 0)
 			res = append(res, network_manager.BusDef{BusID: 0})
 			res[0].DeviceList = make([]network_manager.DeviceDef, 0)

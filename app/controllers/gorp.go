@@ -8,7 +8,6 @@ import (
 	r "github.com/revel/revel"
 	"github.com/revel/revel/modules/db/app"
 	"timecl/app/models"
-	"fmt"
 )
 
 var (
@@ -34,7 +33,6 @@ func init_networkconfig_table(dbm *gorp.DbMap) {
 }
 
 func Init() {
-	fmt.Println("gorp started")
 	db.Init()
 	dbm = &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
 

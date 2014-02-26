@@ -334,7 +334,6 @@ func (e *Engine_t) ListObjects() Event {
 }
 
 func (e *Engine_t) ListPorts() Event {
-	fmt.Println("engine list port")
 	var ports = network_manager.ListPorts()
 	event := newEvent("init_ports", ports)
 	return event
@@ -426,14 +425,8 @@ func engine_pub_sub() {
 	}
 }
 
-func Init() {
-	LOG.Println("engine start")
-}
-
 func init() {
-	revel.OnAppStart(Init)
 	go engine_pub_sub()
-	//go testPublish()
 }
 
 // Drains a given channel of any messages.

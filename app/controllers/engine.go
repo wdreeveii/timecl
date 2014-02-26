@@ -2,13 +2,8 @@ package controllers
 
 import (
 	"code.google.com/p/go.net/websocket"
-	"fmt"
-	//"sort"
 	"github.com/revel/revel"
 	"timecl/app/logic_engine"
-	//"timecl/app/network_manager"
-	//"timecl/app/routes"
-	//"strings"
 )
 
 var (
@@ -29,7 +24,6 @@ func InitEngine() {
 }
 
 func (c Engine) checkUser() revel.Result {
-	fmt.Println("Engine checkuser")
 	if user := c.connected(); user == nil {
 		c.Flash.Error("Please log in first")
 		return c.Redirect(Application.Index)
@@ -52,21 +46,15 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 	defer subscription.Cancel()
 	init := engine.ListObjects()
 	if err := websocket.JSON.Send(ws, &init); err != nil {
-		fmt.Println(err)
+		revel.INFO.Println(err)
 		return nil
 	}
-	fmt.Println("Websocket")
 	ports := engine.ListPorts()
 	if err := websocket.JSON.Send(ws, &ports); err != nil {
-		fmt.Println(err)
+		revel.INFO.Println(err)
 		return nil
 	}
-	fmt.Println(ports)
-	/*for _, event := range subscription.Archive {
-		if websocket.JSON.Send(ws, &event) != nil {
-			return nil
-		}
-	}*/
+	revel.INFO.Println(ports)
 
 	newMessages := make(chan logic_engine.Event)
 	go func() {
@@ -74,11 +62,10 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 		for {
 			err := websocket.JSON.Receive(ws, &msg)
 			if err != nil {
-				fmt.Println(err)
+				revel.INFO.Println("Error receiving msg from client:", err)
 				close(newMessages)
 				return
 			}
-			fmt.Println("newMessage recv")
 			newMessages <- msg
 		}
 	}()
@@ -87,12 +74,11 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 		select {
 		case event := <-subscription.New:
 			if err := websocket.JSON.Send(ws, &event); err != nil {
-				fmt.Println("Error sending msg to client:", err)
-				//return nil
+				revel.INFO.Println("Error sending msg to client:", err)
+				return nil
 			}
 		case msg, ok := <-newMessages:
 			if !ok {
-				//fmt.Println("recving", ok)
 				return nil
 			}
 			engine.Publish(msg)
