@@ -2,7 +2,7 @@
 {{append . "moreStyles" "/css/south-street/jquery-ui-1.10.3.custom.min.css"}}
 {{append . "moreStyles" "/css/layout-default.css"}}
 {{append . "moreScripts" "js/jquery-ui-1.10.3.custom.min.js"}}
-{{append . "moreScripts" "js/jquery.layout-latest.min.js"}}
+{{append . "moreScripts" "js/jquery.layout-latest.js"}}
 {{append . "moreScripts" "js/tz.json"}}
 {{append . "moreScripts" "js/jstz-1.0.4.min.js"}}
 {{append . "moreScripts" "js/Ractive.js"}}
@@ -98,8 +98,8 @@
         <div id="debug">
         </div>
     </div>
-    <div id='canvas_container' class='pane ui-layout-center'>
-        <canvas class='ui-layout-content' id="canvas"></canvas>
+    <div id='canvas_container' class='ui-layout-center ui-layout-content'><!--pane ui-layout-wrapper ui-layout-center-->
+        <canvas class='' id="canvas"></canvas>
     </div>
     <!--<div class="clearfix"></div>-->
 </div>

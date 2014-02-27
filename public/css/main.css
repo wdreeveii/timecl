@@ -192,11 +192,15 @@ form .buttons {
     margin: 0px;
 }
 #canvas_container {
+    box-sizing:content-box;
+    -moz-box-sizing:content-box;
+    overflow: auto;
 }
 #canvas {
-    overflow: scroll;
+    overflow: auto;
     width: auto;
     background-color: #F5FFFF;
+    display: block;
 }
 .accordion-heading .accordion-toggle {
     padding: 0px;

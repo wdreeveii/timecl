@@ -157,6 +157,7 @@ function backend_start() {
 		} else if (event_msg["Type"] == "init") {
 			var event_data = event_msg["Data"];
 			obj = load_objects(event_data);
+			resize_canvas();
 		} else if (event_msg["Type"] == "init_ports") {
 			property_window.set('port_list', event_msg["Data"]);
 		}
