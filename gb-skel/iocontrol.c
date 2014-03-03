@@ -1,10 +1,14 @@
 #include "config.h"
-#include "iocontrol.h"
+
 #include <stdio.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
+
+#include "iocontrol.h"
+
+void build_analog_tables();
 
 struct io_port {
 	uint8_t * regaddr;
@@ -13,6 +17,22 @@ struct io_port {
 };
 
 const struct io_port ports[NUM_PORTS] PROGMEM = {
+	{(uint8_t *)&DDRB, (uint8_t *)&PINB, 0},
+	{(uint8_t *)&DDRB, (uint8_t *)&PINB, 1},
+	{(uint8_t *)&DDRB, (uint8_t *)&PINB, 2},
+	{(uint8_t *)&DDRB, (uint8_t *)&PINB, 3},
+	{(uint8_t *)&DDRB, (uint8_t *)&PINB, 4},
+	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 1},
+	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 7},
+	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 6},
+	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 5},
+	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 4},
+	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 3},
+	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 2},
+	{(uint8_t *)&DDRD, (uint8_t *)&PIND, 4},
+	{(uint8_t *)&DDRD, (uint8_t *)&PIND, 4},
+	{(uint8_t *)&DDRD, (uint8_t *)&PIND, 4},
+	{(uint8_t *)&DDRD, (uint8_t *)&PIND, 4},
 	{(uint8_t *)&DDRA, (uint8_t *)&PINA, 0},
 	{(uint8_t *)&DDRA, (uint8_t *)&PINA, 1},
 	{(uint8_t *)&DDRA, (uint8_t *)&PINA, 2},
@@ -21,12 +41,7 @@ const struct io_port ports[NUM_PORTS] PROGMEM = {
 	{(uint8_t *)&DDRA, (uint8_t *)&PINA, 5},
 	{(uint8_t *)&DDRA, (uint8_t *)&PINA, 6},
 	{(uint8_t *)&DDRA, (uint8_t *)&PINA, 7},
-	{(uint8_t *)&DDRD, (uint8_t *)&PIND, 7},
-	{(uint8_t *)&DDRD, (uint8_t *)&PIND, 6},
-	{(uint8_t *)&DDRD, (uint8_t *)&PIND, 5},
-	{(uint8_t *)&DDRD, (uint8_t *)&PIND, 4},
-	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 5},
-	{(uint8_t *)&DDRC, (uint8_t *)&PINC, 4}
+
 };
 
 uint8_t iotypes[NUM_PORTS];
@@ -34,6 +49,38 @@ uint8_t adc_channels[8];
 uint16_t adc_vals[8];
 uint8_t num_channels = 0;
 uint8_t current_channel = 0;
+
+void io_init()
+{		
+	//config_get_io_types(iotypes);
+
+	io_set_type(12, PORT_AOUTPUT);
+	io_set_type(13, PORT_AOUTPUT);
+	io_set_type(14, PORT_AOUTPUT);
+	io_set_type(15, PORT_AOUTPUT);
+
+	io_set_type(16, PORT_AINPUT);
+	io_set_type(17, PORT_AINPUT);
+	io_set_type(18, PORT_AINPUT);
+	io_set_type(19, PORT_AINPUT);
+	io_set_type(20, PORT_AINPUT);
+	io_set_type(21, PORT_AINPUT);
+	io_set_type(22, PORT_AINPUT);
+	io_set_type(23, PORT_AINPUT);
+	
+	build_analog_tables();
+	
+	if (num_channels)
+	{
+		ADCSRA = (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+		ADMUX = (1 << REFS0) | adc_channels[0];
+		ADCSRA |= (1 << ADATE);
+		ADCSRA |= (1 << ADEN);
+		ADCSRA |= (1 << ADIE);
+		ADCSRA |= (1 << ADSC);
+		
+	}
+}
 
 void build_analog_tables()
 {
@@ -92,28 +139,6 @@ uint8_t io_get_type(uint8_t port) {
 	}
 
 	return type;
-}
-
-void io_init()
-{		
-	config_get_io_types(iotypes);
-	io_set_type(0, PORT_BINPUT);
-	io_set_type(1, PORT_BINPUT);
-	io_set_type(2, PORT_BINPUT);
-	io_set_type(3, PORT_BINPUT);
-
-	build_analog_tables();
-	
-	if (num_channels)
-	{
-		ADCSRA = (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
-		ADMUX = (1 << REFS0) | adc_channels[0];
-		ADCSRA |= (1 << ADATE);
-		ADCSRA |= (1 << ADEN);
-		ADCSRA |= (1 << ADIE);
-		ADCSRA |= (1 << ADSC);
-		
-	}
 }
 
 ISR(ADC_vect, ISR_BLOCK)
