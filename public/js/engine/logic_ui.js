@@ -131,8 +131,18 @@ function find_extent() {
 	}
 	return [max_x, min_x, max_y, min_y];
 }
+var timer = null;
+function resize_canvas() {
+	if (timer != null) {
+		clearTimeout(timer);
+		timer = setTimeout(_resize_canvas, 500);
+	} else {
+		_resize_canvas();
+	}
 
-function resize_canvas()
+}
+
+function _resize_canvas()
 {
 	var container = $(document.getElementById("canvas_container"));
 	var canvas = document.getElementById("canvas");
@@ -140,16 +150,19 @@ function resize_canvas()
 	var y = container.innerHeight();
 	var save_x_ofs = x_ofs;
 	var save_y_ofs = y_ofs;
-
+	console.log(save_x_ofs);
+	console.log(save_y_ofs);
 	var extents = find_extent();
 	x_ofs = -(extents[1] - 100);
 	y_ofs = -(extents[3] - 100);
-
+	console.log(x_ofs);
+	console.log(y_ofs);
 	var x_size = zoom * ((extents[0] - extents[1]) + 200);
 	var y_size = zoom * ((extents[2] - extents[3]) + 200);
 
 	if (x_size > x) {
-		if (save_x_ofs < x_ofs) {
+		if (save_x_ofs > x_ofs) {
+			console.log("x start");
 			container.animate({scrollLeft:0}, 10);
 		} else if (save_x_ofs == x_ofs) {
 			container.animate({scrollLeft:x_size - x}, 5);
@@ -295,7 +308,7 @@ function mouse_move(ev)
 			obj[k].Xpos += delta_x;
 			obj[k].Ypos += delta_y;
 		}
-
+		//resize_canvas();
 		requestAnimationFrame(draw_display);
 	} else
 	// Pan grid if dragging mouse

@@ -5,8 +5,6 @@
 #include "usart.h"
 #include "config.h"
 #include "iocontrol.h"
-#include "rtc.h"
-#include "softtimer.h"
 #include "gb_client.h"
 #include <string.h>
 #include <limits.h>

@@ -13,9 +13,6 @@
 #include "usart.h"
 #include "util.h"
 #include "iocontrol.h"
-#include "spi.h"
-#include "rtc.h"
-#include "softtimer.h"
 
 static void hardware_init()
 {
@@ -28,18 +25,8 @@ static void hardware_init()
 	PORTC = 0xC0;
 	PORTD = 0;
 	io_init();
-	spi_init();
-	soft_timer_init();
 	config_Init();
 	USART_Init();
-	RTC_Init();
-}
-
-uint8_t testtimerslot;
-void test()
-{
-	DSEND("whats up\n");
-	reset_timer(time() + 5, &test, testtimerslot);	
 }
 
 int main(void)
@@ -55,7 +42,6 @@ int main(void)
 	printf("mcusr %x\n", mcusr);
 	
 	
-	testtimerslot = set_timer(time() + 5, &test);
 	while (1)
 	{
 	}	
