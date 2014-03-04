@@ -148,21 +148,19 @@ function _resize_canvas()
 	var canvas = document.getElementById("canvas");
 	var x = container.innerWidth();
 	var y = container.innerHeight();
+	
 	var save_x_ofs = x_ofs;
 	var save_y_ofs = y_ofs;
-	console.log(save_x_ofs);
-	console.log(save_y_ofs);
+	
 	var extents = find_extent();
 	x_ofs = -(extents[1] - 100);
 	y_ofs = -(extents[3] - 100);
-	console.log(x_ofs);
-	console.log(y_ofs);
+
 	var x_size = zoom * ((extents[0] - extents[1]) + 200);
 	var y_size = zoom * ((extents[2] - extents[3]) + 200);
 
 	if (x_size > x) {
 		if (save_x_ofs > x_ofs) {
-			console.log("x start");
 			container.animate({scrollLeft:0}, 10);
 		} else if (save_x_ofs == x_ofs) {
 			container.animate({scrollLeft:x_size - x}, 5);
@@ -224,6 +222,7 @@ function mouse_up(ev)
 { 
 	var pos = mouse_pos(ev);	
 	mouse_state = "up";
+
 	if (ui_mode == "moving")
 	{
 		if (!has_moved)
@@ -259,7 +258,6 @@ function mouse_down(ev)
 	mouse_y = pos.y;
 
 	if (pos.x < 0 || pos.y < 0) return;
-
 	if (ui_mode == "none")// No mode, either find an obj or clear mode
 	{
 		var i = find_object(pos.x, pos.y);
@@ -291,6 +289,9 @@ function mouse_move(ev)
  	} else
 	if (ui_mode == "moving")
 	{
+		if (mouse_state == "down") {
+			has_moved = 1;
+		}
 		var new_x = snap_val(get_world_x(pos.x) - obj_x_ofs);
 		var new_y = snap_val(get_world_y(pos.y) - obj_y_ofs);
 
@@ -310,21 +311,19 @@ function mouse_move(ev)
 		}
 		//resize_canvas();
 		requestAnimationFrame(draw_display);
-	} else
+	}/* else
 	// Pan grid if dragging mouse
 	if (mouse_state == "down")
 	{
 		var dx = pos.x - mouse_x;		
 		var dy = pos.y - mouse_y;
-		
 		//x_ofs = x_ofs_start + dx;
 		//y_ofs = y_ofs_start + dy;
 
 		//$('#canvas_container').scrollLeft(container_x - dx);
 		//$('#canvas_container').scrollTop(container_y - dy);
 
-	}
-	has_moved = 1;
+	}*/
 }
 
 function mouse_wheel( event )
@@ -360,8 +359,6 @@ function mouse_wheel( event )
         
     x_ofs = (x_ofs - cx) * zoom_factor + cx;
     y_ofs = (y_ofs - cy) * zoom_factor + cy;
-    console.log(x_ofs);
-    console.log(y_ofs);    
                 
     if (event.preventDefault) event.preventDefault();
 	
@@ -424,10 +421,11 @@ function ui_move_object(pos, i)
 
 		//obj[i].selected = 1;//!obj[i].selected;
 
-		requestAnimationFrame(draw_display);
-
 		sel_obj = i;
 		set_mode("moving");
+
+		requestAnimationFrame(draw_display);
+
 	} else {
 
 	}
