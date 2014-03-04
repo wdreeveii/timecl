@@ -41,7 +41,6 @@ int main(void)
 	DSEND("Model: GB Proving Grounds 1.0\n");
 	printf("mcusr %x\n", mcusr);
 	
-	
 	while (1)
 	{
 	}	

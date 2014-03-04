@@ -14,6 +14,6 @@ void USART_Init0(uint16_t baud);
 void USART_Init1(uint16_t baud);
 void USART_Send(uint8_t port, uint8_t *p_out, uint16_t length);
 
-#define DSEND(s) USART_Send(0, (uint8_t*)s, strlen(s))
+#define DSEND(s) USART_Send(1, (uint8_t*)s, strlen(s))
 
 #endif

@@ -1,9 +1,10 @@
+#include "config.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
+#include <util/delay.h>
 #include "buffer.h"
 #include "usart.h"
-#include "config.h"
 #include "iocontrol.h"
 #include "gb_client.h"
 #include <string.h>
@@ -17,7 +18,7 @@ static int putchar_for_printf(char c, FILE *stream)
 	/* print also \r if the character is \n */
 	if (c == '\n') putchar_for_printf('\r', stream);
 		
-	USART_Send(0, (uint8_t *) &c, 1);
+	USART_Send(1, (uint8_t *) &c, 1);
 	return 0;	
 }
 
@@ -42,6 +43,11 @@ buffer_t in_buf, out_buf[2];
  */
 void USART_Init0(uint16 baud)
 {
+	/* set tx driver enable pin to output */
+	DDRC |= 1;
+	/* ouput low tx driver enable */
+	PORTC &= ~1;
+
 	/* Wait latest receive character was pull from UDR */
 	while(UCSR0A & (1<<RXC0));
 
@@ -110,8 +116,8 @@ void USART_Init(void)
 	uint16 config_baud = 0;
 
 	// The following lines are helpful when creating a config eeprom from scratch
-	//config_set_baud(0, 42);
-	//config_set_baud(1, 42);
+	config_set_baud(0, 42);
+	config_set_baud(1, 42);
 	if ((config_baud = config_get_baud(0))) baud = config_baud;
 	USART_Init0(baud);
 	
@@ -172,12 +178,18 @@ ISR(USART0_UDRE_vect)
 	char c;	
 	
 	/* pull a byte out of the buffer */
-	if(Buffer_Pull(&(out_buf[0]), (unsigned char *)&c) == -1)
+	if(Buffer_Pull(&(out_buf[0]), (unsigned char *)&c) == -1) {
 		/* If buffer empty stop UDR empty interrupt : Tx End */
 		UCSR0B &= ~(1<<UDRIE0);
-	else
+		/* disable driver tx */
+		_delay_us(150);
+		PORTC &= ~1;
+	} else {
+		/* Enable driver output */
+		PORTC |= 1;
 		/* Else, put c in UDR */
 		UDR0 = c;
+	}
 }
 
 ISR(USART1_UDRE_vect)
@@ -208,6 +220,7 @@ ISR(USART1_UDRE_vect)
  */
 ISR(USART0_RX_vect)
 {
+	static char data[500];
 	char garbage;
 	if((UCSR0A & (1<<FE0))||(UCSR0A & (1<<UPE0)))
 		/* If frame error or parity error UDR is Garbage */
@@ -216,7 +229,7 @@ ISR(USART0_RX_vect)
 	{
 		/* Else, send received char into input buffer */
 		garbage = UDR0;
-		Buffer_Push(&in_buf, garbage);
+		gb_push_char(data, garbage);
 		//if (usart0_rx_handler != NULL) (*usart0_rx_handler)(0, &in_buf[0]);
 	}
 	
@@ -224,7 +237,6 @@ ISR(USART0_RX_vect)
 
 ISR(USART1_RX_vect)
 {
-	static char data[500];
 	uint8_t garbage;
 	if((UCSR1A & (1<<FE1))||(UCSR1A & (1<<UPE1)))
 		/* If frame error or parity error UDR is Garbage */
@@ -233,7 +245,7 @@ ISR(USART1_RX_vect)
 	{
 		/* Else, send received char into input buffer */
 		garbage = UDR1;
-		gb_push_char(data, garbage);
+		Buffer_Push(&in_buf, garbage);
 	}
 }
 

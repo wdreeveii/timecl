@@ -29,6 +29,6 @@ eeprom:
 	avrdude ${AVFLAGS} -U eeprom:w:config.hex
 	
 fuse:
-	avrdude ${AVFLAGS} -U lfuse:w:0xF6:m -U hfuse:w:0xD9:m -U efuse:w:0xFF:m
+	avrdude ${AVFLAGS} -U lfuse:w:0xF7:m -U hfuse:w:0xD9:m -U efuse:w:0xFF:m
 
 distclean:: clean

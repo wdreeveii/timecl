@@ -67,7 +67,7 @@ void send_packet(struct message_t * msg) {
 		checksum = crc16_update(checksum, data[i]);
 	
 	*((uint16_t *)(data + sizeof(struct mheader_t) + 2 + msg->payload_len)) = checksum;
-	USART_Send(1, (uint8_t *)data, sizeof(struct mheader_t) + 2 + msg->payload_len + 2);
+	USART_Send(0, (uint8_t *)data, sizeof(struct mheader_t) + 2 + msg->payload_len + 2);
 }
 
 void mk_interrogate_reply(struct message_t * msg) {
@@ -93,20 +93,23 @@ void send_value_reply(struct message_t * msg, uint8_t message_type) {
 	uint8_t num_ports = io_num_ports();
 	char payload[1+(3*num_ports)];
 	payload[0] = 0;
+	int offset = 0;
 	for (int i = 0; i < num_ports; i++) {
 		uint8_t type = io_get_type(i);
 		if (type == PORT_BINPUT) {
+			offset++;
 			payload[0]++;
-			payload[1+(3*i)] = i;
-			payload[2+(3*i)] = io_read(i);
-			payload[3+(3*i)] = 0;
+			payload[1+(3*offset)] = i;
+			payload[2+(3*offset)] = io_read(i);
+			payload[3+(3*offset)] = 0;
 		} else
 		if (type == PORT_AINPUT) {
+			offset++;
 			payload[0]++;
-			payload[1+(3*i)] = i;
+			payload[1+(3*offset)] = i;
 			uint16_t val = io_aread(i);
-			payload[2+(3*i)] = (uint8_t)val;
-			payload[3+(3*i)] = (uint8_t)(val>>8);
+			payload[2+(3*offset)] = (uint8_t)val;
+			payload[3+(3*offset)] = (uint8_t)(val>>8);
 		}
 	}
 
