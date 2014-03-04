@@ -14,10 +14,9 @@ import (
 	"timecl/app/network_manager"
 )
 
-//var output = ioutil.Discard
-
-var output = os.Stderr
-var LOG = log.New(output, "GreenBus ", log.Ldate|log.Ltime)
+//ioutil.Discard
+//os.Stderr
+var LOG = log.New(os.Stderr, "GreenBus ", log.Ldate|log.Ltime)
 var DEBUG = log.New(ioutil.Discard, "GreenBus ", log.Ldate|log.Ltime)
 
 type GreenBus struct {
@@ -162,9 +161,10 @@ func (structure interrogate_reply) ToByte() (payload interrogate_payload) {
 }
 
 const (
-	PORT_OUTPUT uint8 = 0
-	PORT_BINPUT uint8 = 2
-	PORT_AINPUT uint8 = 4
+	PORT_OUTPUT  uint8 = 0
+	PORT_BINPUT  uint8 = 2
+	PORT_AINPUT  uint8 = 4
+	PORT_AOUTPUT uint8 = 8
 
 	FIND_DEVICES uint8 = 72
 	NEED_ADDR    uint8 = 73
@@ -573,6 +573,7 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 				}
 				tmpval := make([]byte, 2, 2)
 				for k, ports_on_one_device := range ports_on_valid_devices {
+					var devicekey = k
 					if len(ports_on_one_device) > 0 {
 						payload := []byte{uint8(len(ports_on_one_device))}
 						for _, v := range ports_on_one_device {
@@ -585,8 +586,9 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 							ReplyHandler: func(msg Message_t) {
 								data := values_payload(msg.Payload).ToStruct()
 								for _, v := range data {
-									// i think use of k here is problematic
-									devices[k].Ports[v.Id].Value = v.Value
+									if devicekey < len(devices) && int(v.Id) < len(devices[devicekey].Ports) {
+										devices[devicekey].Ports[v.Id].Value = v.Value
+									}
 								}
 							}}}
 						devices[k].Cmds = append(set_cmd, devices[k].Cmds...)
@@ -646,6 +648,8 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 								port.Type = network_manager.BInput
 							case val.Type == PORT_AINPUT:
 								port.Type = network_manager.AInput
+							case val.Type == PORT_AOUTPUT:
+								port.Type = network_manager.AOutput
 							}
 							ports = append(ports, port)
 						}
