@@ -34,6 +34,7 @@ func init() {
 	processors["timebase"] = ProcessTimeBase
 	processors["timerange"] = ProcessTimeRange
 	processors["timer"] = ProcessTimer
+	processors["conversion"] = ProcessConversion
 	go func() {
 		for {
 			<-time.After(1000 * time.Millisecond)
@@ -57,18 +58,36 @@ func ProcessBinput(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
+	port_value, ok := (*o)["PortValue"].(float64)
+	if !ok {
+		port_value = 0
+	}
+	(*o)["Output"] = port_value
 	(*o)["NextOutput"] = (*o)["Output"]
-	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	(*Objects[term])["NextOutput"] = (*o)["Output"]
+	o.AssignOutput(Objects, 0)
 }
 
 func ProcessAinput(o *Object_t, Objects map[int]*Object_t) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	(*o)["NextOutput"] = (*o)["Output"]
-	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	(*Objects[term])["NextOutput"] = (*o)["Output"]
+	min, ok := o.GetProperty("Auto scale - Min").(float64)
+	if !ok {
+		min = 0
+	}
+	max, ok := o.GetProperty("Auto scale - Max").(float64)
+	if !ok {
+		max = 5
+	}
+	in, ok := (*o)["PortValue"].(float64)
+	if !ok {
+		fmt.Println("PortValue")
+		in = 0
+	}
+
+	fmt.Println("Ainput:", in, in*(1.0/(65536.0/math.Abs(min-max)))+min)
+	(*o)["NextOutput"] = float64(in*(1.0/(65536.0/math.Abs(min-max))) + min)
+	o.AssignOutput(Objects, 0)
 }
 
 func ProcessBoutput(o *Object_t, Objects map[int]*Object_t) {
@@ -273,13 +292,11 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t) {
 	off_time = off_time.AddDate(year, m-1, day-1)
 
 	if current_time.After(on_time) && current_time.Before(off_time) {
-		(*o)["Output"] = float64(1)
+		(*o)["NextOutput"] = float64(1)
 	} else {
-		(*o)["Output"] = float64(0)
+		(*o)["NextOutput"] = float64(0)
 	}
-	(*o)["NextOutput"] = (*o)["Output"]
-	term0 := intify((*o)["Terminals"].([]interface{})[0])
-	(*Objects[term0])["NextOutput"] = (*o)["Output"]
+	o.AssignOutput(Objects, 0)
 }
 
 func ProcessTimer(o *Object_t, Objects map[int]*Object_t) {
@@ -315,11 +332,31 @@ func ProcessTimer(o *Object_t, Objects map[int]*Object_t) {
 	//fmt.Println("off_secs", off_secs)
 	modsecs := (now - start) % (on_secs + off_secs)
 	if modsecs >= 0 && modsecs < on_secs {
-		(*o)["Output"] = float64(1)
+		(*o)["NextOutput"] = float64(1)
 	} else if modsecs >= on_secs {
-		(*o)["Output"] = float64(0)
+		(*o)["NextOutput"] = float64(0)
 	}
-	(*o)["NextOutput"] = (*o)["Output"]
-	term0 := intify((*o)["Terminals"].([]interface{})[0])
-	(*Objects[term0])["NextOutput"] = (*o)["Output"]
+	o.AssignOutput(Objects, 0)
+}
+
+func ProcessConversion(o *Object_t, Objects map[int]*Object_t) {
+	if o.CheckTerminals(2) {
+		return
+	}
+	a, ok := o.GetProperty("a").(float64)
+	if !ok {
+		a = 0
+	}
+	b, ok := o.GetProperty("b").(float64)
+	if !ok {
+		b = 0
+	}
+	c, ok := o.GetProperty("c").(float64)
+	if !ok {
+		c = 0
+	}
+	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
+	input := (*Objects[term0])["Output"].(float64)
+	(*o)["NextOutput"] = a*(input*input) + b*input + c
+	o.AssignOutput(Objects, 1)
 }

@@ -104,6 +104,7 @@ function backend_deleteobject(id)
 
 function backend_addobject(obj)
 {
+	console.log("adding", obj)
 	var event = {
 		Type: "add",
 		Data: obj,
@@ -133,6 +134,7 @@ function backend_start() {
 	socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
 	socket.onmessage = function(event) {
 		var event_msg = JSON.parse(event.data);
+
 		if (event_msg["Type"] == "add") {
 			var event_data = event_msg["Data"];
 			var object = load_object(event_data);
@@ -156,6 +158,10 @@ function backend_start() {
 			}
 		} else if (event_msg["Type"] == "init") {
 			var event_data = event_msg["Data"];
+			/*for (x in event_data) {
+				console.log(x);
+			}*/
+			console.log(event_data);
 			obj = load_objects(event_data);
 			resize_canvas();
 		} else if (event_msg["Type"] == "init_ports") {

@@ -13,7 +13,7 @@ func floatify(in interface{}) float64 {
 	case string:
 		result, err = strconv.ParseFloat(v, 64)
 		if err != nil {
-			LOG.Println(err)
+			LOG.Println("Parsing float from string:", err)
 		}
 	case float64:
 		result = v
@@ -29,7 +29,7 @@ func intify(in interface{}) int {
 	case string:
 		res, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
-			LOG.Println(err)
+			LOG.Println("Parsing int from string:", err)
 		}
 		result = int(res)
 	case float64:
@@ -59,6 +59,8 @@ func toPortURI(in interface{}) (result network_manager.PortURI) {
 		if len(split) >= 4 {
 			result = network_manager.PortURI{Network: intify(split[0]), Bus: intify(split[1]), Device: intify(split[2]), Port: intify(split[3])}
 		}
+	case network_manager.PortURI:
+		result = v
 	}
 	return
 }
@@ -91,7 +93,8 @@ func sanitize(obj *Object_t) {
 			PTypes[k] == "timezone":
 			PValues = append(PValues, stringify(v))
 		case PTypes[k] == "port":
-			PValues = append(PValues, toPortURI(v))
+			pval := toPortURI(v)
+			PValues = append(PValues, pval)
 		case PTypes[k] == "int":
 			PValues = append(PValues, intify(v))
 		}

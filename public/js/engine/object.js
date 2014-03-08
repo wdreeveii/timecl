@@ -122,7 +122,7 @@ function object_type(name)
 	   	ctx.fillText(name, Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y) - f_size  / 2));
 	
 		if (this.show_output)
-	    	ctx.fillText(bformat(this.Output), Math.round(get_x(x + this.Xsize * 0.3 )), Math.round(get_y(y + this.Ysize/2) + f_size  / 2));
+	    	ctx.fillText(format(this.Output), Math.round(get_x(x + this.Xsize * 0.3 )), Math.round(get_y(y + this.Ysize/2) + f_size  / 2));
 	
 		if (this.show_analog)
 	    	ctx.fillText(format(this.Output), Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y + this.Ysize/2) + f_size  / 2));

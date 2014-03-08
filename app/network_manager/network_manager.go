@@ -166,12 +166,15 @@ func Get(port PortURI) (float64, error) {
 	var m = make(chan float64)
 	Publish(NewEvent(port.Network, "get", GetData{BusID: port.Bus, DeviceID: port.Device, PortID: port.Port, Recv: m}))
 	select {
-	case newval := <-m:
+	case newval, ok := <-m:
+		if !ok {
+			return 0, errors.New("Driver error.")
+		}
 		return newval, nil
 	case <-time.After(20 * time.Millisecond):
 		return 0, errors.New("Get Time Out")
 	}
-	return <-m, nil
+	return 0, errors.New("Unreachable.")
 }
 
 type SetData struct {

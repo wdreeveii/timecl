@@ -5,8 +5,10 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
-
+#include <util/delay.h>
+#include <string.h>
 #include "iocontrol.h"
+#include "usart.h"
 
 void build_analog_tables();
 
@@ -16,7 +18,7 @@ struct io_port {
 	uint8_t bit;
 };
 
-const struct io_port ports[NUM_PORTS] PROGMEM = {
+const struct io_port ports[NUM_PORTS] = {
 	{(uint8_t *)&DDRB, (uint8_t *)&PINB, 0},
 	{(uint8_t *)&DDRB, (uint8_t *)&PINB, 1},
 	{(uint8_t *)&DDRB, (uint8_t *)&PINB, 2},
@@ -47,8 +49,8 @@ const struct io_port ports[NUM_PORTS] PROGMEM = {
 uint8_t iotypes[NUM_PORTS];
 uint8_t adc_channels[8];
 uint16_t adc_vals[8];
-uint8_t num_channels = 0;
-uint8_t current_channel = 0;
+static uint8_t num_channels = 0;
+static uint8_t current_channel = 0;
 
 void io_init()
 {		
@@ -69,11 +71,11 @@ void io_init()
 	io_set_type(23, PORT_AINPUT);
 	
 	build_analog_tables();
-	
+
 	if (num_channels)
 	{
 		ADCSRA = (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
-		ADMUX = (1 << REFS0) | adc_channels[0];
+		ADMUX = (1 << REFS0) | (1 << adc_channels[0]);
 		ADCSRA |= (1 << ADATE);
 		ADCSRA |= (1 << ADEN);
 		ADCSRA |= (1 << ADIE);
@@ -137,19 +139,19 @@ uint8_t io_get_type(uint8_t port) {
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 		type = iotypes[port];
 	}
-
 	return type;
 }
 
 ISR(ADC_vect, ISR_BLOCK)
 {
 	static uint8_t dirty = 2;
-	
+	uint8_t value = 0;
 	if (!dirty && num_channels)
 	{
 		// save the value
-		adc_vals[current_channel] = ADCL;
-		adc_vals[current_channel++] |= (ADCH << 8);
+		value = ADCL;
+		value |= (ADCH << 8);
+		adc_vals[current_channel++] = value << 6;
 		
 		if (current_channel == num_channels)
 			current_channel = 0;
@@ -198,8 +200,8 @@ void iocontrol(uint8_t port, uint8_t on)
 		return;
 		
 	struct io_port ctrl;
-	ctrl.regaddr = (uint8_t *)pgm_read_word(&(ports[port].regaddr));
-	ctrl.bit = pgm_read_byte(&(ports[port].bit));
+	ctrl.regaddr = ports[port].regaddr;
+	ctrl.bit = ports[port].bit;
 	
 	if (on)
 		*(ctrl.regaddr) |= (1U<<(ctrl.bit));
@@ -212,8 +214,8 @@ void ioflip(uint8_t port)
 	if (port >= NUM_PORTS || iotypes[port] != PORT_OUTPUT)
 		return;
 	struct io_port ctrl;
-	ctrl.regaddr = (uint8_t *)pgm_read_word(&(ports[port].regaddr));
-	ctrl.bit = pgm_read_byte(&(ports[port].bit));
+	ctrl.regaddr = ports[port].regaddr;
+	ctrl.bit = ports[port].bit;
 	
 	unsigned char state = (*(ctrl.regaddr)) & (1U<<(ctrl.bit));
 	

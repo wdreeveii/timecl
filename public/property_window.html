@@ -6,6 +6,9 @@
 	<div>Y: {{.Ypos}}</div>
 	<div>Type: {{.Type}}</div>
 	<h4>Device Properties</h4>
+	{{#.Type == "conversion"}}
+	<p>y = ax&sup2; + bx + c</p>
+	{{/.Type}}
 	<div class="panel-group" id="accordion">
 		{{#.PropertyNames:i}}
 		<div class="panel panel-default">
@@ -31,7 +34,7 @@
 					</select>
 				{{/current_obj.PropertyTypes[i]}}
 				{{#current_obj.PropertyTypes[i] == "port"}}
-					<select class='form-control' id='{{.}}_field' value='{{current_obj.PropertyValues[i]}}'>
+					<select class='form-control' id='{{.}}_field' value='{{current_obj.PropertyValues[i].Network}}-{{current_obj.PropertyValues[i].Bus}}-{{current_obj.PropertyValues[i].Device}}-{{current_obj.PropertyValues[i].Port}}'>
 						<option value='None'>None</option>
 						{{#port_list:n}}
 							{{#BusList:b}}

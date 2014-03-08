@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"code.google.com/p/go.net/websocket"
+	"fmt"
 	"github.com/revel/revel"
 	"timecl/app/logic_engine"
 )
@@ -66,6 +67,7 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 				close(newMessages)
 				return
 			}
+			fmt.Println("msg from client")
 			newMessages <- msg
 		}
 	}()

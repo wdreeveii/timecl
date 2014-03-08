@@ -86,7 +86,7 @@ func (o Object_t) AssignOutput(objs map[int]*Object_t, terminal int) {
 func (o Object_t) CheckTerminals(count int) bool {
 	terms := o["Terminals"].([]interface{})
 	if len(terms) < count {
-		LOG.Println("Invalid ", o["Type"])
+		LOG.Println("Invalid Terminals for obj type:", o["Type"])
 		return true
 	}
 	return false
@@ -181,20 +181,16 @@ func (e *Engine_t) store_outputs() (outputs map[int]float64) {
 	outputs = make(map[int]float64, len(e.Objects))
 	for k, val := range e.Objects {
 		outputs[k] = (*val)["Output"].(float64)
-		otype := (*val)["type"]
+		otype := (*val)["Type"]
 		switch {
-		case otype == "binput":
+		case otype == "binput",
+			otype == "ainput":
 			if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
 				newvalue, err := network_manager.Get(port_uri)
 				if err == nil {
-					(*val)["Output"] = newvalue
-				}
-			}
-		case otype == "ainput":
-			if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
-				newvalue, err := network_manager.Get(port_uri)
-				if err == nil {
-					(*val)["Output"] = newvalue
+					(*val)["PortValue"] = newvalue
+				} else {
+					LOG.Println("Problem getting port value:", err)
 				}
 			}
 		}
@@ -214,11 +210,8 @@ func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
 			state_changes = append(state_changes, change)
 			otype := (*val)["Type"]
 			switch {
-			case otype == "boutput":
-				if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
-					output_changes = append(output_changes, network_manager.PortChange{URI: port_uri, Value: (*val)["Output"].(float64)})
-				}
-			case otype == "aoutput":
+			case otype == "boutput",
+				otype == "aoutput":
 				if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
 					output_changes = append(output_changes, network_manager.PortChange{URI: port_uri, Value: (*val)["Output"].(float64)})
 				}

@@ -511,7 +511,7 @@ function save_properties(sel_obs)
 	}
 
 	// Need to save peoperties to database
-
+	console.log("SAVE PROPERTIES");
 	o.save_properties();
 		
 	requestAnimationFrame(draw_display);

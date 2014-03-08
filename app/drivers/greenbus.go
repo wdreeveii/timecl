@@ -596,16 +596,21 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 				}
 				// set a port
 			case event.Type == "get":
-				cmd := event.Data.(network_manager.GetData)
-				sent := false
-				if cmd.DeviceID < len(devices) {
-					if cmd.PortID < len(devices[cmd.DeviceID].Ports) {
-						sent = true
-						cmd.Recv <- float64(devices[cmd.DeviceID].Ports[cmd.PortID].Value)
+				cmd, ok := event.Data.(network_manager.GetData)
+				if !ok {
+					LOG.Println("Improperly formatted get value request.")
+				} else {
+					sent := false
+					device_idx, found := devices.Find(uint32(cmd.DeviceID))
+					if found {
+						if cmd.PortID < len(devices[device_idx].Ports) {
+							sent = true
+							cmd.Recv <- float64(devices[device_idx].Ports[cmd.PortID].Value)
+						}
 					}
-				}
-				if !sent {
-					close(cmd.Recv)
+					if !sent {
+						close(cmd.Recv)
+					}
 				}
 			}
 		case reply := <-ping_reply:
