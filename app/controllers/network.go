@@ -39,21 +39,21 @@ func (c Network) Index() revel.Result {
 
 func (c Network) NetworkConfig() revel.Result {
 	interfaces := network_manager.GetHardwareInterfaces()
-	var networks []*models.NetworkConfig
+	var networks []*network_manager.NetworkConfig
 	for index, val := range interfaces {
-		netconf, err := c.Txn.Select(models.NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, val)
+		netconf, err := c.Txn.Select(network_manager.NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, val)
 		if err != nil {
 			panic(err)
 		}
 		if len(netconf) > 0 {
-			networks = append(networks, netconf[0].(*models.NetworkConfig))
+			networks = append(networks, netconf[0].(*network_manager.NetworkConfig))
 		} else {
 			path, found := revel.Config.String(val)
 			if !found {
 				continue
 			}
 			c.Txn.Exec("INSERT OR IGNORE INTO NetworkConfig VALUES(?,?,?,?)", index, val, path, "")
-			net := &models.NetworkConfig{index, val, path, ""}
+			net := &network_manager.NetworkConfig{index, val, path, ""}
 			c.Txn.Update(net)
 			networks = append(networks, net)
 		}
@@ -68,12 +68,12 @@ func (c Network) ShowDevices() revel.Result {
 }
 
 func (c Network) EditNetwork(NetworkID int) revel.Result {
-	results, err := c.Txn.Select(models.NetworkConfig{}, `select * from NetworkConfig where NetworkID = ?`, NetworkID)
+	results, err := c.Txn.Select(network_manager.NetworkConfig{}, `select * from NetworkConfig where NetworkID = ?`, NetworkID)
 	if err != nil {
 		panic(err)
 	}
 	if len(results) > 0 {
-		network := results[0].(*models.NetworkConfig)
+		network := results[0].(*network_manager.NetworkConfig)
 		available_drivers := network_manager.GetDriverList()
 		return c.Render(network, available_drivers)
 	} else {
@@ -81,7 +81,7 @@ func (c Network) EditNetwork(NetworkID int) revel.Result {
 	}
 }
 
-func (c Network) SaveNetwork(NetworkID int, network models.NetworkConfig) revel.Result {
+func (c Network) SaveNetwork(NetworkID int, network network_manager.NetworkConfig) revel.Result {
 	network.NetworkID = NetworkID
 	_, err := c.Txn.Update(&network)
 	if err != nil {

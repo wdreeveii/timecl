@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 	//"timecl/app/network_manager"
+	"timecl/app/logger"
 )
 
 var processors = make(map[string]processor)
@@ -35,6 +36,8 @@ func init() {
 	processors["timerange"] = ProcessTimeRange
 	processors["timer"] = ProcessTimer
 	processors["conversion"] = ProcessConversion
+	processors["logger"] = ProcessLogger
+
 	go func() {
 		for {
 			<-time.After(1000 * time.Millisecond)
@@ -46,7 +49,7 @@ func init() {
 
 }
 
-func ProcessGuide(o *Object_t, Objects map[int]*Object_t) {
+func ProcessGuide(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	source := int((*o)["Source"].(int))
 	if source < 0 {
 		return
@@ -54,20 +57,23 @@ func ProcessGuide(o *Object_t, Objects map[int]*Object_t) {
 	(*o)["NextOutput"] = (*Objects[source])["Output"]
 }
 
-func ProcessBinput(o *Object_t, Objects map[int]*Object_t) {
+func ProcessBinput(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	port_value, ok := (*o)["PortValue"].(float64)
-	if !ok {
-		port_value = 0
+	port_value, ok := (*o)["PortValue"]
+	if ok {
+		val, ok := port_value.(float64)
+		if ok {
+			(*o)["Output"] = val
+		}
 	}
-	(*o)["Output"] = port_value
+
 	(*o)["NextOutput"] = (*o)["Output"]
 	o.AssignOutput(Objects, 0)
 }
 
-func ProcessAinput(o *Object_t, Objects map[int]*Object_t) {
+func ProcessAinput(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(1) {
 		return
 	}
@@ -79,38 +85,51 @@ func ProcessAinput(o *Object_t, Objects map[int]*Object_t) {
 	if !ok {
 		max = 5
 	}
-	in, ok := (*o)["PortValue"].(float64)
-	if !ok {
-		fmt.Println("PortValue")
-		in = 0
+	(*o)["NextOutput"] = (*o)["Output"]
+	port_value, ok := (*o)["PortValue"]
+	if ok {
+		in, ok := port_value.(float64)
+		if ok {
+			(*o)["NextOutput"] = float64(in*(1.0/(65536.0/math.Abs(min-max))) + min)
+		}
 	}
 
-	fmt.Println("Ainput:", in, in*(1.0/(65536.0/math.Abs(min-max)))+min)
-	(*o)["NextOutput"] = float64(in*(1.0/(65536.0/math.Abs(min-max))) + min)
 	o.AssignOutput(Objects, 0)
 }
 
-func ProcessBoutput(o *Object_t, Objects map[int]*Object_t) {
+func ProcessBoutput(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	(*o)["NextOutput"] = (*Objects[term])["Output"].(float64)
+	value, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process boutput:", err)
+		return
+	}
+	(*o)["NextOutput"] = value
 }
 
-func ProcessAoutput(o *Object_t, Objects map[int]*Object_t) {
+func ProcessAoutput(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(1) {
 		return
 	}
-	term := int((*o)["Terminals"].([]interface{})[0].(float64))
-	(*o)["NextOutput"] = (*Objects[term])["Output"].(float64)
+	value, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process aoutput:", err)
+	}
+	(*o)["NextOutput"] = value
 }
 
-func ProcessNotGate(o *Object_t, Objects map[int]*Object_t) {
+func ProcessNotGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(2) {
 		return
 	}
-	if o.GetTerminal(Objects, 0) > 0 {
+	input, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process not gate:", err)
+		return
+	}
+	if input > 0 {
 		(*o)["NextOutput"] = float64(0)
 	} else {
 		(*o)["NextOutput"] = float64(1)
@@ -118,13 +137,22 @@ func ProcessNotGate(o *Object_t, Objects map[int]*Object_t) {
 	o.AssignOutput(Objects, 1)
 }
 
-func ProcessAndGate(o *Object_t, Objects map[int]*Object_t) {
+func ProcessAndGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
-	if (*Objects[term0])["Output"].(float64) > 0 && (*Objects[term1])["Output"].(float64) > 0 {
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process and gate:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process and gate:", err)
+		return
+	}
+
+	if in_a > 0 && in_b > 0 {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
@@ -132,13 +160,21 @@ func ProcessAndGate(o *Object_t, Objects map[int]*Object_t) {
 	o.AssignOutput(Objects, 2)
 }
 
-func ProcessOrGate(o *Object_t, Objects map[int]*Object_t) {
+func ProcessOrGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
-	if (*Objects[term0])["Output"].(float64) > 0 || (*Objects[term1])["Output"].(float64) > 0 {
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process or gate:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process or gate:", err)
+		return
+	}
+	if in_a > 0 || in_b > 0 {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
@@ -150,13 +186,21 @@ func xor(cond1, cond2 bool) bool {
 	return (cond1 || cond2) && !(cond1 && cond2)
 }
 
-func ProcessXorGate(o *Object_t, Objects map[int]*Object_t) {
+func ProcessXorGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
-	if xor(((*Objects[term0])["Output"].(float64) > 0), ((*Objects[term1])["Output"].(float64) > 0)) {
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process xor gate:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process xor gate:", err)
+		return
+	}
+	if xor((in_a > 0), (in_b > 0)) {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
@@ -164,80 +208,127 @@ func ProcessXorGate(o *Object_t, Objects map[int]*Object_t) {
 	o.AssignOutput(Objects, 2)
 }
 
-func ProcessMult(o *Object_t, Objects map[int]*Object_t) {
+func ProcessMult(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
-	(*o)["NextOutput"] = (*Objects[term0])["Output"].(float64) * (*Objects[term1])["Output"].(float64)
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process mult:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process mult:", err)
+		return
+	}
+	(*o)["NextOutput"] = in_a * in_b
 	o.AssignOutput(Objects, 2)
 }
 
-func ProcessDiv(o *Object_t, Objects map[int]*Object_t) {
+func ProcessDiv(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
-	if (*Objects[term1])["Output"].(float64) != 0 {
-		(*o)["NextOutput"] = (*Objects[term0])["Output"].(float64) / (*Objects[term1])["Output"].(float64)
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process div:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process div:", err)
+		return
+	}
+	if in_b != 0 {
+		(*o)["NextOutput"] = in_a / in_b
 	}
 	o.AssignOutput(Objects, 2)
 }
 
-func ProcessAdd(o *Object_t, Objects map[int]*Object_t) {
+func ProcessAdd(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
-	(*o)["NextOutput"] = (*Objects[term0])["Output"].(float64) + (*Objects[term1])["Output"].(float64)
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process add:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process add:", err)
+		return
+	}
+	(*o)["NextOutput"] = in_a + in_b
 	o.AssignOutput(Objects, 2)
 }
 
-func ProcessSub(o *Object_t, Objects map[int]*Object_t) {
+func ProcessSub(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
-	(*o)["NextOutput"] = (*Objects[term0])["Output"].(float64) - (*Objects[term1])["Output"].(float64)
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process subtraction:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process subtraction:", err)
+		return
+	}
+	(*o)["NextOutput"] = in_a - in_b
 	o.AssignOutput(Objects, 2)
 }
 
-func ProcessPower(o *Object_t, Objects map[int]*Object_t) {
+func ProcessPower(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(3) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	term1 := int((*o)["Terminals"].([]interface{})[1].(float64))
-	(*o)["NextOutput"] = math.Pow((*Objects[term0])["Output"].(float64), (*Objects[term1])["Output"].(float64))
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	(*o)["NextOutput"] = math.Pow(in_a, in_b)
 	o.AssignOutput(Objects, 2)
 }
 
-func ProcessSine(o *Object_t, Objects map[int]*Object_t) {
+func ProcessSine(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(2) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	(*o)["NextOutput"] = math.Sin((*Objects[term0])["Output"].(float64))
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process sine:", err)
+		return
+	}
+	(*o)["NextOutput"] = math.Sin(in_a)
 	o.AssignOutput(Objects, 1)
 }
 
-func ProcessCosine(o *Object_t, Objects map[int]*Object_t) {
+func ProcessCosine(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(2) {
 		return
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	(*o)["NextOutput"] = math.Cos((*Objects[term0])["Output"].(float64))
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process cosine:", err)
+	}
+	(*o)["NextOutput"] = math.Cos(in_a)
 	o.AssignOutput(Objects, 1)
 }
 
 var tbmu sync.Mutex
 var tick float64
 
-func ProcessTimeBase(o *Object_t, Objects map[int]*Object_t) {
+func ProcessTimeBase(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(1) {
 		return
 	}
@@ -247,7 +338,7 @@ func ProcessTimeBase(o *Object_t, Objects map[int]*Object_t) {
 	o.AssignOutput(Objects, 0)
 }
 
-func ProcessXYscope(o *Object_t, Objects map[int]*Object_t) {
+func ProcessXYscope(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(2) {
 		return
 	}
@@ -272,7 +363,7 @@ func ProcessXYscope(o *Object_t, Objects map[int]*Object_t) {
 			$this->next_output =  $this->output;
 
 			$Objects[$this->terminals[0]]->next_output = $this->output;*/
-func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t) {
+func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(1) {
 		return
 	}
@@ -299,7 +390,7 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t) {
 	o.AssignOutput(Objects, 0)
 }
 
-func ProcessTimer(o *Object_t, Objects map[int]*Object_t) {
+func ProcessTimer(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(1) {
 		return
 	}
@@ -339,7 +430,7 @@ func ProcessTimer(o *Object_t, Objects map[int]*Object_t) {
 	o.AssignOutput(Objects, 0)
 }
 
-func ProcessConversion(o *Object_t, Objects map[int]*Object_t) {
+func ProcessConversion(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(2) {
 		return
 	}
@@ -355,8 +446,105 @@ func ProcessConversion(o *Object_t, Objects map[int]*Object_t) {
 	if !ok {
 		c = 0
 	}
-	term0 := int((*o)["Terminals"].([]interface{})[0].(float64))
-	input := (*Objects[term0])["Output"].(float64)
+	input, err := (*o).GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process conversion:", err)
+		return
+	}
 	(*o)["NextOutput"] = a*(input*input) + b*input + c
 	o.AssignOutput(Objects, 1)
+}
+
+func getSurroundingTimeslots(current time.Time, freq float64) (time.Time, time.Time) {
+	year, month, day := current.Date()
+	today := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
+	dfreq := time.Duration(freq) * time.Second
+	current_timeslot := current.Sub(today) / dfreq
+	prev_timeslot_start := today.Add((current_timeslot - 1) * dfreq)
+	next_timeslot_start := today.Add((current_timeslot + 1) * dfreq)
+	return prev_timeslot_start, next_timeslot_start
+}
+
+func ProcessLogger(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if o.CheckTerminals(1) {
+		return
+	}
+
+	input, err := (*o).GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process logger:", err)
+		return
+	}
+	objid_lookup, ok := (*o)["Id"]
+	if !ok {
+		LOG.Println("Process logger: Object has no Id property")
+	}
+	objid, ok := objid_lookup.(int)
+	if !ok {
+		LOG.Println("Proccess logger: Object Id is not the correct type.")
+		return
+	}
+	min, ok := (*o)["_min_value"].(float64)
+	if !ok {
+		min = input
+		(*o)["_min_value"] = min
+	}
+	max, ok := (*o)["_max_value"].(float64)
+	if !ok {
+		max = input
+		(*o)["_max_value"] = max
+	}
+	avg, ok := (*o)["_avg_data"].([]float64)
+	if !ok {
+		avg = []float64{}
+		(*o)["_avg_data"] = avg
+	}
+	freq, ok := o.GetProperty("frequency").(float64)
+	if !ok {
+		freq = 300
+	}
+
+	current := time.Now()
+
+	next_timeslot, ok := (*o)["_next_timeslot"].(time.Time)
+	if !ok {
+		_, next_timeslot = getSurroundingTimeslots(current, freq)
+		(*o)["_next_timeslot"] = next_timeslot
+	}
+	if current.After(next_timeslot) {
+		var calc_avg float64
+		for _, v := range avg {
+			calc_avg += v
+		}
+		calc_avg = calc_avg / float64(len(avg))
+
+		prev_timeslot, next_timeslot := getSurroundingTimeslots(current, freq)
+		lEvent := logger.LoggingData{Time: prev_timeslot,
+			ObjectId: objid,
+			Min:      min,
+			Max:      max,
+			Avg:      calc_avg}
+		logger.Publish(logger.Event{"capture", lEvent})
+
+		avg = []float64{}
+		min = input
+		max = input
+		(*o)["_avg_data"] = avg
+		(*o)["_min_value"] = min
+		(*o)["_max_value"] = max
+		(*o)["_next_timeslot"] = next_timeslot
+	}
+	if input < min {
+		min = input
+		(*o)["_min_value"] = min
+	}
+	if input > max {
+		max = input
+		(*o)["_max_value"] = max
+	}
+	if iteration == 0 {
+		avg = append(avg, input)
+		(*o)["_avg_data"] = avg
+	}
+	(*o)["NextOutput"] = input
 }

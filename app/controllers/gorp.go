@@ -6,8 +6,9 @@ import (
 	"github.com/coopernurse/gorp"
 	_ "github.com/mattn/go-sqlite3"
 	r "github.com/revel/revel"
-	"github.com/revel/revel/modules/db/app"
+	//"timecl/app/logger"
 	"timecl/app/models"
+	//"timecl/app/network_manager"
 )
 
 var (
@@ -15,32 +16,17 @@ var (
 )
 
 type Count struct {
-	Count int64		`db:"count(*)"`
+	Count int64 `db:"count(*)"`
 }
 
-func init_networkconfig_table(dbm *gorp.DbMap) {
-	setColumnSizes := func(t *gorp.TableMap, colSizes map[string]int) {
-		for col, size := range colSizes {
-			t.ColMap(col).MaxSize = size
-		}
+func setColumnSizes(t *gorp.TableMap, colSizes map[string]int) {
+	for col, size := range colSizes {
+		t.ColMap(col).MaxSize = size
 	}
-	t := dbm.AddTable(models.NetworkConfig{}).SetKeys(true, "NetworkID")
-	setColumnSizes(t, map[string]int{
-		"ConfigKey":	100,
-		"DevicePath":	1000,
-		"Driver":		100,
-	})
 }
 
-func Init() {
-	db.Init()
-	dbm = &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
-
-	setColumnSizes := func(t *gorp.TableMap, colSizes map[string]int) {
-		for col, size := range colSizes {
-			t.ColMap(col).MaxSize = size
-		}
-	}
+func Init(dbmap *gorp.DbMap) {
+	dbm = dbmap
 
 	t := dbm.AddTable(models.User{}).SetKeys(true, "UserId")
 	t.ColMap("Password").Transient = true
@@ -48,7 +34,7 @@ func Init() {
 		"Username": 20,
 		"Name":     100,
 	})
-	
+
 	t = dbm.AddTable(models.AppConfig{}).SetKeys(true, "ConfigId")
 	setColumnSizes(t, map[string]int{
 		"Key": 100,
@@ -74,13 +60,13 @@ func Init() {
 		"CardNumber": 16,
 		"NameOnCard": 50,
 	})
-	init_networkconfig_table(dbm)
-	dbm.TraceOn("[gorp]", r.INFO)
+	//network_manager.InitNetworkConfigTables(dbm)
+	//logger.InitLoggerTables(dbm)
 	err := dbm.CreateTablesIfNotExists()
 	if err != nil {
 		panic(err)
 	}
-	
+
 	results, err := dbm.Select(Count{}, `select count(*) from User`)
 	if err != nil {
 		panic(err)

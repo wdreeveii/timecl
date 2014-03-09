@@ -43,6 +43,8 @@ func (c Engine) NewEngine() revel.Result {
 }
 
 func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
+	// Close transaction to prevent database writer starvation
+	c.Commit()
 	subscription := engine.Subscribe()
 	defer subscription.Cancel()
 	init := engine.ListObjects()

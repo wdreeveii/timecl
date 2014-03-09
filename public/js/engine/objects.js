@@ -137,40 +137,6 @@ function ainput_type (o)
 		ctx.fill();
 		ctx.stroke();				
 	}
-	/*o.add_output_terminal = function(objects, pos, root_id)
-	{
-		console.log("Hello");
-		var index = add_object(objects,
-							   this.Xpos + this.Xsize*2,
-							   this.Ypos + this.Ysize/2 - guide_size/2 + pos * (guide_size+2), 
-						       "guide", 1, dir_type.right, root_id);
-
-		this.Terminals.push(index);
-	}*/
-	/*o.draw_properties = function(ctx, x, y)
-	{
-		//alert("draw");
-		var on = this.get_property("on");
-		var off = o.get_property("off");
-		var name = o.get_property("name");
-	
-		var old_fill  = ctx.fillStyle;
-	
-		ctx.fillStyle = "rgb(0,0,0)";
-		ctx.font = "16pt Arial";
-
-		var f_size = 12 * zoom;
-
-		ctx.font = format(f_size) + "pt Arial";
-
-	    ctx.fillText(name, get_x(x + this.Xsize * -0.1 ), get_y(y) - f_size  / 2);
-
-	    ctx.fillText(on, get_x(x + this.Xsize * -0.1 ), get_y(y + this.Ysize/2) - f_size  / 2);
-	
-	    ctx.fillText(off, get_x(x + this.Xsize * -0.1 ), get_y(y + this.Ysize/2) + f_size  / 2 * 1.5);
-
-		ctx.fillStyle = old_fill;
-	}*/
 }
 
 object_list.push("boutput");
@@ -800,6 +766,29 @@ function conversion_type (o)
 	{
 		bounding_rect(ctx, this);
 	}  	
+}
+
+object_list.push("logger");
+
+function logger_type (o)
+{
+	o.Xsize = 30;
+	o.Ysize = 30;
+	o.show_output = 1;
+	
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+		o.add_property("frequency", "float", 300);
+	}					 
+	
+	o.input_termcount = 1;
+	o.output_termcount = 0;
+			
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}	
 }
 
 

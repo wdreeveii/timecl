@@ -2,6 +2,7 @@ package logic_engine
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"github.com/revel/revel"
 	"io/ioutil"
@@ -12,13 +13,10 @@ import (
 	"timecl/app/network_manager"
 )
 
-//var output = ioutil.Discard
-
-var output = os.Stderr
-var LOG = log.New(output, "LogicEngine ", log.Ldate|log.Ltime)
+var LOG = log.New(os.Stderr, "LogicEngine ", log.Ldate|log.Ltime)
 var DEBUG = log.New(ioutil.Discard, "LogicEngine ", log.Ldate|log.Ltime)
 
-type processor func(o *Object_t, objs map[int]*Object_t)
+type processor func(o *Object_t, objs map[int]*Object_t, iteration int)
 
 type Id int
 type Type string
@@ -78,25 +76,85 @@ func (o Object_t) Process(Objects map[int]*Object_t) {
 }
 
 func (o Object_t) AssignOutput(objs map[int]*Object_t, terminal int) {
-	terms := o["Terminals"].([]interface{})
-	obj := *objs[int(terms[terminal].(float64))]
-	obj["NextOutput"] = o["Output"]
+	iterms, ok := o["Terminals"]
+	if !ok {
+		LOG.Println("No terminal list.")
+		return
+	}
+	terms, ok := iterms.([]interface{})
+	if !ok {
+		LOG.Println("Terminal list of unknown type.")
+		return
+	}
+
+	terminal64, ok := terms[terminal].(float64)
+	if !ok {
+		LOG.Println("Terminal conversion error.")
+		return
+	}
+	obj, ok := objs[int(terminal64)]
+	if !ok {
+		LOG.Println("The specified object does not exist.")
+		return
+	}
+	output, ok := o["Output"]
+	if !ok {
+		LOG.Println("No output.")
+		return
+	}
+	output64, ok := output.(float64)
+	if !ok {
+		LOG.Println("Output of unknown type.")
+		return
+	}
+	(*obj)["NextOutput"] = output64
 }
 
 func (o Object_t) CheckTerminals(count int) bool {
-	terms := o["Terminals"].([]interface{})
+	iterms, ok := o["Terminals"]
+	if !ok {
+		LOG.Println("No terminal list.")
+		return true
+	}
+	terms, ok := iterms.([]interface{})
+	if !ok {
+		LOG.Println("Terminal list of unknown type.")
+		return true
+	}
 	if len(terms) < count {
 		LOG.Println("Invalid Terminals for obj type:", o["Type"])
 		return true
 	}
 	return false
 }
-func (o Object_t) GetTerminal(Objects map[int]*Object_t, term int) float64 {
-	terms := o["Terminals"].([]interface{})
-	theterm := int(terms[term].(float64))
-	//LOG.Println("theterm:", theterm)
-	obj := (*Objects[theterm])
-	return obj["Output"].(float64)
+
+func (o Object_t) GetTerminal(Objects map[int]*Object_t, term int) (float64, error) {
+	iterms, ok := o["Terminals"]
+	if !ok {
+		return 0, errors.New("No terminal list.")
+	}
+	terms, ok := iterms.([]interface{})
+	if !ok {
+		return 0, errors.New("Terminals list of unknown type.")
+	}
+	terminal64, ok := terms[term].(float64)
+	if !ok {
+		return 0, errors.New("Terminal conversion error.")
+	}
+	theterm := int(terminal64)
+	obj, ok := Objects[theterm]
+	if !ok {
+		return 0, errors.New("Specified object does not exist.")
+	}
+	output, ok := (*obj)["Output"]
+	if !ok {
+		return 0, errors.New("No output.")
+	}
+	output64, ok := output.(float64)
+	if !ok {
+		return 0, errors.New("Output of unknown type.")
+	}
+	return output64, nil
 }
 
 func (o Object_t) GetProperty(name string) interface{} {
@@ -132,12 +190,9 @@ func (e *Engine_t) Init() {
 }
 
 func (e *Engine_t) AddObject(obj Object_t) {
-	var id int
-	id = intify(obj["Id"])
-	obj["Id"] = id
 	obj["process"] = processors[stringify(obj["Type"])]
 	sanitize(&obj)
-	e.Objects[id] = &obj
+	e.Objects[intify(obj["Id"])] = &obj
 	e.Save()
 }
 
@@ -190,7 +245,8 @@ func (e *Engine_t) store_outputs() (outputs map[int]float64) {
 				if err == nil {
 					(*val)["PortValue"] = newvalue
 				} else {
-					LOG.Println("Problem getting port value:", err)
+					delete((*val), "PortValue")
+					//LOG.Println("Problem getting port value:", err)
 				}
 			}
 		}
@@ -301,7 +357,7 @@ func (e *Engine_t) Run() {
 				for _, val := range e.Objects {
 					process := (*val)["process"].(processor)
 					if process != nil {
-						process(val, e.Objects)
+						process(val, e.Objects, ii)
 					}
 				}
 

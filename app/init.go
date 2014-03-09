@@ -1,19 +1,49 @@
 package app
 
 import (
+	"database/sql"
+	"fmt"
+	"github.com/coopernurse/gorp"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/revel/revel"
 	"os"
 	"os/signal"
-	"fmt"
 	"syscall"
-	"github.com/revel/revel"
+	"timecl/app/controllers"
+	"timecl/app/logger"
+	"timecl/app/network_manager"
 )
 
+func Init() {
+	Driver, found := revel.Config.String("db.driver")
+	if !found {
+		revel.ERROR.Fatal("No db.driver found.")
+	}
+	Spec, found := revel.Config.String("db.spec")
+	if !found {
+		revel.ERROR.Fatal("No db.spec found.")
+	}
+
+	// Open a connection.
+	var err error
+	var Db *sql.DB
+
+	Db, err = sql.Open(Driver, Spec)
+	if err != nil {
+		revel.ERROR.Fatal(err)
+	}
+	dbm := &gorp.DbMap{Db: Db, Dialect: gorp.SqliteDialect{}}
+	dbm.TraceOn("[gorp]", revel.INFO)
+	logger.Init(dbm)
+	network_manager.Init(dbm)
+	controllers.Init(dbm)
+}
 func init() {
 	go func() {
 		signal_source := make(chan os.Signal)
 		signal.Notify(signal_source, syscall.SIGHUP)
 		for {
-			<- signal_source
+			<-signal_source
 			fmt.Println("Terminal Disconnected")
 		}
 	}()
@@ -30,4 +60,5 @@ func init() {
 		revel.InterceptorFilter,       // Run interceptors around the action.
 		revel.ActionInvoker,           // Invoke the action.
 	}
+	revel.OnAppStart(Init)
 }

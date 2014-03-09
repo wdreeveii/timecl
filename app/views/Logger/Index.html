@@ -1,0 +1,16 @@
+
+{{set . "title" "Graphs"}}
+{{append . "moreStyles" "js/amcharts/style.css"}}
+{{append . "moreScripts" "js/jquery-ui-1.10.3.custom.min.js"}}
+{{append . "moreScripts" "js/amcharts/amcharts.js"}}
+{{append . "moreScripts" "js/amcharts/serial.js"}}
+{{append . "moreScripts" "js/amcharts/amstock.js"}}
+{{append . "moreScripts" "js/logger/logger.js"}}
+{{template "header.html" .}}
+<div class="panel panel-default">
+  <div class="panel-body">
+    <div id='chartdiv'></div>
+  </div>
+</div>
+
+{{template "footer.html" .}}

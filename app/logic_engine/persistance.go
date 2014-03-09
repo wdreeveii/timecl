@@ -7,6 +7,7 @@ import (
 	"github.com/revel/revel"
 	"io/ioutil"
 	"os"
+	"time"
 	"timecl/app/network_manager"
 )
 
@@ -27,11 +28,12 @@ func (e *Engine_t) Save() {
 	if !found {
 		return
 	}
-	tmp := make([]interface{}, 0)
-	gob.Register(tmp)
+	interface_slice := make([]interface{}, 0)
+	gob.Register(interface_slice)
 	var p processor
 	gob.Register(p)
 	gob.Register(network_manager.PortURI{})
+	gob.Register(time.Time{})
 	m := new(bytes.Buffer)
 	enc := gob.NewEncoder(m)
 	err := enc.Encode(e)
@@ -95,6 +97,7 @@ func (e *Engine_t) ReadAndDecode(path string) (err error) {
 	var proc processor
 	gob.Register(proc)
 	gob.Register(network_manager.PortURI{})
+	gob.Register(time.Time{})
 	p := bytes.NewBuffer(n)
 	dec := gob.NewDecoder(p)
 

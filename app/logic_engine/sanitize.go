@@ -64,7 +64,9 @@ func toPortURI(in interface{}) (result network_manager.PortURI) {
 	}
 	return
 }
+
 func sanitize(obj *Object_t) {
+	(*obj)["Id"] = intify((*obj)["Id"])
 	(*obj)["Source"] = intify((*obj)["Source"])
 
 	var PCount int
@@ -94,7 +96,12 @@ func sanitize(obj *Object_t) {
 			PValues = append(PValues, stringify(v))
 		case PTypes[k] == "port":
 			pval := toPortURI(v)
-			PValues = append(PValues, pval)
+			var defaultURI network_manager.PortURI
+			if pval == defaultURI {
+				PValues = append(PValues, nil)
+			} else {
+				PValues = append(PValues, pval)
+			}
 		case PTypes[k] == "int":
 			PValues = append(PValues, intify(v))
 		}

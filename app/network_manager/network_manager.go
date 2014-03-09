@@ -3,12 +3,12 @@ package network_manager
 import (
 	"container/list"
 	"errors"
+	"fmt"
 	"github.com/coopernurse/gorp"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/revel/revel"
-	"github.com/revel/revel/modules/db/app"
 	"sort"
 	"time"
-	"timecl/app/models"
 )
 
 type network_manager struct {
@@ -43,22 +43,18 @@ func RegisterDriver(drivername string, driver DriverInterface) {
 	driver_collection = append(driver_collection, driverListItem{Name: drivername, Instance: driver})
 }
 
-func init_networkconfig_table(dbm *gorp.DbMap) {
+func InitNetworkConfigTables(dbm *gorp.DbMap) {
 	setColumnSizes := func(t *gorp.TableMap, colSizes map[string]int) {
 		for col, size := range colSizes {
 			t.ColMap(col).MaxSize = size
 		}
 	}
-	t := dbm.AddTable(models.NetworkConfig{}).SetKeys(true, "NetworkID")
+	t := dbm.AddTable(NetworkConfig{}).SetKeys(true, "NetworkID")
 	setColumnSizes(t, map[string]int{
 		"ConfigKey":  100,
 		"DevicePath": 1000,
 		"Driver":     100,
 	})
-	err := dbm.CreateTablesIfNotExists()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func GetHardwareInterfaces() []string {
@@ -340,23 +336,35 @@ func interfacesManager() {
 	}
 }
 
-func Init() {
+type NetworkConfig struct {
+	NetworkID  int
+	ConfigKey  string
+	DevicePath string
+	Driver     string
+}
+
+func (n *NetworkConfig) String() string {
+	return fmt.Sprintf("Network Config (%d, %s, %s, %s)", n.NetworkID, n.ConfigKey, n.DevicePath, n.Driver)
+}
+
+func Init(dbm *gorp.DbMap) {
 	revel.INFO.Println("Network Manager Start")
 	go interfacesManager()
-	db.Init()
-	dbm := &gorp.DbMap{Db: db.Db, Dialect: gorp.SqliteDialect{}}
 
-	init_networkconfig_table(dbm)
-
+	InitNetworkConfigTables(dbm)
+	err := dbm.CreateTablesIfNotExists()
+	if err != nil {
+		panic(err)
+	}
 	result := GetHardwareInterfaces()
 	for _, config_key := range result {
-		networks, err := dbm.Select(models.NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, config_key)
+		networks, err := dbm.Select(NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, config_key)
 		if err != nil {
 			panic(err)
 		}
 		var driver driverListItem
 		if len(networks) > 0 {
-			driver_name := networks[0].(*models.NetworkConfig).Driver
+			driver_name := networks[0].(*NetworkConfig).Driver
 			for index, driver_list_item := range driver_collection {
 				if driver_name == driver_list_item.Name {
 					driver = driver_collection[index]
@@ -365,18 +373,6 @@ func Init() {
 		}
 		newInterface <- interfaceItem{ConfigKey: config_key, Driver: driver}
 	}
-}
-
-func init() {
-	revel.OnAppStart(Init)
-	//config, err := revel.Config.LoadConfig("app.conf")
-	//fmt.Printf("config: %v %v\n", config, err)
-	//fmt.Println("driver init!")
-	//revel.Config.SetSection("dev")
-	//result := revel.Config.Options("")
-	//fmt.Println("net0 found: ",result)
-	//fmt.Println("net0 result: ", result, " ", found)
-	//revel.RegisterPlugin(network_manager{})
 }
 
 // Drains a given channel of any messages.
