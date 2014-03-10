@@ -244,3 +244,45 @@ form .buttons {
     width: 100%;
     height: 650px;
 }
+.noscroll {
+    overflow: hidden;
+    position:fixed !important;
+    position:absolute;
+    top:45px;
+    right:0px;
+    bottom:0px;
+    left:0px;
+    margin: 0px;
+}
+.scrollinside {
+    overflow: auto;
+    height: 100%;
+}
+.loading-animation {
+  display: inline-block;
+  margin: 5em;
+  border-width: 30px;
+  border-radius: 50%;
+  -webkit-animation: spin 1s linear infinite;
+     -moz-animation: spin 1s linear infinite;
+       -o-animation: spin 1s linear infinite;
+          animation: spin 1s linear infinite;
+  border-style: solid;
+  border-color: #444 transparent;
+}
+
+@-webkit-keyframes spin {
+  100% { -webkit-transform: rotate(359deg); }
+  }
+
+@-moz-keyframes spin {
+  100% { -moz-transform: rotate(359deg); }
+  }
+
+@-o-keyframes spin {
+  100% { -moz-transform: rotate(359deg); }
+  }
+
+@keyframes spin {
+  100% {  transform: rotate(359deg); }
+  }

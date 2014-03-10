@@ -7,8 +7,9 @@
 {{append . "moreScripts" "js/amcharts/amstock.js"}}
 {{append . "moreScripts" "js/logger/logger.js"}}
 {{template "header.html" .}}
-<div class="panel panel-default">
-  <div class="panel-body">
+<div class="panel panel-default noscroll">
+  <div class="panel-body scrollinside">
+  	<span class="loading-animation"></span>
     <div id='chartdiv'></div>
   </div>
 </div>

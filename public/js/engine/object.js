@@ -154,6 +154,7 @@ function object_type(name)
 
 function bounding_rect(ctx, o)
 {
+	ctx.lineWidth=0.25;
 	ctx.beginPath();	
 	ctx.moveTo(Math.round(get_x(o.Xpos)), Math.round(get_y(o.Ypos)));		
 	ctx.lineTo(Math.round(get_x(o.Xpos+o.Xsize)), Math.round(get_y(o.Ypos)));

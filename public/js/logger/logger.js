@@ -14,7 +14,8 @@ $.ajax({
 	dataType: "json"
 }).done(function(data) {
 	chartData = data;
-	AmCharts.ready(function () {
+	$(function () {
+		$(".loading-animation").hide();
 		createStockChart();
 	});
 });
