@@ -10,6 +10,7 @@
 	<p>y = ax&sup2; + bx + c</p>
 	{{/.Type}}
 	<div class="panel-group" id="accordion">
+		<form id="property_form" onsubmit='save_properties({{current_obj.Id}}); return false;' >
 		{{#.PropertyNames:i}}
 		<div class="panel panel-default">
 			<div class="panel-heading">
@@ -56,8 +57,9 @@
 		</div>
 		{{/.PropertyNames}}
 		{{#current_obj.PropertyCount > 0}}
-		<input class='btn btn-danger' value='Save' onclick='save_properties({{current_obj.Id}});' type='submit'>
+		<input class='btn btn-danger' value='Save' type='submit'>
 		{{/current_obj.PropertyCount}}
+		</form>
 	</div>
 	{{/current_obj}}
 </div>

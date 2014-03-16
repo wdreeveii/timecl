@@ -384,13 +384,23 @@ func AckDevice(r chan Message_t, w chan Message_t, ack_reply chan AckReplyInfo, 
 	ack_reply <- msg
 }
 
-func (d *GreenBusDevice) getNextCmd() Cmd_t {
+func (d *GreenBusDevice) getNextCmd(devices DeviceList) Cmd_t {
 	var cmd Cmd_t
 	if len(d.Cmds) > 0 {
 		cmd = d.Cmds[0]
 		d.Cmds = d.Cmds[1:]
 	} else {
-		cmd = Cmd_t{Payload: []byte("PING"), Mtype: PING, Rtype: PING_REPLY}
+		cmd = Cmd_t{Payload: []byte("PING"),
+			Mtype: PING,
+			Rtype: PING_REPLY,
+			ReplyHandler: func(msg Message_t) {
+				data := values_payload(msg.Payload).ToStruct()
+				for _, v := range data {
+					if int(d.Addr) < len(devices) && int(v.Id) < len(devices[d.Addr].Ports) {
+						devices[d.Addr].Ports[v.Id].Value = v.Value
+					}
+				}
+			}}
 	}
 	return cmd
 }
@@ -486,7 +496,7 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 					ping_reply = make(chan ReplyInfo, 1)
 					DEBUG.Println("Cmds: ", devices[next_device+2].Cmds)
 					var cmd Cmd_t
-					cmd = devices[next_device+2].getNextCmd()
+					cmd = devices[next_device+2].getNextCmd(devices)
 
 					go PingDevice(r, w, ping_reply, devices[next_device+2].Addr, devices[next_device+2].Mac, cmd)
 					DEBUG.Println("Cmds2: ", devices[next_device+2].Cmds)
@@ -521,7 +531,7 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 							ping_reply = make(chan ReplyInfo, 1)
 							DEBUG.Println("Cmds: ", devices[next_device+2].Cmds)
 							var cmd Cmd_t
-							cmd = devices[next_device+2].getNextCmd()
+							cmd = devices[next_device+2].getNextCmd(devices)
 
 							go PingDevice(r, w, ping_reply, devices[next_device+2].Addr, devices[next_device+2].Mac, cmd)
 							DEBUG.Println("Cmds2: ", devices[next_device+2].Cmds)

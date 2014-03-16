@@ -15,9 +15,21 @@
 {{append . "moreScripts" "js/engine/engine.js"}}
 {{template "header.html" .}}
 <div class='toolbar'>
-    <span onclick="set_mode('add_pipe');" title="Wire" class="tool btn glyphicon glyphicon-pencil"></span>
-    <span onclick="set_mode('unhook');" title="Unwire" class="tool btn glyphicon glyphicon-resize-full"></span>
-    <span onclick="set_mode('delete');" title="Delete" class="tool btn glyphicon glyphicon-remove"></span>
+    <button type="button" id='ptr_btn' class="tool btn btn-default btn-sm active" onclick="set_mode('none');">
+        <span title="Pointer" class="glyphicon glyphicon-hand-up"></span>
+    </button>
+    <button type="button" id='wire_btn' class="tool btn btn-default btn-sm" onclick="set_mode('add_pipe');">
+        <span title="Wire" class="glyphicon glyphicon-pencil"></span>
+    </button>
+    <button type="button" id='unhook_btn' class="tool btn btn-default btn-sm" onclick="set_mode('unhook');">
+        <span title="Unwire" class="glyphicon glyphicon-resize-full"></span>
+    </button>
+    <button type="button" id='delete_btn' class="tool btn btn-default btn-sm" onclick="set_mode('delete');">
+        <span title="Delete" class="glyphicon glyphicon-remove"></span>
+    </button>
+
+    
+    
     <div class="pull-right">
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">IO<span class="caret"></span></a>
@@ -52,6 +64,17 @@
             </ul>
         </div>
         <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Conditional<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li onclick="set_addmode('agtb');" class="btn"> A > B</li>
+                <li onclick="set_addmode('agteb');" class="btn"> A >= B</li>
+                <li onclick="set_addmode('altb');" class="btn">  A < B</li>
+                <li onclick="set_addmode('alteb');" class="btn"> A <= B</li>
+                <li onclick="set_addmode('aeqb');" class="btn"> A == B</li>
+                <li onclick="set_addmode('aneqb');" class="btn"> A != B</li>
+            </ul>
+        </div>
+        <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Utility<span class="caret"></span></a>
             <ul class="dropdown-menu">
                 <li onclick="set_addmode('timerange');" class="btn"> Timerange </li>
@@ -60,6 +83,7 @@
                 <li onclick="set_addmode('xyscope');" class="btn"> XYScope </li>
                 <li onclick="set_addmode('guide');" class="btn"> Terminal </li>
                 <li onclick="set_addmode('logger');" class="btn"> Logger </li>
+                <li onclick="set_addmode('delay');" class="btn">Delay</li>
             </ul>
         </div>
         <div class="btn-group">

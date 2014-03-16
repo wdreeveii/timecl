@@ -61,15 +61,21 @@ function createStockChart() {
 	// graph of first stock panel
 	var graph1 = new AmCharts.StockGraph();
 	graph1.valueField = "Max";
+	graph1.comparable = true;
+	graph1.compareField = "Max";
+	graph1.periodValue = "High"
 	graph1.bullet = "round";
+	graph1.bulletBorderColor = "#FFFFFF";
+	graph1.bulletBorderAlpha = 1;
 	graph1.balloonText = "[[title]]:<b>[[value]]</b>";
-
+	graph1.compareGraphBalloonText = "[[title]]:<b>[[value]]</b>";
+	graph1.compareGraphBullet = "round";
+	graph1.compareGraphBulletBorderColor = "#FFFFFF";
+	graph1.compareGraphBulletBorderAlpha = 1;
 	stockPanel1.addStockGraph(graph1);
 
 	// create stock legend
 	var stockLegend1 = new AmCharts.StockLegend();
-	stockLegend1.valueTextRegular = " ";
-	stockLegend1.markerType = "none";
 	stockPanel1.stockLegend = stockLegend1;
 
 
@@ -80,13 +86,20 @@ function createStockChart() {
 
 	var graph2 = new AmCharts.StockGraph();
 	graph2.valueField = "Min";
+	graph2.comparable = true;
+	graph2.compareField = "Min";
+	graph2.periodValue = "Low"
 	graph2.bullet = "round";
+	graph2.bulletBorderColor = "#FFFFFF";
+	graph2.bulletBorderAlpha = 1;
 	graph2.balloonText = "[[title]]:<b>[[value]]</b>";
+	graph2.compareGraphBalloonText = "[[title]]:<b>[[value]]</b>";
+	graph2.compareGraphBullet = "round";
+	graph2.compareGraphBulletBorderColor = "#FFFFFF";
+	graph2.compareGraphBulletBorderAlpha = 1;
 	stockPanel2.addStockGraph(graph2);
 
 	var stockLegend2 = new AmCharts.StockLegend();
-	stockLegend2.valueTextRegular = " ";
-	stockLegend2.markerType = "none";
 	stockPanel2.stockLegend = stockLegend2;
 
 	var stockPanel3 = new AmCharts.StockPanel();
@@ -96,14 +109,21 @@ function createStockChart() {
 	// graph of first stock panel
 	var graph3 = new AmCharts.StockGraph();
 	graph3.valueField = "Avg";
+	graph3.comparable = true;
+	graph3.compareField = "Avg";
+	graph3.periodValue = "Average"
 	graph3.bullet = "round";
+	graph3.bulletBorderColor = "#FFFFFF";
+	graph3.bulletBorderAlpha = 1;
 	graph3.balloonText = "[[title]]:<b>[[value]]</b>";
+	graph3.compareGraphBalloonText = "[[title]]:<b>[[value]]</b>";
+	graph3.compareGraphBullet = "round";
+	graph3.compareGraphBulletBorderColor = "#FFFFFF";
+	graph3.compareGraphBulletBorderAlpha = 1;
 	stockPanel3.addStockGraph(graph3);
 
 	// create stock legend
 	var stockLegend3 = new AmCharts.StockLegend();
-	stockLegend3.valueTextRegular = " ";
-	stockLegend3.markerType = "none";
 	stockPanel3.stockLegend = stockLegend3;
 
 	// set panels to the chart
@@ -112,7 +132,7 @@ function createStockChart() {
 
 	// OTHER SETTINGS ////////////////////////////////////
 	var sbsettings = new AmCharts.ChartScrollbarSettings();
-	sbsettings.graph = graph1;
+	sbsettings.graph = graph3;
 	sbsettings.usePeriod = "10mm";
 	chart.chartScrollbarSettings = sbsettings;
 

@@ -130,50 +130,62 @@ function backend_moveobject(id, x_pos, y_pos)
 }
 
 var socket;
-function backend_start() {
-	socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
-	socket.onmessage = function(event) {
-		var event_msg = JSON.parse(event.data);
 
-		if (event_msg["Type"] == "add") {
-			var event_data = event_msg["Data"];
-			var object = load_object(event_data);
-			obj[object["Id"]] = object;
-		} else if (event_msg["Type"] == "edit_many") {
-			var event_data = event_msg["Data"];
-			for (var i = 0; i < event_data.length; i++ ) {
-				var state_change = event_data[i];
-				var id = state_change["Id"];
-				var changes = state_change["State"];
-				for (var change in changes) {
-					obj[id][change] = changes[change];
-				}
+function handle_message(event) {
+	var event_msg = JSON.parse(event.data);
+
+	if (event_msg["Type"] == "add") {
+		var event_data = event_msg["Data"];
+		var object = load_object(event_data);
+		obj[object["Id"]] = object;
+	} else if (event_msg["Type"] == "edit_many") {
+		var event_data = event_msg["Data"];
+		for (var i = 0; i < event_data.length; i++ ) {
+			var state_change = event_data[i];
+			var id = state_change["Id"];
+			var changes = state_change["State"];
+			for (var change in changes) {
+				obj[id][change] = changes[change];
 			}
-		} else if (event_msg["Type"] == "edit") {
-			var event_data = event_msg["Data"];
-			var id = event_data["Id"]
+		}
+	} else if (event_msg["Type"] == "edit") {
+		var event_data = event_msg["Data"];
+		var id = event_data["Id"]
+		if (id in obj) {
 			var changes = event_data["State"]
 			for (var change in changes) {
 				obj[id][change] = changes[change];
 			}
-		} else if (event_msg["Type"] == "init") {
-			var event_data = event_msg["Data"];
-			/*for (x in event_data) {
-				console.log(x);
-			}*/
-			console.log(event_data);
-			obj = load_objects(event_data);
-			resize_canvas();
-		} else if (event_msg["Type"] == "init_ports") {
-			property_window.set('port_list', event_msg["Data"]);
 		}
-		requestAnimationFrame(draw_display);
+	} else if (event_msg["Type"] == "init") {
+		var event_data = event_msg["Data"];
+		/*for (x in event_data) {
+			console.log(x);
+		}*/
+		console.log(event_data);
+		obj = load_objects(event_data);
+		resize_canvas();
+	} else if (event_msg["Type"] == "init_ports") {
+		property_window.set('port_list', event_msg["Data"]);
 	}
+	requestAnimationFrame(draw_display);
+}
+function setup_socket() {
+	socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
+	socket.onmessage = handle_message;
 	socket.onerror = function(event) {
 		console.log("socket error", event);
 	}
 	socket.onclose = function(event) {
+		console.log("on close");
 		setTimeout(backend_start, 10000);
 	}
+}
+function backend_start() {
+	setup_socket();
+	$(document).on('online', function (event) {
+		console.log("online");
+    	setup_socket();
+	});
 }
 

@@ -178,10 +178,7 @@ void process_packet(char *buffer, int length) {
 							length-(2+2+sizeof(struct mheader_t)));
 			}
 			else if (header->mtype == PING) {
-
-				msg.header.mtype = PING_REPLY;
-				msg.payload = "HAHAHA";
-				msg.payload_len = 6;
+				return send_value_reply(&msg, PING_REPLY);
 			}
 			else if (header->mtype == INTERROGATE)
 			{

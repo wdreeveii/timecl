@@ -15,8 +15,8 @@ object_list.push("binput");
 
 function binput_type (o)
 {
-	o.Xsize = 30;
-	o.Ysize = 30;
+	o.Xsize = 60;
+	o.Ysize = 60;
 	o.show_output = 1;
 
 	o.input_termcount = 0;
@@ -143,7 +143,7 @@ object_list.push("boutput");
 
 function boutput_type (o)
 {
-	o.Xsize = 30;
+	o.Xsize = 80;
 	o.Ysize = 30;
 	o.show_output = 1;
 	
@@ -166,7 +166,7 @@ object_list.push("aoutput");
 
 function aoutput_type (o)
 {
-	o.Xsize = 60;
+	o.Xsize = 80;
 	o.Ysize = 30;
 		
 	o.show_analog = 1;
@@ -331,7 +331,7 @@ object_list.push("mult");
 function mult_type (o)
 {
 	o.show_analog = 1;
-	o.show_name = 1;		
+	o.show_name = "Mult";		
     	
 	if (o.PropertyCount == 0)
 	{
@@ -352,7 +352,7 @@ object_list.push("div");
 function div_type (o)
 {
 	o.show_analog = 1;
-	o.show_name = 1;		
+	o.show_name = "Div";		
     	
 	if (o.PropertyCount == 0)
 	{
@@ -373,7 +373,7 @@ object_list.push("add");
 function add_type (o)
 {
 	o.show_analog = 1;
-	o.show_name = 1;		
+	o.show_name = "Add";		
     	
 	if (o.PropertyCount == 0)
 	{
@@ -395,7 +395,7 @@ object_list.push("sub");
 function sub_type (o)
 {
 	o.show_analog = 1;
-	o.show_name = 1;		
+	o.show_name = "Sub";		
     	
 	if (o.PropertyCount == 0)
 	{
@@ -416,7 +416,7 @@ object_list.push("power");
 function power_type (o)
 {
 	o.show_analog = 1;
-	o.show_name = 1;		
+	o.show_name = "Power";		
     	
 	if (o.PropertyCount == 0)
 	{
@@ -437,7 +437,7 @@ object_list.push("sine");
 function sine_type (o)
 {
 	o.show_analog = 1;
-	o.show_name = 1;
+	o.show_name = "Sine";
 	
 	if (o.PropertyCount == 0)
 	{
@@ -458,7 +458,7 @@ object_list.push("cosine");
 function cosine_type (o)
 {
 	o.show_analog = 1;
-	o.show_name = 1;
+	o.show_name = "Cosine";
    	
 	if (o.PropertyCount == 0)
 	{
@@ -472,6 +472,132 @@ function cosine_type (o)
 	{
 		bounding_rect(ctx, this);
 	} 	
+}
+
+object_list.push("agtb");
+
+function agtb_type (o)
+{
+	o.show_analog = 1;
+	o.show_name = "A > B";
+	
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+	}					 
+	
+	o.input_termcount = 2;
+	o.output_termcount = 1;
+	
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}  	
+}
+
+object_list.push("agteb");
+
+function agteb_type (o)
+{
+	o.show_analog = 1;
+	o.show_name = "A >= B";
+	
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+	}					 
+	
+	o.input_termcount = 2;
+	o.output_termcount = 1;
+	
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}  	
+}
+
+object_list.push("altb");
+
+function altb_type (o)
+{
+	o.show_analog = 1;
+	o.show_name = "A < B";
+	
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+	}					 
+	
+	o.input_termcount = 2;
+	o.output_termcount = 1;
+	
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}  	
+}
+
+object_list.push("alteb");
+
+function alteb_type (o)
+{
+	o.show_analog = 1;
+	o.show_name = "A <= B";
+	
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+	}					 
+	
+	o.input_termcount = 2;
+	o.output_termcount = 1;
+	
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}  	
+}
+
+object_list.push("aeqb");
+
+function aeqb_type (o)
+{
+	o.show_analog = 1;
+	o.show_name = "A == B";
+	
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+	}					 
+	
+	o.input_termcount = 2;
+	o.output_termcount = 1;
+	
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}  	
+}
+
+object_list.push("aneqb");
+
+function aneqb_type (o)
+{
+	o.show_analog = 1;
+	o.show_name = "A != B";
+	
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+	}					 
+	
+	o.input_termcount = 2;
+	o.output_termcount = 1;
+	
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}  	
 }
 
 object_list.push("xyscope");
@@ -611,8 +737,8 @@ object_list.push("timebase");
 
 function timebase_type (o)
 {
-	o.Xsize = 30;
-	o.Ysize = 30;
+	o.Xsize = 60;
+	o.Ysize = 60;
 
 	o.show_output = 1;
 	
@@ -637,6 +763,7 @@ function timebase_type (o)
 		
 		ctx.closePath();			
 	}
+
 }
 
 object_list.push("timerange");
@@ -697,7 +824,7 @@ object_list.push("timer");
 function timer_type (o)
 {
 	o.Xsize = 80;
-	o.Ysize = 40;
+	o.Ysize = 60;
 	o.show_output = 1;
 
 //	o.add_output_terminal(0);		
@@ -735,9 +862,11 @@ function timer_type (o)
 
 	    ctx.fillText(name, get_x(x + this.Xsize * 0.1 ), get_y(y) - f_size  / 2);
 
-	    ctx.fillText(on, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) - f_size  / 2);
+	    ctx.fillText("Timer", get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) - f_size);
+	    
+	    ctx.fillText("  ON: " + on, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  / 2 * 1.5);
 	
-	    ctx.fillText(off, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  / 2 * 1.5);
+	    ctx.fillText("OFF: " + off, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  * 2);
 	
 		ctx.fillStyle = old_fill;
 	}
@@ -747,8 +876,11 @@ object_list.push("conversion");
 
 function conversion_type (o)
 {
+	o.Xsize = 140;
+	o.Ysize = 60;
+
 	o.show_analog = 1;
-	o.show_name = 1;
+	o.show_name = "conversion";
 	//o.show_output = 1;
 	
 	if (o.PropertyCount == 0)
@@ -765,17 +897,43 @@ function conversion_type (o)
 	o.draw_icon = function(ctx) 
 	{
 		bounding_rect(ctx, this);
-	}  	
+	}
+	o.draw_properties = function(ctx, x, y)
+	{
+		//alert("draw");
+		var a = this.get_property("a");
+		var b = o.get_property("b");
+		var c = o.get_property("c");
+		var name = o.get_property("name");
+	
+		var old_fill  = ctx.fillStyle;
+	
+		ctx.fillStyle = "rgb(0,0,0)";
+		ctx.font = "16pt Arial";
+
+		var f_size = 12 * zoom;
+
+		ctx.font = format(f_size) + "pt Arial";
+
+	    ctx.fillText(name, get_x(x + this.Xsize * 0.1 ), get_y(y) - f_size  / 2);
+
+	    ctx.fillText("Conversion", get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) - f_size);
+	    
+	    ctx.fillText(a + "x²" + (b<0?'':'+') + b + "x" + (c<0?'':'+') + c, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  / 2 * 1.5);
+	
+	    ctx.fillText(format(this.Output), get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  * 2);
+	
+		ctx.fillStyle = old_fill;
+	}	
 }
 
 object_list.push("logger");
 
 function logger_type (o)
 {
-	o.Xsize = 30;
-	o.Ysize = 30;
-	o.show_output = 1;
-	
+	//o.show_output = 1;
+	o.show_analog = 1;
+	o.show_name = "Log"
 	if (o.PropertyCount == 0)
 	{
 		o.add_property("name", "string", "");
@@ -788,9 +946,32 @@ function logger_type (o)
 	o.draw_icon = function(ctx) 
 	{
 		bounding_rect(ctx, this);
-	}	
+	}
+	//o.draw_properties	
 }
 
+object_list.push("delay");
+
+function delay_type (o)
+{
+	o.show_analog = 1;
+	o.show_name = "Delay"
+	
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+		o.add_property("delay", "float", 0);
+		o.add_property("min on", "float", 0);
+	}					 
+	
+	o.input_termcount = 1;
+	o.output_termcount = 1;
+			
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}
+}
 
 
 

@@ -42,6 +42,12 @@ $(function() {
 	$('#property_and_canvas').layout({applyDefaultStyles: false,
 				center__onresize: resize_canvas,
 	});
+	$('#property_sidebar').on('shown.bs.collapse', function(event){
+		var inputs = $(event.target).find(':input');
+		inputs.focus();
+		inputs[0].selectionStart = inputs[0].value.length;
+		inputs[0].selectionEnd = inputs[0].value.length;
+	});
 	$('#propertyTemplate').load('/public/property_window.html', function() {
 		property_window = new Ractive({
 			el: $('#property_sidebar'),
@@ -435,10 +441,13 @@ function ui_delete_object(pos)
 {
 	var i = find_object(pos.x, pos.y);
 
-	if (i != -1)
-		delete_object(i);
-
-	set_mode("none");
+	if (i != -1) {
+		if (obj[i].Type != "guide") {
+			delete_object(i);
+		}
+	} else {
+		set_mode("none");
+	}
 }
 
 function ui_unhook_object(pos)
@@ -476,7 +485,7 @@ function select_none()
 		obj[i].selected = 0;
 	
 	sel_obj = -1;
-	property_window.set('current_obj', {});
+	property_window.set('current_obj', undefined);
 }
 
 function select_object( o )
@@ -511,7 +520,6 @@ function save_properties(sel_obs)
 	}
 
 	// Need to save peoperties to database
-	console.log("SAVE PROPERTIES");
 	o.save_properties();
 		
 	requestAnimationFrame(draw_display);
@@ -521,10 +529,27 @@ function save_properties(sel_obs)
 
 function set_mode(m)
 {
-	if (m == 'delete' || m == 'unhook' || m == 'add_pipe' || m == 'add_pipe2')
+	$('.tool').removeClass('active');
+	if (m == 'none' || m == 'moving')
+		$('#ptr_btn').addClass('active');
+	else if (m == 'delete')
+		$('#delete_btn').addClass('active');
+	else if (m == 'unhook')
+		$('#unhook_btn').addClass('active');
+	else if (m == 'add_pipe' || m == 'add_pipe2')
+		$('#wire_btn').addClass('active');
+
+	
+
+	if (m == 'delete' || 
+		m == 'unhook' || 
+		m == 'add_pipe' || 
+		m == 'add_pipe2')
 		$('#canvas').css('cursor', 'crosshair');
-	else
+	else {
 		$('#canvas').css('cursor', 'auto');
+	}
+
 	ui_mode = m;
 }
 

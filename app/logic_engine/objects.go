@@ -28,6 +28,14 @@ func init() {
 	processors["power"] = ProcessPower
 	processors["sine"] = ProcessSine
 	processors["cosine"] = ProcessCosine
+
+	processors["agtb"] = ProcessAGTB
+	processors["agteb"] = ProcessAGTEB
+	processors["altb"] = ProcessALTB
+	processors["alteb"] = ProcessALTEB
+	processors["aeqb"] = ProcessAEQB
+	processors["aneqb"] = ProcessANEQB
+
 	processors["xyscope"] = ProcessXYscope
 	//processors["block"] = 
 	//processors["vbar"] = 
@@ -35,6 +43,7 @@ func init() {
 	processors["timebase"] = ProcessTimeBase
 	processors["timerange"] = ProcessTimeRange
 	processors["timer"] = ProcessTimer
+	processors["delay"] = ProcessDelay
 	processors["conversion"] = ProcessConversion
 	processors["logger"] = ProcessLogger
 
@@ -325,6 +334,138 @@ func ProcessCosine(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	o.AssignOutput(Objects, 1)
 }
 
+func ProcessAGTB(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if o.CheckTerminals(3) {
+		return
+	}
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	if in_a > in_b {
+		(*o)["NextOutput"] = float64(1)
+	} else {
+		(*o)["NextOutput"] = float64(0)
+	}
+	o.AssignOutput(Objects, 2)
+}
+
+func ProcessAGTEB(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if o.CheckTerminals(3) {
+		return
+	}
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	if in_a >= in_b {
+		(*o)["NextOutput"] = float64(1)
+	} else {
+		(*o)["NextOutput"] = float64(0)
+	}
+	o.AssignOutput(Objects, 2)
+}
+
+func ProcessALTB(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if o.CheckTerminals(3) {
+		return
+	}
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	if in_a < in_b {
+		(*o)["NextOutput"] = float64(1)
+	} else {
+		(*o)["NextOutput"] = float64(0)
+	}
+	o.AssignOutput(Objects, 2)
+}
+
+func ProcessALTEB(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if o.CheckTerminals(3) {
+		return
+	}
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	if in_a <= in_b {
+		(*o)["NextOutput"] = float64(1)
+	} else {
+		(*o)["NextOutput"] = float64(0)
+	}
+	o.AssignOutput(Objects, 2)
+}
+
+func ProcessAEQB(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if o.CheckTerminals(3) {
+		return
+	}
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	if in_a == in_b {
+		(*o)["NextOutput"] = float64(1)
+	} else {
+		(*o)["NextOutput"] = float64(0)
+	}
+	o.AssignOutput(Objects, 2)
+}
+
+func ProcessANEQB(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if o.CheckTerminals(3) {
+		return
+	}
+	in_a, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	in_b, err := o.GetTerminal(Objects, 1)
+	if err != nil {
+		LOG.Println("Process power:", err)
+		return
+	}
+	if in_a != in_b {
+		(*o)["NextOutput"] = float64(1)
+	} else {
+		(*o)["NextOutput"] = float64(0)
+	}
+	o.AssignOutput(Objects, 2)
+}
+
 var tbmu sync.Mutex
 var tick float64
 
@@ -344,25 +485,6 @@ func ProcessXYscope(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	}
 }
 
-/*			if ($this->check_terminals(1)) return;
-
-			$on = $this->get_property("on");
-			$off = $this->get_property("off");
-
-			$on_time = strtotime($on);
-			$off_time = strtotime($off);
-
-			$current = time();
-
-			if ($current >= $on_time && $current <= $off_time)
-				$this->output = 1;
-			else
-				$this->output = 0;
-
-
-			$this->next_output =  $this->output;
-
-			$Objects[$this->terminals[0]]->next_output = $this->output;*/
 func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	if o.CheckTerminals(1) {
 		return
@@ -428,6 +550,66 @@ func ProcessTimer(o *Object_t, Objects map[int]*Object_t, iteration int) {
 		(*o)["NextOutput"] = float64(0)
 	}
 	o.AssignOutput(Objects, 0)
+}
+
+func ProcessDelay(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if o.CheckTerminals(2) {
+		return
+	}
+	delay, ok := o.GetProperty("delay").(float64)
+	if !ok {
+		delay = float64(0)
+	}
+	min, ok := o.GetProperty("min on").(float64)
+	if !ok {
+		min = float64(0)
+	}
+	input, err := o.GetTerminal(Objects, 0)
+	if err != nil {
+		LOG.Println("Process delay:", err)
+		return
+	}
+	current_time := time.Now()
+	current_delay_start, ok := (*o)["_current_delay"].(time.Time)
+	if !ok {
+		current_delay_start = current_time
+		if input > 0 && delay > 0 {
+			(*o)["_current_delay"] = current_delay_start
+			return
+		}
+	}
+	delay_end := current_delay_start.Add(time.Duration(delay) * time.Second)
+
+	if current_time.Equal(delay_end) || current_time.After(delay_end) {
+		current_min_start, ok := (*o)["_current_min_on"].(time.Time)
+		if !ok {
+			current_min_start = current_time
+			if min > 0 {
+				(*o)["_current_min_on"] = current_min_start
+			}
+		}
+		min_end := current_min_start.Add(time.Duration(min) * time.Second)
+
+		if current_time.Equal(min_end) || current_time.After(min_end) {
+			if input > 0 {
+				(*o)["NextOutput"] = float64(1)
+			} else {
+				(*o)["NextOutput"] = float64(0)
+				(*o)["_current_delay"] = nil
+				(*o)["_current_min_on"] = nil
+			}
+		} else {
+			(*o)["NextOutput"] = float64(1)
+		}
+	} else {
+		if !(input > 0) {
+			(*o)["_current_delay"] = nil
+			(*o)["_current_min_on"] = nil
+		}
+		(*o)["NextOutput"] = float64(0)
+	}
+
+	o.AssignOutput(Objects, 1)
 }
 
 func ProcessConversion(o *Object_t, Objects map[int]*Object_t, iteration int) {

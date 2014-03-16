@@ -128,7 +128,7 @@ function object_type(name)
 	    	ctx.fillText(format(this.Output), Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y + this.Ysize/2) + f_size  / 2));
 	
 		if (this.show_name)
-	    	ctx.fillText(this.Type, Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y + this.Ysize/2) - f_size  / 2 * 1.5));
+	    	ctx.fillText(this.show_name, Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y + this.Ysize/2) - f_size  / 2 * 1.5));
 	    
 		ctx.fillStyle = old_fill;
 	}	
@@ -261,29 +261,30 @@ function find_object(x, y)
 
 function unhook_object(i)
 {
-	// unhook objects linked to this object
-	for (var j in obj)
-		if (obj[j].Source == i)
+	if (i in obj) {
+		// unhook objects linked to this object
+		for (var j in obj)
+			if (obj[j].Source == i)
+			{
+				obj[j].Source = -1;
+			
+				backend_unhookobject(obj[j].Id);
+			}
+				
+				
+		// unhook main source
+		obj[i].Source = -1;
+			
+		backend_unhookobject(obj[i].Id);
+		
+		for (var j in obj[i].Terminals)
 		{
-			obj[j].Source = -1;
-		
-			backend_unhookobject(obj[j].Id);
+			unhook_guide(obj[i].Terminals[j]);
+			if (obj[i].Terminals[j] in obj) {
+				obj[obj[i].Terminals[j]].source=-1;
+				backend_unhookobject(obj[obj[i].Terminals[j]].Id);
+			}
 		}
-			
-			
-	// unhook main source
-	obj[i].Source = -1;
-		
-	backend_unhookobject(obj[i].Id);
-	
-	for (var j in obj[i].Terminals)
-	{
-		unhook_guide(obj[i].Terminals[j]);
-		
-		obj[obj[i].Terminals[j]].source=-1;
-		
-		backend_unhookobject(obj[obj[i].Terminals[j]].Id);
-		
 	}
 }
 
@@ -295,21 +296,23 @@ function unhook_guide(i)
 			obj[j].Source = -1;
 			backend_unhookobject(obj[j].Id);
 		}			
-			
-	obj[i].Source = -1;
+	if (i in obj) {		
+		obj[i].Source = -1;
+	}
 }
 
 function delete_object(i)
 {
- 	unhook_object(i);
+	if (i in obj) {
+	 	unhook_object(i);
 
-	for (var j in obj[i].Terminals)
-		delete_object(obj[i].Terminals[j]);
+		for (var j in obj[i].Terminals)
+			delete_object(obj[i].Terminals[j]);
 
-	backend_deleteobject(obj[i].Id);
+		backend_deleteobject(obj[i].Id);
 
-	delete obj[i];
-//	draw_objects();
+		delete obj[i];
+	}
 }
 
 function object_connect(o1, o2)
