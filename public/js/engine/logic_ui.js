@@ -393,8 +393,9 @@ function ui_add_pipe1(pos)
 		sel_obj = i;
 
 		requestAnimationFrame(draw_display);
-	} else
+	} else {
 		set_mode("none");
+	}
 }
 
 function ui_add_pipe2(pos)
@@ -413,9 +414,10 @@ function ui_add_pipe2(pos)
 		obj[sel_obj].selected  =0;
 
 		//set_mode("add_pipe");
-		set_mode("none");
-	} /*else
-		set_mode ("none");*/
+		//set_mode("none");
+	} else {
+		set_mode ("none");
+	}
 }
 
 function ui_move_object(pos, i)
@@ -457,9 +459,9 @@ function ui_unhook_object(pos)
 	if (i != -1)
 	{
 		unhook_object(i);
+	} else {
+		set_mode("none");
 	}
-
-	set_mode("none");
 }
 
 function ui_add_object(pos)

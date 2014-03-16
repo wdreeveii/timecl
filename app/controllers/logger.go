@@ -31,21 +31,70 @@ type LogDataClientFormat struct {
 }
 
 func (c Logger) GetData() revel.Result {
-	results, err := c.Txn.Select(logger.LoggingData{}, `select * from LoggingData`)
+	ids, err := c.Txn.Select(struct{ ObjectId int }{}, `SELECT DISTINCT ObjectId FROM LoggingData`)
 	if err != nil {
-		fmt.Println("Error getting datalogs:", err)
+		fmt.Println("Error getting keys:", err)
+		return c.RenderError(err)
 	}
 	var objects = make(map[string][]LogDataClientFormat)
-	for _, v := range results {
-		m := v.(*logger.LoggingData)
-		key := fmt.Sprintf("%v", m.ObjectId)
-		objects[key] = append(objects[key],
-			LogDataClientFormat{Timestamp: m.Timestamp,
-				Min: m.Min,
-				Max: m.Max,
-				Avg: m.Avg})
-	}
+	if len(ids) > 0 {
+		var query string
+		for k, v := range ids {
+			obj := v.(*struct{ ObjectId int })
+			if k != 0 {
+				query += "UNION ALL\n"
+			}
+			query += "SELECT * FROM (SELECT * FROM LoggingData WHERE ObjectId = " + fmt.Sprintf("%d", obj.ObjectId) + " ORDER BY Timestamp DESC) a" + fmt.Sprintf("%d\n", k)
+		}
+		query += "ORDER BY ObjectId, Timestamp ASC"
+		results, err := c.Txn.Select(logger.LoggingData{}, query)
+		if err != nil {
+			fmt.Println("Error getting datalogs:", err)
+		}
 
+		var groupsize = len(results) / 5000
+		var group = make(map[int][]*logger.LoggingData)
+		for _, v := range results {
+			m := v.(*logger.LoggingData)
+			key := fmt.Sprintf("%v", m.ObjectId)
+			if groupsize > 0 {
+				if len(group[m.ObjectId]) < groupsize-1 {
+					group[m.ObjectId] = append(group[m.ObjectId], m)
+				} else {
+					var time = m.Timestamp
+					var min = m.Min
+					var max = m.Max
+					var avg = m.Avg
+					for _, d := range group[m.ObjectId] {
+						if d.Timestamp < time {
+							time = d.Timestamp
+						}
+						if d.Min < min {
+							min = d.Min
+						}
+						if d.Max > max {
+							max = d.Max
+						}
+						avg += d.Avg
+					}
+					avg = avg / float64(groupsize)
+					objects[key] = append(objects[key],
+						LogDataClientFormat{Timestamp: time,
+							Min: min,
+							Max: max,
+							Avg: avg})
+					group[m.ObjectId] = nil
+				}
+
+			} else {
+				objects[key] = append(objects[key],
+					LogDataClientFormat{Timestamp: m.Timestamp,
+						Min: m.Min,
+						Max: m.Max,
+						Avg: m.Avg})
+			}
+		}
+	}
 	return c.RenderJson(objects)
 }
 

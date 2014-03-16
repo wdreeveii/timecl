@@ -155,6 +155,18 @@ function createStockChart() {
 		count: 5,
 		label: "5 Minutes"
 	}, {
+		period: "mm",
+		count: 60,
+		label: "1 Hour"
+	}, {
+		period: "mm",
+		count: 360,
+		label: "6 Hours"
+	}, {
+		period: "mm",
+		count: 720,
+		label: "12 Hours"
+	}, {
 		selected: true,
 		period: "mm",
 		count: 1440,
