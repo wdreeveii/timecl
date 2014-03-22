@@ -166,19 +166,19 @@ function _resize_canvas()
 	var y_size = zoom * ((extents[2] - extents[3]) + 200);
 
 	if (x_size > x) {
-		if (save_x_ofs > x_ofs) {
+		/*if (save_x_ofs > x_ofs) {
 			container.animate({scrollLeft:0}, 10);
 		} else if (save_x_ofs == x_ofs) {
 			container.animate({scrollLeft:x_size - x}, 5);
-		}
+		}*/
 		x = x_size;
 	}
 	if (y_size > y) {
-		if (save_y_ofs < y_ofs) {
+		/*if (save_y_ofs < y_ofs) {
 			container.animate({scrollTop:0}, 10);
 		} else if (save_y_ofs == y_ofs) {
 			container.animate({scrollTop:y_size - y}, 5);
-		}
+		}*/
 		y = y_size;
 	}
 	if (container.innerHeight() < y) {
@@ -413,7 +413,7 @@ function ui_add_pipe2(pos)
 		obj[i].selected  =0;
 		obj[sel_obj].selected  =0;
 
-		//set_mode("add_pipe");
+		set_mode("add_pipe");
 		//set_mode("none");
 	} else {
 		set_mode ("none");

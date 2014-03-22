@@ -494,14 +494,26 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	var timezone = stringify(o.GetProperty("timezone"))
 	var loc, err = time.LoadLocation(timezone)
 	if err != nil {
+		(*o)["NextOutput"] = float64(0)
+		o.AssignOutput(Objects, 0)
 		return
 	}
 	var current_time = time.Now()
 	var year, month, day = current_time.Date()
 	m := int(month)
-	var on_time, _ = time.ParseInLocation("15:04", on.(string), loc)
+	on_time, err := time.ParseInLocation("15:04", on.(string), loc)
+	if err != nil {
+		(*o)["NextOutput"] = float64(0)
+		o.AssignOutput(Objects, 0)
+		return
+	}
 	on_time = on_time.AddDate(year, m-1, day-1)
-	var off_time, _ = time.ParseInLocation("15:04", off.(string), loc)
+	off_time, err := time.ParseInLocation("15:04", off.(string), loc)
+	if err != nil {
+		(*o)["NextOutput"] = float64(0)
+		o.AssignOutput(Objects, 0)
+		return
+	}
 	off_time = off_time.AddDate(year, m-1, day-1)
 
 	if current_time.After(on_time) && current_time.Before(off_time) {

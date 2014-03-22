@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"fmt"
 	"github.com/revel/revel"
+	"time"
 	"timecl/app/logic_engine"
 )
 
@@ -41,10 +42,13 @@ func (c Engine) NewEngine() revel.Result {
 	engine.Save()
 	return c.RenderJson(1)
 }
-
+func setDeadline(ws *websocket.Conn) error {
+	return ws.SetDeadline(time.Now().Add(60 * time.Second))
+}
 func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 	// Close transaction to prevent database writer starvation
 	c.Commit()
+
 	subscription := engine.Subscribe()
 	defer subscription.Cancel()
 	init := engine.ListObjects()
@@ -65,7 +69,12 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 		for {
 			err := websocket.JSON.Receive(ws, &msg)
 			if err != nil {
-				revel.INFO.Println("Error receiving msg from client:", err)
+				revel.ERROR.Println("Error receiving msg from client:", err)
+				close(newMessages)
+				return
+			}
+			if err := setDeadline(ws); err != nil {
+				revel.ERROR.Println(err)
 				close(newMessages)
 				return
 			}
@@ -78,7 +87,11 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 		select {
 		case event := <-subscription.New:
 			if err := websocket.JSON.Send(ws, &event); err != nil {
-				revel.INFO.Println("Error sending msg to client:", err)
+				revel.ERROR.Println("Error sending msg to client:", err)
+				return nil
+			}
+			if err := setDeadline(ws); err != nil {
+				revel.ERROR.Println(err)
 				return nil
 			}
 		case msg, ok := <-newMessages:

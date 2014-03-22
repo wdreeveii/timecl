@@ -119,16 +119,16 @@ function object_type(name)
 	
 		var name = this.get_property("name");
 	
-	   	ctx.fillText(name, Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y) - f_size  / 2));
+	   	ctx.fillText(name, get_x(x + this.Xsize * 0.1 ), get_y(y) - f_size  / 2);
 	
 		if (this.show_output)
-	    	ctx.fillText(format(this.Output), Math.round(get_x(x + this.Xsize * 0.3 )), Math.round(get_y(y + this.Ysize/2) + f_size  / 2));
+	    	ctx.fillText(format(this.Output), get_x(x + this.Xsize * 0.3 ), get_y(y + this.Ysize/2) + f_size  / 2);
 	
 		if (this.show_analog)
-	    	ctx.fillText(format(this.Output), Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y + this.Ysize/2) + f_size  / 2));
+	    	ctx.fillText(format(this.Output), get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) + f_size  / 2);
 	
 		if (this.show_name)
-	    	ctx.fillText(this.show_name, Math.round(get_x(x + this.Xsize * 0.1 )), Math.round(get_y(y + this.Ysize/2) - f_size  / 2 * 1.5));
+	    	ctx.fillText(this.show_name, get_x(x + this.Xsize * 0.1 ), get_y(y + this.Ysize/2) - f_size  / 2 * 1.5);
 	    
 		ctx.fillStyle = old_fill;
 	}	
