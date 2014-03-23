@@ -1,6 +1,7 @@
 package logic_engine
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -58,33 +59,36 @@ func init() {
 
 }
 
-func ProcessGuide(o *Object_t, Objects map[int]*Object_t, iteration int) {
+func ProcessGuide(o *Object_t, Objects map[int]*Object_t, iteration int) error {
 	source := int((*o)["Source"].(int))
 	if source < 0 {
-		return
+		return nil
 	}
 	(*o)["NextOutput"] = (*Objects[source])["Output"]
+	return nil
 }
 
-func ProcessBinput(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(1) {
-		return
+func ProcessBinput(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(1); err != nil {
+		return err
 	}
-	port_value, ok := (*o)["PortValue"]
+	port_value, ok := (*o)["PortValue"].(float64)
 	if ok {
-		val, ok := port_value.(float64)
-		if ok {
-			(*o)["Output"] = val
-		}
+		(*o)["Output"] = port_value
+	} else {
+		(*o)["Output"] = float64(-99)
 	}
 
 	(*o)["NextOutput"] = (*o)["Output"]
-	o.AssignOutput(Objects, 0)
+	err = o.AssignOutput(Objects, 0)
+	return err
 }
 
-func ProcessAinput(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(1) {
-		return
+func ProcessAinput(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(1); err != nil {
+		return err
 	}
 	min, ok := o.GetProperty("Auto scale - Min").(float64)
 	if !ok {
@@ -95,70 +99,69 @@ func ProcessAinput(o *Object_t, Objects map[int]*Object_t, iteration int) {
 		max = 5
 	}
 	(*o)["NextOutput"] = (*o)["Output"]
-	port_value, ok := (*o)["PortValue"]
+	port_value, ok := (*o)["PortValue"].(float64)
 	if ok {
-		in, ok := port_value.(float64)
-		if ok {
-			(*o)["NextOutput"] = float64(in*(1.0/(65536.0/math.Abs(min-max))) + min)
-		}
+		(*o)["NextOutput"] = float64(port_value*(1.0/(65536.0/math.Abs(min-max))) + min)
 	}
 
-	o.AssignOutput(Objects, 0)
+	err = o.AssignOutput(Objects, 0)
+	return err
 }
 
-func ProcessBoutput(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(1) {
-		return
+func ProcessBoutput(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	if err := o.CheckTerminals(1); err != nil {
+		return err
 	}
 	value, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process boutput:", err)
-		return
+		return err
 	}
 	(*o)["NextOutput"] = value
+	return nil
 }
 
-func ProcessAoutput(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(1) {
-		return
+func ProcessAoutput(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	if err := o.CheckTerminals(1); err != nil {
+		return err
 	}
 	value, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process aoutput:", err)
+		return err
 	}
 	(*o)["NextOutput"] = value
+	return nil
 }
 
-func ProcessNotGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(2) {
-		return
+func ProcessNotGate(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(2); err != nil {
+		return err
 	}
 	input, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process not gate:", err)
-		return
+		return err
 	}
 	if input > 0 {
 		(*o)["NextOutput"] = float64(0)
 	} else {
 		(*o)["NextOutput"] = float64(1)
 	}
-	o.AssignOutput(Objects, 1)
+	err = o.AssignOutput(Objects, 1)
+	return err
 }
 
-func ProcessAndGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessAndGate(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process and gate:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process and gate:", err)
-		return
+		return err
 	}
 
 	if in_a > 0 && in_b > 0 {
@@ -166,340 +169,352 @@ func ProcessAndGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessOrGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessOrGate(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process or gate:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process or gate:", err)
-		return
+		return err
 	}
 	if in_a > 0 || in_b > 0 {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
 func xor(cond1, cond2 bool) bool {
 	return (cond1 || cond2) && !(cond1 && cond2)
 }
 
-func ProcessXorGate(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessXorGate(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process xor gate:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process xor gate:", err)
-		return
+		return err
 	}
 	if xor((in_a > 0), (in_b > 0)) {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessMult(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessMult(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process mult:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process mult:", err)
-		return
+		return err
 	}
 	(*o)["NextOutput"] = in_a * in_b
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessDiv(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessDiv(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err := o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process div:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process div:", err)
-		return
+		return err
 	}
 	if in_b != 0 {
 		(*o)["NextOutput"] = in_a / in_b
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessAdd(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessAdd(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process add:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process add:", err)
-		return
+		return err
 	}
 	(*o)["NextOutput"] = in_a + in_b
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessSub(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessSub(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process subtraction:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process subtraction:", err)
-		return
+		return err
 	}
 	(*o)["NextOutput"] = in_a - in_b
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessPower(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessPower(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	(*o)["NextOutput"] = math.Pow(in_a, in_b)
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessSine(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(2) {
-		return
+func ProcessSine(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(2); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process sine:", err)
-		return
+		return err
 	}
 	(*o)["NextOutput"] = math.Sin(in_a)
-	o.AssignOutput(Objects, 1)
+	err = o.AssignOutput(Objects, 1)
+	return err
 }
 
-func ProcessCosine(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(2) {
-		return
+func ProcessCosine(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(2); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process cosine:", err)
+		return err
 	}
 	(*o)["NextOutput"] = math.Cos(in_a)
-	o.AssignOutput(Objects, 1)
+	err = o.AssignOutput(Objects, 1)
+	return err
 }
 
-func ProcessAGTB(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessAGTB(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	if in_a > in_b {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessAGTEB(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessAGTEB(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	if in_a >= in_b {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessALTB(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessALTB(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	if in_a < in_b {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessALTEB(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessALTEB(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	if in_a <= in_b {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessAEQB(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessAEQB(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	if in_a == in_b {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
-func ProcessANEQB(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(3) {
-		return
+func ProcessANEQB(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err := o.CheckTerminals(3); err != nil {
+		return err
 	}
 	in_a, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	in_b, err := o.GetTerminal(Objects, 1)
 	if err != nil {
-		LOG.Println("Process power:", err)
-		return
+		return err
 	}
 	if in_a != in_b {
 		(*o)["NextOutput"] = float64(1)
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 2)
+	err = o.AssignOutput(Objects, 2)
+	return err
 }
 
 var tbmu sync.Mutex
 var tick float64
 
-func ProcessTimeBase(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(1) {
-		return
+func ProcessTimeBase(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(1); err != nil {
+		return err
 	}
 	tbmu.Lock()
 	(*o)["NextOutput"] = tick //float64(time.Now().Unix())
 	tbmu.Unlock()
-	o.AssignOutput(Objects, 0)
+	err = o.AssignOutput(Objects, 0)
+	return err
 }
 
-func ProcessXYscope(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(2) {
-		return
+func ProcessXYscope(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	if err := o.CheckTerminals(2); err != nil {
+		return err
 	}
+	return nil
 }
 
-func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) {
+func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
 	if iteration != 0 {
-		return
+		return nil
 	}
-	if o.CheckTerminals(1) {
-		return
+	if err = o.CheckTerminals(1); err != nil {
+		return err
 	}
 	var on = o.GetProperty("on")
 	var off = o.GetProperty("off")
 	var timezone = stringify(o.GetProperty("timezone"))
-	var loc, err = time.LoadLocation(timezone)
+	loc, err := time.LoadLocation(timezone)
 	if err != nil {
 		(*o)["NextOutput"] = float64(0)
-		o.AssignOutput(Objects, 0)
-		return
+		err2 := o.AssignOutput(Objects, 0)
+		if err2 != nil {
+			return fmt.Errorf("Two errors encountered:", err, err2)
+		} else {
+			return err
+		}
 	}
 	var current_time = time.Now()
 	var year, month, day = current_time.Date()
@@ -507,15 +522,23 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	on_time, err := time.ParseInLocation("15:04", on.(string), loc)
 	if err != nil {
 		(*o)["NextOutput"] = float64(0)
-		o.AssignOutput(Objects, 0)
-		return
+		err2 := o.AssignOutput(Objects, 0)
+		if err2 != nil {
+			fmt.Errorf("Two errors encountered:", err, err2)
+		} else {
+			return err
+		}
 	}
 	on_time = on_time.AddDate(year, m-1, day-1)
 	off_time, err := time.ParseInLocation("15:04", off.(string), loc)
 	if err != nil {
 		(*o)["NextOutput"] = float64(0)
-		o.AssignOutput(Objects, 0)
-		return
+		err2 := o.AssignOutput(Objects, 0)
+		if err2 != nil {
+			return fmt.Errorf("Two errors encountered:", err, err2)
+		} else {
+			return err
+		}
 	}
 	off_time = off_time.AddDate(year, m-1, day-1)
 
@@ -524,15 +547,17 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	} else {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 0)
+	err = o.AssignOutput(Objects, 0)
+	return err
 }
 
-func ProcessTimer(o *Object_t, Objects map[int]*Object_t, iteration int) {
+func ProcessTimer(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
 	if iteration != 0 {
-		return
+		return nil
 	}
-	if o.CheckTerminals(1) {
-		return
+	if err = o.CheckTerminals(1); err != nil {
+		return err
 	}
 	var start int64
 	var ok bool
@@ -549,13 +574,11 @@ func ProcessTimer(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	off := o.GetProperty("off duration")
 	on_dur, err := time.ParseDuration(stringify(on))
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	off_dur, err := time.ParseDuration(stringify(off))
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	on_secs := int64(on_dur / time.Second)
 	off_secs := int64(off_dur / time.Second)
@@ -567,12 +590,14 @@ func ProcessTimer(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	} else if modsecs >= on_secs {
 		(*o)["NextOutput"] = float64(0)
 	}
-	o.AssignOutput(Objects, 0)
+	err = o.AssignOutput(Objects, 0)
+	return err
 }
 
-func ProcessDelay(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(2) {
-		return
+func ProcessDelay(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(2); err != nil {
+		return err
 	}
 	delay, ok := o.GetProperty("delay").(float64)
 	if !ok {
@@ -584,8 +609,7 @@ func ProcessDelay(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	}
 	input, err := o.GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process delay:", err)
-		return
+		return err
 	}
 	current_time := time.Now()
 	current_delay_start, ok := (*o)["_current_delay"].(time.Time)
@@ -593,7 +617,7 @@ func ProcessDelay(o *Object_t, Objects map[int]*Object_t, iteration int) {
 		current_delay_start = current_time
 		if input > 0 && delay > 0 {
 			(*o)["_current_delay"] = current_delay_start
-			return
+			return nil
 		}
 	}
 	delay_end := current_delay_start.Add(time.Duration(delay) * time.Second)
@@ -627,12 +651,14 @@ func ProcessDelay(o *Object_t, Objects map[int]*Object_t, iteration int) {
 		(*o)["NextOutput"] = float64(0)
 	}
 
-	o.AssignOutput(Objects, 1)
+	err = o.AssignOutput(Objects, 1)
+	return err
 }
 
-func ProcessConversion(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(2) {
-		return
+func ProcessConversion(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	var err error
+	if err = o.CheckTerminals(2); err != nil {
+		return err
 	}
 	a, ok := o.GetProperty("a").(float64)
 	if !ok {
@@ -648,11 +674,11 @@ func ProcessConversion(o *Object_t, Objects map[int]*Object_t, iteration int) {
 	}
 	input, err := (*o).GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process conversion:", err)
-		return
+		return err
 	}
 	(*o)["NextOutput"] = a*(input*input) + b*input + c
-	o.AssignOutput(Objects, 1)
+	err = o.AssignOutput(Objects, 1)
+	return err
 }
 
 func getSurroundingTimeslots(current time.Time, freq float64) (time.Time, time.Time) {
@@ -665,24 +691,18 @@ func getSurroundingTimeslots(current time.Time, freq float64) (time.Time, time.T
 	return prev_timeslot_start, next_timeslot_start
 }
 
-func ProcessLogger(o *Object_t, Objects map[int]*Object_t, iteration int) {
-	if o.CheckTerminals(1) {
-		return
+func ProcessLogger(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	if err := o.CheckTerminals(1); err != nil {
+		return err
 	}
 
 	input, err := (*o).GetTerminal(Objects, 0)
 	if err != nil {
-		LOG.Println("Process logger:", err)
-		return
+		return err
 	}
-	objid_lookup, ok := (*o)["Id"]
+	objid, ok := (*o)["Id"].(int)
 	if !ok {
-		LOG.Println("Process logger: Object has no Id property")
-	}
-	objid, ok := objid_lookup.(int)
-	if !ok {
-		LOG.Println("Proccess logger: Object Id is not the correct type.")
-		return
+		return errors.New("Object Id doesn't exist or is of improper type.")
 	}
 	min, ok := (*o)["_min_value"].(float64)
 	if !ok {
@@ -747,4 +767,17 @@ func ProcessLogger(o *Object_t, Objects map[int]*Object_t, iteration int) {
 		(*o)["_avg_data"] = avg
 	}
 	(*o)["NextOutput"] = input
+	return nil
+}
+
+func ProcessAlert(o *Object_t, Objects map[int]*Object_t, iteration int) error {
+	if err := o.CheckTerminals(1); err != nil {
+		return err
+	}
+
+	/*input, err := (*o).GetTerminal(Objects, 0)
+	if err != nil {
+		return err
+	}*/
+	return nil
 }

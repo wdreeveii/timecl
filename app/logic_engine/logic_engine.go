@@ -16,7 +16,7 @@ import (
 var LOG = log.New(os.Stderr, "LogicEngine ", log.Ldate|log.Ltime)
 var DEBUG = log.New(ioutil.Discard, "LogicEngine ", log.Ldate|log.Ltime)
 
-type processor func(o *Object_t, objs map[int]*Object_t, iteration int)
+type processor func(o *Object_t, objs map[int]*Object_t, iteration int) error
 
 type Id int
 type Type string
@@ -72,87 +72,63 @@ func (o Object_t) Display() {
 	LOG.Println(output)
 }
 
-func (o Object_t) Process(Objects map[int]*Object_t) {
+func (o Object_t) Process(Objects map[int]*Object_t) error {
+	return nil
 }
 
-func (o Object_t) AssignOutput(objs map[int]*Object_t, terminal int) {
-	iterms, ok := o["Terminals"]
+func (o Object_t) AssignOutput(objs map[int]*Object_t, terminal int) error {
+	terms, ok := o["Terminals"].([]interface{})
 	if !ok {
-		LOG.Println("No terminal list.")
-		return
+		return errors.New("No terminal list/terminal list of improper type.")
 	}
-	terms, ok := iterms.([]interface{})
-	if !ok {
-		LOG.Println("Terminal list of unknown type.")
-		return
-	}
-
 	terminal64, ok := terms[terminal].(float64)
 	if !ok {
-		LOG.Println("Terminal conversion error.")
-		return
+		return errors.New("Specified terminal does not exist.")
 	}
 	obj, ok := objs[int(terminal64)]
 	if !ok {
-		LOG.Println("The specified object does not exist.")
-		return
+		return errors.New("The specified object does not exist.")
 	}
-	output, ok := o["Output"]
+	output64, ok := o["Output"].(float64)
 	if !ok {
-		LOG.Println("No output.")
-		return
-	}
-	output64, ok := output.(float64)
-	if !ok {
-		LOG.Println("Output of unknown type.")
-		return
+		return errors.New("No output value, or value is of improper type.")
 	}
 	(*obj)["NextOutput"] = output64
+	return nil
 }
 
-func (o Object_t) CheckTerminals(count int) bool {
+func (o Object_t) CheckTerminals(count int) error {
 	iterms, ok := o["Terminals"]
 	if !ok {
-		LOG.Println("No terminal list.")
-		return true
+		return errors.New("No terminal list.")
 	}
 	terms, ok := iterms.([]interface{})
 	if !ok {
-		LOG.Println("Terminal list of unknown type.")
-		return true
+		return errors.New("Terminal list of unknown type.")
 	}
 	if len(terms) < count {
-		LOG.Println("Invalid Terminals for obj type:", o["Type"])
-		return true
+		return fmt.Errorf("Invalid Terminals for obj type:", o["Type"])
 	}
-	return false
+	return nil
 }
 
 func (o Object_t) GetTerminal(Objects map[int]*Object_t, term int) (float64, error) {
-	iterms, ok := o["Terminals"]
-	if !ok {
-		return 0, errors.New("No terminal list.")
-	}
-	terms, ok := iterms.([]interface{})
+	terms, ok := o["Terminals"].([]interface{})
 	if !ok {
 		return 0, errors.New("Terminals list of unknown type.")
 	}
 	terminal64, ok := terms[term].(float64)
 	if !ok {
-		return 0, errors.New("Terminal conversion error.")
+		return 0, errors.New("Specified Terminal does not exist or is of improper type.")
 	}
 	theterm := int(terminal64)
 	obj, ok := Objects[theterm]
 	if !ok {
 		return 0, errors.New("Specified object does not exist.")
 	}
-	output, ok := (*obj)["Output"]
+	output64, ok := (*obj)["Output"].(float64)
 	if !ok {
-		return 0, errors.New("No output.")
-	}
-	output64, ok := output.(float64)
-	if !ok {
-		return 0, errors.New("Output of unknown type.")
+		return 0, errors.New("No Output value or Output is of improper type.")
 	}
 	return output64, nil
 }
@@ -357,7 +333,10 @@ func (e *Engine_t) Run() {
 				for _, val := range e.Objects {
 					process := (*val)["process"].(processor)
 					if process != nil {
-						process(val, e.Objects, ii)
+						err := process(val, e.Objects, ii)
+						if err != nil {
+							LOG.Println("Process Object:", err)
+						}
 					}
 				}
 
