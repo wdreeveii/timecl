@@ -486,6 +486,9 @@ func ProcessXYscope(o *Object_t, Objects map[int]*Object_t, iteration int) {
 }
 
 func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if iteration != 0 {
+		return
+	}
 	if o.CheckTerminals(1) {
 		return
 	}
@@ -525,6 +528,9 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) {
 }
 
 func ProcessTimer(o *Object_t, Objects map[int]*Object_t, iteration int) {
+	if iteration != 0 {
+		return
+	}
 	if o.CheckTerminals(1) {
 		return
 	}

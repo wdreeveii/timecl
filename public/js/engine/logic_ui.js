@@ -422,8 +422,7 @@ function ui_add_pipe2(pos)
 
 function ui_move_object(pos, i)
 {
-	if (obj[i].Attached == -1)
-	{
+	if (obj[i].Attached < 1) {
 		obj_x_ofs = get_world_x(pos.x) - obj[i].Xpos;
 		obj_y_ofs = get_world_y(pos.y) - obj[i].Ypos;
 
@@ -443,10 +442,8 @@ function ui_delete_object(pos)
 {
 	var i = find_object(pos.x, pos.y);
 
-	if (i != -1) {
-		if (obj[i].Type != "guide") {
+	if (obj[i].Attached < 1) {
 			delete_object(i);
-		}
 	} else {
 		set_mode("none");
 	}

@@ -172,17 +172,26 @@ function process_messages() {
 	}
 }
 var msg_rate_limit = null;
+function rate_limit_timeout() {
+	if (socket_events.length > 0) {
+		msg_rate_limit = setTimeout(rate_limit_timeout, 1000);
+		requestAnimationFrame(function() {
+			process_messages();
+			draw_display();
+		});
+	} else {
+		msg_rate_limit = null;
+	}
+}
 function handle_message(event) {
 	//console.log(event.data);
 	socket_events.push(event.data);
 	if (msg_rate_limit == null) {
-		msg_rate_limit = setTimeout(function() {
-			requestAnimationFrame(function() {
-				process_messages();
-				draw_display();
-			});
-			msg_rate_limit = null;
-		}, 1000);
+		msg_rate_limit = setTimeout(rate_limit_timeout, 1000);
+		requestAnimationFrame(function() {
+			process_messages();
+			draw_display();
+		});
 	}
 }
 
