@@ -61,7 +61,6 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 		revel.INFO.Println(err)
 		return nil
 	}
-	revel.INFO.Println(ports)
 
 	newMessages := make(chan logic_engine.Event)
 	go func() {

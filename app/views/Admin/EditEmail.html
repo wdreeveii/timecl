@@ -1,0 +1,77 @@
+{{set . "title" "Email Settings"}}
+{{template "header.html" .}}
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h1>Change Email Settings</h1>
+  </div>
+  <div class="panel-body">
+    <form method="POST" action="{{url "Admin.SaveEmail"}}">
+      <table class="table table-bordered">
+        {{with $field := field "email.Addr" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">SMTP Server Address:</span></td>
+            <td style="width: 80%"><input type="text" name="{{$field.Name}}" value="{{$field.Value}}" size="50"/> *
+              <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+        {{with $field := field "email.Port" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">SMTP Server Port:</span></td>
+            <td><input type="text" name="{{$field.Name}}"  value="{{$field.Value}}"size="16"/> *
+              <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+        {{with $field := field "email.SSL" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">Use SSL:</span></td>
+            <td><input type="checkbox" name="{{$field.Name}}" {{if eq $field.Value "on"}}checked{{end}}/>
+              <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+        {{with $field := field "email.Username" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">Username:</span></td>
+            <td><input type="text" name="{{$field.Name}}" value="{{$field.Value}}" size="50"/> *
+              <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+        {{with $field := field "email.Password" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">Password:</span></td>
+            <td><input type="password" name="{{$field.Name}}" size="50"/> *
+              <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+        {{with $field := field "email.AuthType" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">SMTP Server Authentication Type:</span></td>
+            <td><select name="{{$field.Name}}" value="{{$field.Value}}">
+              <option value="PASSWORD">Password</option>
+              <option value="MD5">MD5 Challenge-Response</option>
+            </select>
+            <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+        {{with $field := field "email.MaxMsgs" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">Maximum Messages:</span></td>
+            <td><input type="text" name="{{$field.Name}}" value="{{$field.Value}}" size="50"/>
+              <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+        {{with $field := field "email.MaxDuration" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">Duration:</span></td>
+            <td><input type="text" name="{{$field.Name}}" value="{{$field.Value}}" size="50"/>
+              <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+      </table>
+      <p class="buttons">
+        <input type="submit" value="Save">
+        <a href="{{url "Network.NetworkConfig"}}">Cancel</a>
+      </p>
+    </form>
+  </div>
+</div>
+{{template "footer.html" .}}

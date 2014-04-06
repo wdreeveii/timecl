@@ -6,8 +6,7 @@
 
 "use strict";
 
-function backend_setproperties(id, PropertyCount, PropertyNames, PropertyTypes, PropertyValues)
-{
+function backend_setproperties(id, PropertyCount, PropertyNames, PropertyTypes, PropertyValues) {
 	var eevent = {
 		Type: "edit",
 		Data: {
@@ -24,8 +23,7 @@ function backend_setproperties(id, PropertyCount, PropertyNames, PropertyTypes, 
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_new_engine(name)
-{
+function backend_new_engine(name) {
 	$.ajax({
 		url: "/engine/new",
 		context: document.body,
@@ -33,9 +31,8 @@ function backend_new_engine(name)
 	});
 }
 
-function backend_save_engine(name)
-{
-	var cmd = "name="+name;
+function backend_save_engine(name) {
+	var cmd = "name=" + name;
 
 	$.ajax({
 		url: "/engine/save",
@@ -44,8 +41,8 @@ function backend_save_engine(name)
 		data: cmd
 	});
 }
-function backend_hookobject(id, source)
-{
+
+function backend_hookobject(id, source) {
 	var eevent = {
 		Type: "edit",
 		Data: {
@@ -59,8 +56,7 @@ function backend_hookobject(id, source)
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_unhookobject(id)
-{
+function backend_unhookobject(id) {
 	var eevent = {
 		Type: "edit",
 		Data: {
@@ -74,8 +70,7 @@ function backend_unhookobject(id)
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_setoutput(id, output)
-{
+function backend_setoutput(id, output) {
 	console.log("setting output");
 	var eevent = {
 		Type: "edit",
@@ -90,8 +85,7 @@ function backend_setoutput(id, output)
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_deleteobject(id)
-{
+function backend_deleteobject(id) {
 	var eevent = {
 		Type: "del",
 		Data: {
@@ -102,9 +96,7 @@ function backend_deleteobject(id)
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_addobject(obj)
-{
-	console.log("adding", obj)
+function backend_addobject(obj) {
 	var event = {
 		Type: "add",
 		Data: obj,
@@ -113,8 +105,7 @@ function backend_addobject(obj)
 	socket.send(JSON.stringify(event));
 }
 
-function backend_moveobject(id, x_pos, y_pos)
-{
+function backend_moveobject(id, x_pos, y_pos) {
 	var eevent = {
 		Type: "edit",
 		Data: {
@@ -128,25 +119,46 @@ function backend_moveobject(id, x_pos, y_pos)
 	}
 	socket.send(JSON.stringify(eevent));
 }
+var error_list = new Array();
 
 var socket;
-var socket_events = new Array();
-function process_messages() {
-	//console.log("events len", socket_events.length);
-	while (socket_events.length > 0) {
-		var event_msg = JSON.parse(socket_events.shift());
-		if (event_msg["Type"] == "add") {
+
+function process_messages(bufferedMsgs) {
+	while (bufferedMsgs.length > 0) {
+		var event_msg = JSON.parse(bufferedMsgs.shift());
+		if (event_msg["Type"] == "edit_many") {
 			var event_data = event_msg["Data"];
-			var object = load_object(event_data);
-			obj[object["Id"]] = object;
-		} else if (event_msg["Type"] == "edit_many") {
-			var event_data = event_msg["Data"];
-			for (var i = 0; i < event_data.length; i++ ) {
+			for (var i = 0; i < event_data.length; i++) {
 				var state_change = event_data[i];
 				var id = state_change["Id"];
 				var changes = state_change["State"];
 				for (var change in changes) {
 					obj[id][change] = changes[change];
+				}
+			}
+		} else if (event_msg["Type"] == "error_list") {
+			var event_data = event_msg["Data"];
+			for (i in event_data) {
+				var errkey = event_data[i]["Error"];
+				if (errkey in error_list) {
+					error_list[errkey]["Time"] = event_data[i]["Time"];
+					error_list[errkey]["Count"] += event_data[i]["Count"];
+					var eventtext = "<table><tr><td>" + errkey +
+						"</td><td>" + error_list[errkey]["Count"] +
+						"</td></tr></table>";
+					error_list[errkey]["Noty"].setText(eventtext);
+				} else {
+					var eventtext = "<table><tr><td>" + errkey +
+						"</td><td>" + event_data[i]["Count"] +
+						"</td></tr></table>"
+					error_list[errkey] = {
+						Noty: noty({
+							text: eventtext
+						}),
+						Count: event_data[i]["Count"],
+						Time: event_data[i]["Time"],
+						First: event_data[i]["First"]
+					};
 				}
 			}
 		} else if (event_msg["Type"] == "edit") {
@@ -158,77 +170,32 @@ function process_messages() {
 					obj[id][change] = changes[change];
 				}
 			}
+		} else if (event_msg["Type"] == "add") {
+			var event_data = event_msg["Data"];
+			var object = load_object(event_data);
+			obj[object["Id"]] = object;
 		} else if (event_msg["Type"] == "init") {
 			var event_data = event_msg["Data"];
-			/*for (x in event_data) {
-				console.log(x);
-			}*/
-			console.log(event_data);
 			obj = load_objects(event_data);
 			resize_canvas();
 		} else if (event_msg["Type"] == "init_ports") {
-			property_window.set('port_list', event_msg["Data"]);
+			if (property_window == null) {
+				port_list = event_msg["Data"];
+			} else {
+				property_window.set('port_list', event_msg["Data"]);
+			}
 		}
 	}
 }
-var msg_rate_limit = null;
-function rate_limit_timeout() {
-	if (socket_events.length > 0) {
-		msg_rate_limit = setTimeout(rate_limit_timeout, 1000);
-		requestAnimationFrame(function() {
-			process_messages();
-			draw_display();
-		});
-	} else {
-		msg_rate_limit = null;
-	}
-}
-function handle_message(event) {
-	//console.log(event.data);
-	socket_events.push(event.data);
-	if (msg_rate_limit == null) {
-		msg_rate_limit = setTimeout(rate_limit_timeout, 1000);
-		requestAnimationFrame(function() {
-			process_messages();
-			draw_display();
-		});
-	}
-}
 
-var backend_reset_timeout = false;
-function setup_socket() {
-	backend_reset_timeout = false;
-	socket = new WebSocket('ws://'+window.location.host+'/engine/ws');
-	socket.onmessage = handle_message;
-	socket.onerror = function(event) {
-		console.log("socket error", event);
-	}
-	socket.onclose = function(event) {
-		console.log("on close");
-		reset_socket();
-	}
-}
-
-function reset_socket() {
-	if (backend_reset_timeout == false) {
-		socket.close();
-		setTimeout(setup_socket, 5000);
-		backend_reset_timeout = true;
-	}
-}
 function backend_start() {
-	var sleep_detect_interval_start = new Date();
-	var sleep_detect_interval = setInterval(function() {
-		if (sleep_detect_interval_start.getTime() + 60000 < new Date().getTime()) {
-			console.log("Detected sleep: restarting...")
-			reset_socket();
+	socket = TameSocket({
+		target: 'ws://' + window.location.host + '/engine/ws',
+		msgProcessor: function(bufferedEvents) {
+			requestAnimationFrame(function() {
+				process_messages(bufferedEvents);
+				draw_display();
+			});
 		}
-		sleep_detect_interval_start = new Date();
-	}, 1000);
-	setup_socket();
-	$(document).on('online', function (event) {
-		console.log("online");
-    	reset_socket();
 	});
 }
-

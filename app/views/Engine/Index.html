@@ -6,17 +6,21 @@
 {{append . "moreScripts" "js/tz.json"}}
 {{append . "moreScripts" "js/jstz-1.0.4.min.js"}}
 {{append . "moreScripts" "js/Ractive.js"}}
+{{append . "moreScripts" "js/noty/packaged/jquery.noty.packaged.min.js"}}
 {{append . "moreScripts" "js/engine/object.js"}}
 {{append . "moreScripts" "js/engine/objects.js"}}
 {{append . "moreScripts" "js/engine/graphics.js"}}
 {{append . "moreScripts" "js/engine/data_source.js"}}
+{{append . "moreScripts" "js/TameSocket.js"}}
 {{append . "moreScripts" "js/engine/backend_link.js"}}
-{{append . "moreScripts" "js/engine/logic_ui.js"}}
 {{append . "moreScripts" "js/engine/engine.js"}}
 {{template "header.html" .}}
 <div class='toolbar'>
-    <button type="button" id='ptr_btn' class="tool btn btn-default btn-sm active" onclick="set_mode('none');">
-        <span title="Pointer" class="glyphicon glyphicon-hand-up"></span>
+    <button type="button" id="zoom_in_btn" class="tool btn btn-default btn-sm" onclick="zoom_in();">
+        <span title="Zoom In" class="glyphicon glyphicon-zoom-in"></span>
+    </button>
+    <button type="button" id="zoom_out_btn" class="tool btn btn-default btn-sm" onclick="zoom_out();">
+        <span title="Zoom Out" class="glyphicon glyphicon-zoom-out"></span>
     </button>
     <button type="button" id='wire_btn' class="tool btn btn-default btn-sm" onclick="set_mode('add_pipe');">
         <span title="Wire" class="glyphicon glyphicon-pencil"></span>
@@ -27,9 +31,9 @@
     <button type="button" id='delete_btn' class="tool btn btn-default btn-sm" onclick="set_mode('delete');">
         <span title="Delete" class="glyphicon glyphicon-remove"></span>
     </button>
-
-    
-    
+    <button type="button" id='ptr_btn' class="tool btn btn-default btn-sm active" onclick="set_mode('none');">
+        <span title="Pointer" class="glyphicon glyphicon-hand-up"></span>
+    </button>
     <div class="pull-right">
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">IO<span class="caret"></span></a>
@@ -81,7 +85,7 @@
                 <li onclick="set_addmode('timebase');" class="btn"> Timebase </li>
                 <li onclick="set_addmode('timer');" class="btn"> Timer </li>
                 <li onclick="set_addmode('xyscope');" class="btn"> XYScope </li>
-                <li onclick="set_addmode('guide');" class="btn"> Terminal </li>
+                <li onclick="set_addmode('alert');" class="btn">Alert</li>
                 <li onclick="set_addmode('logger');" class="btn"> Logger </li>
                 <li onclick="set_addmode('delay');" class="btn">Delay</li>
             </ul>
@@ -92,6 +96,7 @@
                 <li onclick="set_addmode('block');" class="btn"> Block </li>
                 <li onclick="set_addmode('vbar');" class="btn"> Vert Bar </li>
                 <li onclick="set_addmode('hbar');" class="btn"> Horz Bar </li>
+                <li onclick="set_addmode('guide');" class="btn"> Terminal </li>
             </ul>
         </div>
         <div class="btn-group">
@@ -103,17 +108,17 @@
         </div>
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">View<span class="caret"></span></a>
-            <ul class="dropdown-menu">
+            <ul class="dropdown-menu pull-right">
                 <li onclick="set_guide('show');" class="btn">Show Term</li>
                 <li onclick="set_guide('hide');" class="btn">Hide Term</li>
             </ul>
         </div>
-        <div class="btn-group">
+        <!--<div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Engine<span class="caret"></span></a>
             <ul class="dropdown-menu">
                 <li onclick="new_engine();" class="btn">New</li>
             </ul>
-        </div>
+        </div>-->
     </div>
 </div>
 <div id='property_and_canvas'>
@@ -131,5 +136,6 @@
 </div>
 <div></div>
 <script id="propertyTemplate" type="ractive"></script>
+<script src="/public/js/engine/logic_ui.js"></script>
 {{template "footer.html" .}}
 

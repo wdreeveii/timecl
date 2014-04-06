@@ -9,11 +9,11 @@ import (
 	"log"
 	"os"
 	"runtime/pprof"
+	"sort"
 	"time"
 	"timecl/app/network_manager"
 )
 
-var LOG = log.New(os.Stderr, "LogicEngine ", log.Ldate|log.Ltime)
 var DEBUG = log.New(ioutil.Discard, "LogicEngine ", log.Ldate|log.Ltime)
 
 type processor func(o *Object_t, objs map[int]*Object_t, iteration int) error
@@ -69,7 +69,7 @@ func (o Object_t) Display() {
 	for _, val := range o["Terminals"].([]interface{}) {
 		output += fmt.Sprintf("%d ", int(val.(float64)))
 	}
-	LOG.Println(output)
+	fmt.Println(output)
 }
 
 func (o Object_t) Process(Objects map[int]*Object_t) error {
@@ -107,7 +107,7 @@ func (o Object_t) CheckTerminals(count int) error {
 		return errors.New("Terminal list of unknown type.")
 	}
 	if len(terms) < count {
-		return fmt.Errorf("Invalid Terminals for obj type:", o["Type"])
+		return fmt.Errorf("Invalid Terminals for obj type: %v", o["Type"])
 	}
 	return nil
 }
@@ -133,19 +133,25 @@ func (o Object_t) GetTerminal(Objects map[int]*Object_t, term int) (float64, err
 	return output64, nil
 }
 
-func (o Object_t) GetProperty(name string) interface{} {
-	PCount := o["PropertyCount"].(int)
+func (o *Object_t) GetProperty(name string) (interface{}, error) {
+	PCount := (*o)["PropertyCount"].(int)
 	if PCount <= 0 {
-		return nil
+		return nil, fmt.Errorf("Property %s not found.", name)
 	}
-	names := o["PropertyNames"].([]interface{})
+	names := (*o)["PropertyNames"].([]interface{})
 	for ii := 0; ii < PCount; ii++ {
 		if stringify(names[ii]) == name {
-			return o["PropertyValues"].([]interface{})[ii]
+			valList, ok := (*o)["PropertyValues"].([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("Property value list is of improper type.")
+			}
+			if ii >= len(valList) {
+				return nil, fmt.Errorf("Specified property value is not in list.")
+			}
+			return valList[ii], nil
 		}
 	}
-	LOG.Println("Unable to find property ", name, " for ", o["Type"])
-	return nil
+	return nil, fmt.Errorf("Property %s not found.", name)
 }
 
 type Engine_t struct {
@@ -157,7 +163,7 @@ type Engine_t struct {
 }
 
 func (e *Engine_t) Init() {
-	LOG.Println("Logic Engine Start")
+	DEBUG.Println("Logic Engine Start")
 	e.UpdateRate = 10
 	e.SolveIterations = 50
 	e.Objects = make(map[int]*Object_t)
@@ -204,7 +210,7 @@ func (e *Engine_t) EditObject(new_states StateChange) {
 			e.Save()
 		}
 	} else {
-		LOG.Println("Edit: Unknown object")
+		PublishOneError(errors.New("Edit: Unknown object"))
 	}
 }
 
@@ -216,13 +222,17 @@ func (e *Engine_t) store_outputs() (outputs map[int]float64) {
 		switch {
 		case otype == "binput",
 			otype == "ainput":
-			if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
-				newvalue, err := network_manager.Get(port_uri)
-				if err == nil {
-					(*val)["PortValue"] = newvalue
-				} else {
-					delete((*val), "PortValue")
-					//LOG.Println("Problem getting port value:", err)
+			iport_uri, err := (*val).GetProperty("port")
+			if err != nil {
+				PublishOneError(err)
+			} else {
+				if port_uri, ok := iport_uri.(network_manager.PortURI); ok {
+					newvalue, err := network_manager.Get(port_uri)
+					if err == nil {
+						(*val)["PortValue"] = newvalue
+					} else {
+						delete((*val), "PortValue")
+					}
 				}
 			}
 		}
@@ -244,8 +254,13 @@ func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
 			switch {
 			case otype == "boutput",
 				otype == "aoutput":
-				if port_uri, ok := (*val).GetProperty("port").(network_manager.PortURI); ok {
-					output_changes = append(output_changes, network_manager.PortChange{URI: port_uri, Value: (*val)["Output"].(float64)})
+				iport_uri, err := (*val).GetProperty("port")
+				if err != nil {
+					PublishOneError(err)
+				} else {
+					if port_uri, ok := iport_uri.(network_manager.PortURI); ok {
+						output_changes = append(output_changes, network_manager.PortChange{URI: port_uri, Value: (*val)["Output"].(float64)})
+					}
 				}
 			}
 		}
@@ -256,6 +271,29 @@ func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
 	if len(state_changes) > 0 {
 		PublishMultipleStateChanges(state_changes)
 	}
+}
+
+type ErrInfo struct {
+	Count int64
+	Time  time.Time
+	First time.Time
+}
+type ErrorSlice []*ErrorListElement
+type ErrorListElement struct {
+	Error string
+	Count int64
+	Time  time.Time
+	First time.Time
+}
+
+func (e ErrorSlice) Len() int {
+	return len(e)
+}
+func (e ErrorSlice) Swap(i, j int) {
+	e[i], e[j] = e[j], e[i]
+}
+func (e ErrorSlice) Less(i, j int) bool {
+	return e[i].Time.Before(e[j].Time)
 }
 
 func (e *Engine_t) Run() {
@@ -329,13 +367,21 @@ func (e *Engine_t) Run() {
 			calc_world = time.After(time.Duration(1000/e.UpdateRate) * time.Millisecond)
 			var outputs = e.store_outputs()
 
+			var errDedup = make(map[string]*ErrInfo)
 			for ii := 0; ii < e.SolveIterations; ii++ {
 				for _, val := range e.Objects {
 					process := (*val)["process"].(processor)
 					if process != nil {
 						err := process(val, e.Objects, ii)
 						if err != nil {
-							LOG.Println("Process Object:", err)
+							errkey := fmt.Sprintf("Process Object: %v", err)
+							_, ok := errDedup[errkey]
+							if ok {
+								errDedup[errkey].Count = 1
+								errDedup[errkey].Time = time.Now()
+							} else {
+								errDedup[errkey] = &ErrInfo{Count: 1, Time: time.Now(), First: time.Now()}
+							}
 						}
 					}
 				}
@@ -344,7 +390,12 @@ func (e *Engine_t) Run() {
 					(*val)["Output"] = (*val)["NextOutput"]
 				}
 			}
-
+			var errList = make(ErrorSlice, 0, len(errDedup))
+			for k, v := range errDedup {
+				errList = append(errList, &ErrorListElement{Error: k, Count: v.Count, Time: v.Time, First: v.First})
+			}
+			sort.Sort(errList)
+			e.Publish(Event{Type: "errors", Data: errList})
 			e.publish_output_changes(outputs)
 		}
 	}
@@ -368,8 +419,7 @@ func (e *Engine_t) ListPorts() Event {
 }
 
 type Subscription struct {
-	Archive []Event
-	New     <-chan Event
+	New <-chan Event
 }
 
 func (s Subscription) Cancel() {
@@ -384,13 +434,12 @@ func (e *Engine_t) Subscribe() Subscription {
 }
 
 type Event struct {
-	Type      string
-	Data      EventArgument
-	Timestamp int
+	Type string
+	Data EventArgument
 }
 
 func newEvent(typ string, data EventArgument) Event {
-	return Event{typ, data, int(time.Now().Unix())}
+	return Event{typ, data}
 }
 
 type StateChange struct {
@@ -404,7 +453,15 @@ type EventArgument interface {
 func PublishMultipleStateChanges(updates []StateChange) {
 	publish <- newEvent("edit_many", updates)
 }
-
+func PublishOneError(err error) {
+	var list ErrorSlice
+	list = append(list, &ErrorListElement{Error: err.Error(),
+		Count: 1,
+		Time:  time.Now(),
+		First: time.Now()})
+	var event = Event{Type: "errors", Data: list}
+	publish <- event
+}
 func (e *Engine_t) Publish(event Event) {
 	publish <- event
 }
@@ -419,29 +476,54 @@ var (
 
 // This function loops forever, handling the chat room pubsub
 func engine_pub_sub() {
-	archive := list.New()
 	subscribers := list.New()
-
+	var errDedup = make(map[string]*ErrInfo)
+	errorTicker := time.Tick(1 * time.Second)
 	for {
 		select {
 		case ch := <-subscribe:
-			var events []Event
-			for e := archive.Front(); e != nil; e = e.Next() {
-				events = append(events, e.Value.(Event))
-			}
 			subscriber := make(chan Event, 100)
 			subscribers.PushBack(subscriber)
-			ch <- Subscription{events, subscriber}
-
+			ch <- Subscription{subscriber}
+		case <-errorTicker:
+			var errors ErrorSlice
+			for k, v := range errDedup {
+				errors = append(errors, &ErrorListElement{Error: k,
+					Count: v.Count,
+					Time:  v.Time,
+					First: v.First})
+			}
+			errDedup = make(map[string]*ErrInfo)
+			if len(errors) > 0 {
+				sort.Sort(errors)
+				for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
+					ch.Value.(chan Event) <- Event{Type: "error_list", Data: errors}
+				}
+			}
 		case event := <-publish:
-			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
-				ch.Value.(chan Event) <- event
+			switch event.Type {
+			case "errors":
+				errlist, ok := event.Data.(ErrorSlice)
+				if ok {
+					for _, v := range errlist {
+						cachederr, ok := errDedup[v.Error]
+						if ok {
+							if v.Time.After(cachederr.Time) {
+								errDedup[v.Error].Time = v.Time
+							}
+							errDedup[v.Error].Count += v.Count
+						} else {
+							errDedup[v.Error] = &ErrInfo{Count: v.Count,
+								Time:  v.Time,
+								First: v.First}
+						}
+					}
+				}
+			default:
+				for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
+					ch.Value.(chan Event) <- event
+				}
 			}
-			if archive.Len() >= archiveSize {
-				archive.Remove(archive.Front())
-			}
-			archive.PushBack(event)
-
 		case unsub := <-unsubscribe:
 			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
 				if ch.Value.(chan Event) == unsub {

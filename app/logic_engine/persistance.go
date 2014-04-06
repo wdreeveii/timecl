@@ -23,7 +23,7 @@ func (p *processor) GobDecode([]byte) error {
 }
 
 func (e *Engine_t) Save() {
-	LOG.Println("Saving")
+	DEBUG.Println("Saving Engine")
 	path, found := revel.Config.String("engine.savefile")
 	if !found {
 		return
@@ -38,12 +38,12 @@ func (e *Engine_t) Save() {
 	enc := gob.NewEncoder(m)
 	err := enc.Encode(e)
 	if err != nil {
-		LOG.Println("Encoding:", err)
+		PublishOneError(fmt.Errorf("Save file encoding error:", err))
 		return
 	}
 	err = ioutil.WriteFile(path+".new", m.Bytes(), 0600)
 	if err != nil {
-		LOG.Println(err)
+		PublishOneError(fmt.Errorf("Save file write error:", err))
 		return
 	}
 	if _, err = os.Stat(path); err == nil {
@@ -52,34 +52,34 @@ func (e *Engine_t) Save() {
 			// backup exists
 			err = os.Remove(path + ".save")
 			if err != nil {
-				LOG.Println(err)
+				PublishOneError(fmt.Errorf("Backup save file removal error:", err))
 				return
 			}
 		}
 		err = os.Link(path, path+".save")
 		if err != nil {
-			LOG.Println(err)
+			PublishOneError(fmt.Errorf("Error creating backup save file:", err))
 			return
 		}
 		err = os.Remove(path)
 		if err != nil {
-			LOG.Println(err)
+			PublishOneError(fmt.Errorf("Error removing old save file:", err))
 			return
 		}
 	}
 	err = os.Link(path+".new", path)
 	if err != nil {
-		LOG.Println(err)
+		PublishOneError(fmt.Errorf("Error swapping original save file with new save file:", err))
 		return
 	}
 	err = os.Remove(path + ".new")
 	if err != nil {
-		LOG.Println(err)
+		PublishOneError(fmt.Errorf("Error removing new save file:", err))
 		return
 	}
 	err = os.Remove(path + ".save")
 	if err != nil {
-		LOG.Println(err)
+		PublishOneError(fmt.Errorf("Error removing backup save file:", err))
 		return
 	}
 }
@@ -111,15 +111,15 @@ func (e *Engine_t) ReadAndDecode(path string) (err error) {
 func (e *Engine_t) LoadObjects() {
 	path, found := revel.Config.String("engine.savefile")
 	if !found {
-		fmt.Println("No save file in configuration.")
+		DEBUG.Println("No save file in configuration.")
 		return
 	}
 	err := e.ReadAndDecode(path)
 	if err != nil {
-		LOG.Println(err)
+		DEBUG.Println(err)
 		eagain := e.ReadAndDecode(path + ".save")
 		if eagain != nil {
-			LOG.Println(eagain)
+			DEBUG.Println(eagain)
 			return
 		}
 	}

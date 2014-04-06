@@ -6,29 +6,63 @@
 
 "use strict";
 
-var chartData = {};
+function buildNewRangeEvent() {
+	var starttm = $('[name=time_start]').val();
+	var endtm = $('[name=time_end]').val();
+	var eevent = {
+		Type: "get_new_range",
+		Data: {
+			start: starttm.trim(),
+			end: endtm.trim()
+		}
+	}
+	return eevent;
+}
+$(function() {
+	var chart = createStockChart([]);
+	$('#periodSelect button').click(function() {
+		var duration = $(this).data('duration');
+		if (duration != "max") {
+			var end = chart.endDate;
+			var newstart = new Date(end.getTime() - duration);
+			chart.zoom(newstart, end);
+		} else {
+			chart.zoomOut();
+		}
+	});
+	var socket = TameSocket({
+		target: 'ws://' + window.location.host + '/logging/ws',
+		msgProcessor: function(bufferedMsgs) {
+			while (bufferedMsgs.length > 0) {
+				var event_msg = JSON.parse(bufferedMsgs.shift());
+				if (event_msg["Type"] == "update_data") {
+					$(".loading-animation").show();
+					var chartData = event_msg["Data"];
 
-$.ajax({
-	url: "/logging/data",
-	context: document.body,
-	dataType: "json"
-}).done(function(data) {
-	chartData = data;
-	$(function () {
-		$(".loading-animation").hide();
-		createStockChart();
+					chart = createStockChart(chartData);
+					$(".loading-animation").hide();
+				}
+			}
+		}
+	});
+	socket.onopen = function(event) {
+		var initial_range_msg = buildNewRangeEvent();
+		socket.send(JSON.stringify(initial_range_msg));
+	};
+	$('input').change(function(event) {
+		var eevent = buildNewRangeEvent();
+		socket.send(JSON.stringify(eevent));
+		$(".loading-animation").show();
 	});
 });
 
-
-function createStockChart() {
-	var chart = new AmCharts.AmStockChart();
-	chart.pathToImages = "/public/js/amcharts/images/";
-	chart.categoryAxesSettings.minPeriod = "ss";
-	// DATASETS //////////////////////////////////////////
-	// create data sets first
+function createStockChart(chartData) {
+	var amchart = new AmCharts.AmStockChart();
+	amchart.pathToImages = "/public/js/amcharts/images/";
+	amchart.categoryAxesSettings.minPeriod = "ss";
+	amchart.animationPlayed = true;
 	var datasets = []
-	Object.keys(chartData).forEach(function (x) {
+	Object.keys(chartData).forEach(function(x) {
 		for (var i = 0; i < chartData[x].length; i++) {
 			chartData[x][i].Timestamp = new Date(chartData[x][i].Timestamp * 1000);
 		}
@@ -50,7 +84,7 @@ function createStockChart() {
 	});
 
 	// set data sets to the chart
-	chart.dataSets = datasets;
+	amchart.dataSets = datasets;
 
 	// PANELS ///////////////////////////////////////////
 	// first stock panel
@@ -127,72 +161,25 @@ function createStockChart() {
 	stockPanel3.stockLegend = stockLegend3;
 
 	// set panels to the chart
-	chart.panels = [stockPanel1, stockPanel2, stockPanel3];
+	amchart.panels = [stockPanel1, stockPanel2, stockPanel3];
 
 
 	// OTHER SETTINGS ////////////////////////////////////
 	var sbsettings = new AmCharts.ChartScrollbarSettings();
 	sbsettings.graph = graph3;
 	sbsettings.usePeriod = "10mm";
-	chart.chartScrollbarSettings = sbsettings;
+	amchart.chartScrollbarSettings = sbsettings;
 
 	// CURSOR
 	var cursorSettings = new AmCharts.ChartCursorSettings();
 	cursorSettings.valueBalloonsEnabled = true;
-	chart.chartCursorSettings = cursorSettings;
-
-
-	// PERIOD SELECTOR ///////////////////////////////////
-	var periodSelector = new AmCharts.PeriodSelector();
-	periodSelector.dateFormat = "YYYY-MM-DD JJ:NN:SS";
-	periodSelector.position = "left";
-	periodSelector.periods = [{
-		period: "ss",
-		count: 60,
-		label: "1 Minute"
-	}, {
-		period: "mm",
-		count: 5,
-		label: "5 Minutes"
-	}, {
-		period: "mm",
-		count: 60,
-		label: "1 Hour"
-	}, {
-		period: "mm",
-		count: 360,
-		label: "6 Hours"
-	}, {
-		period: "mm",
-		count: 720,
-		label: "12 Hours"
-	}, {
-		selected: true,
-		period: "mm",
-		count: 1440,
-		label: "1 Day"
-	}, {
-		period: "DD",
-		count: 5,
-		label: "5 Days"
-	}, {
-		period: "YYYY",
-		count: 1,
-		label: "1 year"
-	}, {
-		period: "YTD",
-		label: "YTD"
-	}, {
-		period: "MAX",
-		label: "MAX"
-	}];
-	chart.periodSelector = periodSelector;
-
+	amchart.chartCursorSettings = cursorSettings;
 
 	// DATA SET SELECTOR
 	var dataSetSelector = new AmCharts.DataSetSelector();
-	dataSetSelector.position = "left";
-	chart.dataSetSelector = dataSetSelector;
+	dataSetSelector.position = "top";
+	amchart.dataSetSelector = dataSetSelector;
 
-	chart.write('chartdiv');
+	amchart.write('chartdiv');
+	return amchart;
 }

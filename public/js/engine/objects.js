@@ -880,7 +880,7 @@ function conversion_type (o)
 	o.Ysize = 60;
 
 	o.show_analog = 1;
-	o.show_name = "conversion";
+	o.show_name = "Conversion";
 	//o.show_output = 1;
 	
 	if (o.PropertyCount == 0)
@@ -933,12 +933,38 @@ function logger_type (o)
 {
 	//o.show_output = 1;
 	o.show_analog = 1;
-	o.show_name = "Log"
+	o.show_name = "Log";
 	if (o.PropertyCount == 0)
 	{
 		o.add_property("name", "string", "");
 		o.add_property("frequency", "float", 300);
 	}					 
+	
+	o.input_termcount = 1;
+	o.output_termcount = 0;
+			
+	o.draw_icon = function(ctx) 
+	{
+		bounding_rect(ctx, this);
+	}
+	//o.draw_properties	
+}
+
+object_list.push("alert");
+
+function alert_type (o)
+{
+	//o.show_output = 1;
+	o.show_analog = 1;
+	o.show_name = "Alert";
+	if (o.PropertyCount == 0)
+	{
+		o.add_property("name", "string", "");
+		o.add_property("Event Text", "string")
+		o.add_property("Email Recipients", "string", "");
+		o.add_property("Notify Event Start", "string", "Yes");
+		o.add_property("Notify Event End", "string", "Yes");
+	}
 	
 	o.input_termcount = 1;
 	o.output_termcount = 0;

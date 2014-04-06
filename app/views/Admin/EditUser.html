@@ -6,21 +6,26 @@
   </div>
   <div class="panel-body">
     <form method="POST" action="{{url "Admin.SaveSettings" .id }}">
-      {{with $field := field "password" .}}
-        <p class="{{$field.ErrorClass}}">
-          <strong>Password:</strong>
-          <input type="password" name="{{$field.Name}}" size="16"> *
-          <span class="error">{{$field.Error}}</span>
-        </p>
-      {{end}}
-      {{with $field := field "verifyPassword" .}}
-        <p class="{{$field.ErrorClass}}">
-          <strong>Verify password:</strong>
-          <input type="password" name="{{$field.Name}}" size="16"> *
-          <span class="error">{{$field.Error}}</span>
-        </p>
-      {{end}}
-
+      <div style="padding: 10px;">
+      <table class="table table-bordered">
+        <tbody>
+        {{with $field := field "password" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">Password:</span></td>
+            <td style="width: 80%;"><input type="password" name="{{$field.Name}}" size="16"> *
+            <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+        {{with $field := field "verifyPassword" .}}
+          <tr class="{{$field.ErrorClass}}">
+            <td><span class="label label-default">Verify password:</span></td>
+            <td><input type="password" name="{{$field.Name}}" size="16"> *
+            <span class="error">{{$field.Error}}</span></td>
+          </tr>
+        {{end}}
+      </tbody>
+      </table>
+    </div>
       <p class="buttons">
         <input type="submit" value="Save"> <a href="{{url "Admin.Index"}}">Cancel</a>
       </p>

@@ -36,6 +36,7 @@ func Init(dbmap *gorp.DbMap) {
 	})
 
 	t = dbm.AddTable(models.AppConfig{}).SetKeys(true, "ConfigId")
+	t.ColMap("Key").Unique = true
 	setColumnSizes(t, map[string]int{
 		"Key": 100,
 		"Val": 1000,

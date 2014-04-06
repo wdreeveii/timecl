@@ -5,12 +5,36 @@
 {{append . "moreScripts" "js/amcharts/amcharts.js"}}
 {{append . "moreScripts" "js/amcharts/serial.js"}}
 {{append . "moreScripts" "js/amcharts/amstock.js"}}
+{{append . "moreScripts" "js/TameSocket.js"}}
 {{append . "moreScripts" "js/logger/logger.js"}}
 {{template "header.html" .}}
 <div class="panel panel-default noscroll">
   <div class="panel-body scrollinside">
   	<span class="loading-animation"></span>
+  	<div id='periodSelect'>
+  		<p>
+  			<span>Start:</span><input name="time_start" type="text" size="15" value="start"/>
+  		</p>
+  		<p>
+  			<span>End:</span><input name="time_end" type="text" size="15" value="now"/>
+  		</p>
+  		<ul>
+  			<li><button data-duration="60000">1 Minute</button></li>
+  			<li><button data-duration="300000">5 Minutes</button></li>
+  			<li><button data-duration="900000">15 Minutes</button></li>
+  			<li><button data-duration="1800000">30 Minutes</button></li>
+  			<li><button data-duration="3600000">1 Hour</button></li>
+  			<li><button data-duration="21600000">6 Hours</button></li>
+  			<li><button data-duration="43200000">12 Hours</button></li>
+  			<li><button data-duration="86400000">1 Day</button></li>
+  			<li><button data-duration="432000000">5 Days</button></li>
+  			<li><button data-duration="2592000000">1 Month</button></li>
+  			<li><button data-duration="15552000000">6 Months</button></li>
+  			<li><button data-duration="max">Max</button></li>
+  		</ul>
+  	</div>
     <div id='chartdiv'></div>
+    <div style="clear: both;"></div>
   </div>
 </div>
 

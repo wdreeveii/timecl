@@ -1,6 +1,7 @@
 package logic_engine
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"timecl/app/network_manager"
@@ -13,7 +14,7 @@ func floatify(in interface{}) float64 {
 	case string:
 		result, err = strconv.ParseFloat(v, 64)
 		if err != nil {
-			LOG.Println("Parsing float from string:", err)
+			PublishOneError(fmt.Errorf("Error parsing float from string:", err))
 		}
 	case float64:
 		result = v
@@ -29,7 +30,7 @@ func intify(in interface{}) int {
 	case string:
 		res, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
-			LOG.Println("Parsing int from string:", err)
+			PublishOneError(fmt.Errorf("Error parsing int from string:", err))
 		}
 		result = int(res)
 	case float64:

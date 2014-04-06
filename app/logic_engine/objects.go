@@ -47,6 +47,7 @@ func init() {
 	processors["delay"] = ProcessDelay
 	processors["conversion"] = ProcessConversion
 	processors["logger"] = ProcessLogger
+	processors["alert"] = ProcessAlert
 
 	go func() {
 		for {
@@ -90,13 +91,21 @@ func ProcessAinput(o *Object_t, Objects map[int]*Object_t, iteration int) error 
 	if err = o.CheckTerminals(1); err != nil {
 		return err
 	}
-	min, ok := o.GetProperty("Auto scale - Min").(float64)
-	if !ok {
-		min = 0
+	imin, err := o.GetProperty("Auto scale - Min")
+	if err != nil {
+		PublishOneError(err)
 	}
-	max, ok := o.GetProperty("Auto scale - Max").(float64)
+	min, ok := imin.(float64)
 	if !ok {
-		max = 5
+		min = float64(0)
+	}
+	imax, err := o.GetProperty("Auto scale - Max")
+	if err != nil {
+		PublishOneError(err)
+	}
+	max, ok := imax.(float64)
+	if !ok {
+		max = float64(5)
 	}
 	(*o)["NextOutput"] = (*o)["Output"]
 	port_value, ok := (*o)["PortValue"].(float64)
@@ -503,9 +512,30 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) err
 	if err = o.CheckTerminals(1); err != nil {
 		return err
 	}
-	var on = o.GetProperty("on")
-	var off = o.GetProperty("off")
-	var timezone = stringify(o.GetProperty("timezone"))
+	ion, err := o.GetProperty("on")
+	if err != nil {
+		return err
+	}
+	on, ok := ion.(string)
+	if !ok {
+		return errors.New("on time property is of improper type.")
+	}
+	ioff, err := o.GetProperty("off")
+	if err != nil {
+		return err
+	}
+	off, ok := ioff.(string)
+	if !ok {
+		return errors.New("off time property is of improper type.")
+	}
+	itimezone, err := o.GetProperty("timezone")
+	if err != nil {
+		return err
+	}
+	timezone, ok := itimezone.(string)
+	if !ok {
+		return errors.New("timezone property is of improper type.")
+	}
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
 		(*o)["NextOutput"] = float64(0)
@@ -519,7 +549,7 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) err
 	var current_time = time.Now()
 	var year, month, day = current_time.Date()
 	m := int(month)
-	on_time, err := time.ParseInLocation("15:04", on.(string), loc)
+	on_time, err := time.ParseInLocation("15:04", on, loc)
 	if err != nil {
 		(*o)["NextOutput"] = float64(0)
 		err2 := o.AssignOutput(Objects, 0)
@@ -530,7 +560,7 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) err
 		}
 	}
 	on_time = on_time.AddDate(year, m-1, day-1)
-	off_time, err := time.ParseInLocation("15:04", off.(string), loc)
+	off_time, err := time.ParseInLocation("15:04", off, loc)
 	if err != nil {
 		(*o)["NextOutput"] = float64(0)
 		err2 := o.AssignOutput(Objects, 0)
@@ -570,13 +600,27 @@ func ProcessTimer(o *Object_t, Objects map[int]*Object_t, iteration int) error {
 		(*o)["_timer_start"] = start
 	}
 	now := time.Now().UTC().Unix()
-	on := o.GetProperty("on duration")
-	off := o.GetProperty("off duration")
-	on_dur, err := time.ParseDuration(stringify(on))
+	ion, err := o.GetProperty("on duration")
 	if err != nil {
 		return err
 	}
-	off_dur, err := time.ParseDuration(stringify(off))
+	on, ok := ion.(string)
+	if !ok {
+		return errors.New("on duration property is of improper type.")
+	}
+	ioff, err := o.GetProperty("off duration")
+	if err != nil {
+		return err
+	}
+	off, ok := ioff.(string)
+	if !ok {
+		return errors.New("off duration property is of improper type.")
+	}
+	on_dur, err := time.ParseDuration(on)
+	if err != nil {
+		return err
+	}
+	off_dur, err := time.ParseDuration(off)
 	if err != nil {
 		return err
 	}
@@ -599,11 +643,19 @@ func ProcessDelay(o *Object_t, Objects map[int]*Object_t, iteration int) error {
 	if err = o.CheckTerminals(2); err != nil {
 		return err
 	}
-	delay, ok := o.GetProperty("delay").(float64)
+	idelay, err := o.GetProperty("delay")
+	if err != nil {
+		PublishOneError(err)
+	}
+	delay, ok := idelay.(float64)
 	if !ok {
 		delay = float64(0)
 	}
-	min, ok := o.GetProperty("min on").(float64)
+	imin, err := o.GetProperty("min on")
+	if err != nil {
+		PublishOneError(err)
+	}
+	min, ok := imin.(float64)
 	if !ok {
 		min = float64(0)
 	}
@@ -660,17 +712,29 @@ func ProcessConversion(o *Object_t, Objects map[int]*Object_t, iteration int) er
 	if err = o.CheckTerminals(2); err != nil {
 		return err
 	}
-	a, ok := o.GetProperty("a").(float64)
-	if !ok {
-		a = 0
+	ia, err := o.GetProperty("a")
+	if err != nil {
+		PublishOneError(err)
 	}
-	b, ok := o.GetProperty("b").(float64)
+	a, ok := ia.(float64)
 	if !ok {
-		b = 0
+		a = float64(0)
 	}
-	c, ok := o.GetProperty("c").(float64)
+	ib, err := o.GetProperty("b")
+	if err != nil {
+		PublishOneError(err)
+	}
+	b, ok := ib.(float64)
 	if !ok {
-		c = 0
+		b = float64(0)
+	}
+	ic, err := o.GetProperty("c")
+	if err != nil {
+		PublishOneError(err)
+	}
+	c, ok := ic.(float64)
+	if !ok {
+		c = float64(0)
 	}
 	input, err := (*o).GetTerminal(Objects, 0)
 	if err != nil {
@@ -719,7 +783,8 @@ func ProcessLogger(o *Object_t, Objects map[int]*Object_t, iteration int) error 
 		avg = []float64{}
 		(*o)["_avg_data"] = avg
 	}
-	freq, ok := o.GetProperty("frequency").(float64)
+	ifreq, _ := o.GetProperty("frequency")
+	freq, ok := ifreq.(float64)
 	if !ok {
 		freq = 300
 	}
@@ -774,10 +839,96 @@ func ProcessAlert(o *Object_t, Objects map[int]*Object_t, iteration int) error {
 	if err := o.CheckTerminals(1); err != nil {
 		return err
 	}
-
-	/*input, err := (*o).GetTerminal(Objects, 0)
+	input, err := (*o).GetTerminal(Objects, 0)
 	if err != nil {
 		return err
-	}*/
+	}
+	current_time := time.Now()
+	alert_event_start, ok := (*o)["_alert_event_start"].(time.Time)
+	var start = false
+	var stop = false
+	if !ok {
+		alert_event_start = current_time
+		if input > 0 {
+			start = true
+			(*o)["_alert_event_start"] = alert_event_start
+		}
+	} else {
+		if input <= 0 {
+			stop = true
+			delete((*o), "_alert_event_start")
+		}
+	}
+	if start || stop {
+		objid, ok := (*o)["Id"].(int)
+		if !ok {
+			return errors.New("Object Id doesn't exist or is of improper type.")
+		}
+		iname, err := o.GetProperty("name")
+		if err != nil {
+			PublishOneError(err)
+		}
+		name, ok := iname.(string)
+		if !ok {
+			name = ""
+		}
+		ieventText, err := o.GetProperty("Event Text")
+		if err != nil {
+			return err
+		}
+		eventText, ok := ieventText.(string)
+		if !ok {
+			return errors.New("EventText is of improper type.")
+		}
+		irecipients, err := o.GetProperty("Email Recipients")
+		if err != nil {
+			return err
+		}
+		recipients, ok := irecipients.(string)
+		if !ok {
+			return errors.New("Email Recipients doesn't exist or is of improper type.")
+		}
+		if start {
+			inotify_event_start, err := o.GetProperty("Notify Event Start")
+			if err != nil {
+				PublishOneError(err)
+			}
+			notify_event_start, ok := inotify_event_start.(string)
+			if !ok {
+				notify_event_start = "No"
+			}
+			if notify_event_start == "Yes" {
+				var subject = "[" + name + "] "
+				subject += "Triggered: " + current_time.Format(time.StampMilli)
+				aEvent := logger.AlertData{Time: current_time,
+					ObjectId:   objid,
+					Subject:    subject,
+					EventText:  eventText,
+					Recipients: recipients}
+				logger.Publish(logger.Event{"alert", aEvent})
+			}
+		} else if stop {
+			inotify_event_end, err := o.GetProperty("Notify Event End")
+			if err != nil {
+				PublishOneError(err)
+			}
+			notify_event_end, ok := inotify_event_end.(string)
+			if !ok {
+				notify_event_end = "No"
+			}
+			if notify_event_end == "Yes" {
+				var subject = "[" + name + "] "
+				subject += "Recovered: " + current_time.Format(time.StampMilli)
+				aEvent := logger.AlertData{Time: current_time,
+					ObjectId:   objid,
+					Subject:    subject,
+					EventText:  eventText,
+					Recipients: recipients}
+				logger.Publish(logger.Event{"alert", aEvent})
+			}
+		}
+
+	}
+	(*o)["NextOutput"] = input
 	return nil
 }

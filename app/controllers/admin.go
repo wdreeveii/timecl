@@ -91,3 +91,19 @@ func (c Admin) SaveUser(user models.User, verifyPassword string) revel.Result {
 
 	return c.Redirect(Admin.Index)
 }
+
+func (c Admin) EditEmail() revel.Result {
+	email, err := models.GetEmail(c.Txn)
+	if err != nil {
+		revel.ERROR.Println(err)
+	}
+	return c.Render(email)
+}
+
+func (c Admin) SaveEmail(email models.Email) revel.Result {
+	err := models.SaveEmail(c.Txn, email)
+	if err != nil {
+		revel.ERROR.Println(err)
+	}
+	return c.Redirect(Network.NetworkConfig)
+}
