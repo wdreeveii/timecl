@@ -132,6 +132,24 @@ function find_extent() {
 	}
 	return [max_x + 100, min_x - 100, max_y + 100, min_y - 100];
 }
+
+function zoom_extent() {
+	console.log("hah")
+	var extents = find_extent();
+	var container = $(document.getElementById("canvas_container"));
+	var x = container.innerWidth();
+	var y = container.innerHeight();
+	var content_x_size = extents[0] - extents[1] + 100;
+	var content_y_size = extents[2] - extents[3] + 100;
+	var zoom_x = x / content_x_size;
+	var zoom_y = y / content_y_size;
+	var new_zoom = zoom_x;
+	if (zoom_y < new_zoom) {
+		new_zoom = zoom_y;
+	}
+	zoom = new_zoom;
+}
+
 var timer = null;
 
 function resize_canvas() {
