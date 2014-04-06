@@ -536,6 +536,9 @@ func ProcessTimeRange(o *Object_t, Objects map[int]*Object_t, iteration int) err
 	if !ok {
 		return errors.New("timezone property is of improper type.")
 	}
+	if timezone == "" {
+		timezone = "Local"
+	}
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
 		(*o)["NextOutput"] = float64(0)
