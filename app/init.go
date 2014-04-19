@@ -36,7 +36,7 @@ func Init() {
 	dbm := &gorp.DbMap{Db: Db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}}
 	dbm.TraceOn("[gorp]", revel.INFO)
 	log := logger.Init(dbm, models.EmailSettingsProvider{})
-	log.TraceOn("[logger]", revel.INFO)
+	log.ErrorOn("[logger]", revel.ERROR)
 	network_manager.Init(dbm)
 	controllers.Init(dbm)
 	go log.Run()

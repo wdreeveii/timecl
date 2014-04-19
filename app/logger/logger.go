@@ -377,7 +377,7 @@ func (m *LogManager) Run() {
 	}
 }
 
-func (m *LogManager) TraceOn(prefix string, logger LogStream) {
+func (m *LogManager) ErrorOn(prefix string, logger LogStream) {
 	m.log_output = logger
 	if len(prefix) > 0 {
 		m.log_prefix = prefix + " "
