@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"time"
+	"timecl/app/logger"
 	"timecl/app/network_manager"
 )
 
@@ -38,12 +39,12 @@ func (e *Engine_t) Save() {
 	enc := gob.NewEncoder(m)
 	err := enc.Encode(e)
 	if err != nil {
-		PublishOneError(fmt.Errorf("Save file encoding error:", err))
+		logger.PublishOneError(fmt.Errorf("Save file encoding error:", err))
 		return
 	}
 	err = ioutil.WriteFile(path+".new", m.Bytes(), 0600)
 	if err != nil {
-		PublishOneError(fmt.Errorf("Save file write error:", err))
+		logger.PublishOneError(fmt.Errorf("Save file write error:", err))
 		return
 	}
 	if _, err = os.Stat(path); err == nil {
@@ -52,34 +53,34 @@ func (e *Engine_t) Save() {
 			// backup exists
 			err = os.Remove(path + ".save")
 			if err != nil {
-				PublishOneError(fmt.Errorf("Backup save file removal error:", err))
+				logger.PublishOneError(fmt.Errorf("Backup save file removal error:", err))
 				return
 			}
 		}
 		err = os.Link(path, path+".save")
 		if err != nil {
-			PublishOneError(fmt.Errorf("Error creating backup save file:", err))
+			logger.PublishOneError(fmt.Errorf("Error creating backup save file:", err))
 			return
 		}
 		err = os.Remove(path)
 		if err != nil {
-			PublishOneError(fmt.Errorf("Error removing old save file:", err))
+			logger.PublishOneError(fmt.Errorf("Error removing old save file:", err))
 			return
 		}
 	}
 	err = os.Link(path+".new", path)
 	if err != nil {
-		PublishOneError(fmt.Errorf("Error swapping original save file with new save file:", err))
+		logger.PublishOneError(fmt.Errorf("Error swapping original save file with new save file:", err))
 		return
 	}
 	err = os.Remove(path + ".new")
 	if err != nil {
-		PublishOneError(fmt.Errorf("Error removing new save file:", err))
+		logger.PublishOneError(fmt.Errorf("Error removing new save file:", err))
 		return
 	}
 	err = os.Remove(path + ".save")
 	if err != nil {
-		PublishOneError(fmt.Errorf("Error removing backup save file:", err))
+		logger.PublishOneError(fmt.Errorf("Error removing backup save file:", err))
 		return
 	}
 }
@@ -124,7 +125,7 @@ func (e *Engine_t) LoadObjects() {
 		}
 	}
 	for k, _ := range e.Objects {
-		obj := *e.Objects[k]
+		obj := e.Objects[k]
 		obj["process"] = processors[obj["Type"].(string)]
 	}
 }

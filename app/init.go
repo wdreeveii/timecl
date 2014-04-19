@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/coopernurse/gorp"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/revel/revel"
 	"os"
 	"os/signal"
@@ -32,11 +32,12 @@ func Init() {
 	if err != nil {
 		revel.ERROR.Fatal(err)
 	}
-	dbm := &gorp.DbMap{Db: Db, Dialect: gorp.SqliteDialect{}}
+	dbm := &gorp.DbMap{Db: Db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}}
 	dbm.TraceOn("[gorp]", revel.INFO)
 	logger.Init(dbm)
 	network_manager.Init(dbm)
 	controllers.Init(dbm)
+	go logger.Run(dbm)
 }
 func init() {
 	go func() {

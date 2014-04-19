@@ -18,7 +18,9 @@ GET     /network/devices                        Network.ShowDevices
 GET		/engine/								Engine.Index
 POST	/engine/new								Engine.NewEngine
 WS      /engine/ws 								Engine.EngineSocket
-GET     /logging                                Logger.Index
+GET     /logging/trends                         Logger.Index
+GET     /logging/alerts							Logger.Alerts
+GET     /logging/errors                         Logger.Errors
 WS		/logging/ws								Logger.LoggerSocket
 POST    /login                                  Application.Login
 GET     /logout                                 Application.Logout

@@ -86,6 +86,10 @@ type GorpController struct {
 	Txn *gorp.Transaction
 }
 
+/*func (c *GorpController) Dbm() *gorp.DbMap {
+	return dbm
+}*/
+
 func (c *GorpController) Begin() r.Result {
 	txn, err := dbm.Begin()
 	if err != nil {

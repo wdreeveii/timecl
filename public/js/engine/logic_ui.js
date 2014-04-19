@@ -148,6 +148,9 @@ function zoom_extent() {
 		new_zoom = zoom_y;
 	}
 	zoom = new_zoom;
+	x_ofs = zoom * (-extents[1]);
+	y_ofs = zoom * (-extents[3]);
+	resize_canvas();
 }
 
 var timer = null;

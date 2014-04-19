@@ -177,10 +177,7 @@ function process_messages(bufferedMsgs) {
 		} else if (event_msg["Type"] == "init") {
 			var event_data = event_msg["Data"];
 			obj = load_objects(event_data);
-			console.log("blah");
 			zoom_extent();
-			console.log("blah2");
-			resize_canvas();
 		} else if (event_msg["Type"] == "init_ports") {
 			if (property_window == null) {
 				port_list = event_msg["Data"];

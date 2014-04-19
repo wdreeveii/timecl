@@ -195,6 +195,9 @@ form .buttons {
 #property_sidebar ul {
     margin: 0px;
 }
+#property_window {
+    padding: 5px;
+}
 #canvas_container {
     box-sizing:content-box;
     -moz-box-sizing:content-box;
@@ -307,7 +310,7 @@ form .buttons {
           animation: spin 1s linear infinite;
   border-style: solid;
   border-color: #444 transparent;
-  position: absolute;
+  //position: absolute;
 }
 
 @-webkit-keyframes spin {

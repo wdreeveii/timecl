@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/revel/revel"
 	"strings"
+	"time"
 	"timecl/app/logger"
 )
 
@@ -22,6 +23,31 @@ func (c Logger) checkUser() revel.Result {
 
 func (c Logger) Index() revel.Result {
 	return c.Render()
+}
+
+func (c Logger) Alerts() revel.Result {
+	var alertlist []logger.AlertData
+	_, err := c.Txn.Select(&alertlist, "SELECT * FROM AlertData ORDER BY Timestamp DESC")
+	if err != nil {
+		return c.RenderError(err)
+	}
+	for i, _ := range alertlist {
+		alertlist[i].Time = time.Unix(alertlist[i].Timestamp, 0)
+	}
+	return c.Render(alertlist)
+}
+
+func (c Logger) Errors() revel.Result {
+	var errlist []logger.ErrorData
+	_, err := c.Txn.Select(&errlist, "SELECT Error, Count, Timestamp, FirstTimestamp FROM ErrorData ORDER BY Timestamp DESC")
+	if err != nil {
+		return c.RenderError(err)
+	}
+	for i, _ := range errlist {
+		errlist[i].Time = time.Unix(errlist[i].Timestamp, 0)
+		errlist[i].First = time.Unix(errlist[i].FirstTimestamp, 0)
+	}
+	return c.Render(errlist)
 }
 
 type LogDataClientFormat struct {
@@ -57,7 +83,7 @@ func (c Logger) GetData(start string, end string) map[string][]LogDataClientForm
 	if err != nil {
 		fmt.Println("Error getting datalogs:", err)
 	}
-
+	c.Commit()
 	var groupsize = len(results) / 5000
 	var group = make(map[int][]*logger.LoggingData)
 	for _, v := range results {
@@ -100,7 +126,6 @@ func (c Logger) GetData(start string, end string) map[string][]LogDataClientForm
 					Avg: m.Avg})
 		}
 	}
-	c.Commit()
 	return objects
 }
 
@@ -148,8 +173,6 @@ func (c Logger) LoggerSocket(ws *websocket.Conn) revel.Result {
 				if ok {
 					start, _ = data["start"].(string)
 					end, _ = data["end"].(string)
-
-					fmt.Println("new range:", start, end)
 				}
 
 				update_data := c.GetData(start, end)

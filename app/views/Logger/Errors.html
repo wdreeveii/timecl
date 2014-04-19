@@ -1,0 +1,32 @@
+
+{{set . "title" "Errors"}}
+{{template "header.html" .}}
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h2>Error History</h2>
+  </div>
+  <div class="panel-body">
+    {{if .errlist}}
+  	<table class="table table-bordered">
+      <tr>
+        <th>Error</th>
+        <th>Count</th>
+        <th>Last Occurance</th>
+        <th>First Occurance</th>
+      </tr>
+      {{range .errlist}}
+      <tr>
+        <td>{{.Error}}</td>
+        <td>{{.Count}}</td>
+        <td>{{.Time}}</td>
+        <td>{{.First}}</td>
+      </tr>
+      {{end}}
+    </table>
+    {{else}}
+    <p>No error history.</p>
+    {{end}}
+  </div>
+</div>
+
+{{template "footer.html" .}}

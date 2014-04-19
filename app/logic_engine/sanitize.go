@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"timecl/app/logger"
 	"timecl/app/network_manager"
 )
 
@@ -14,7 +15,7 @@ func floatify(in interface{}) float64 {
 	case string:
 		result, err = strconv.ParseFloat(v, 64)
 		if err != nil {
-			PublishOneError(fmt.Errorf("Error parsing float from string:", err))
+			logger.PublishOneError(fmt.Errorf("Error parsing float from string:", err))
 		}
 	case float64:
 		result = v
@@ -30,7 +31,7 @@ func intify(in interface{}) int {
 	case string:
 		res, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
-			PublishOneError(fmt.Errorf("Error parsing int from string:", err))
+			logger.PublishOneError(fmt.Errorf("Error parsing int from string:", err))
 		}
 		result = int(res)
 	case float64:
@@ -66,28 +67,28 @@ func toPortURI(in interface{}) (result network_manager.PortURI) {
 	return
 }
 
-func sanitize(obj *Object_t) {
-	(*obj)["Id"] = intify((*obj)["Id"])
-	(*obj)["Source"] = intify((*obj)["Source"])
+func sanitize(obj Object_t) {
+	obj["Id"] = intify(obj["Id"])
+	obj["Source"] = intify(obj["Source"])
 
 	var PCount int
-	PCount = intify((*obj)["PropertyCount"])
-	(*obj)["PropertyCount"] = PCount
+	PCount = intify(obj["PropertyCount"])
+	obj["PropertyCount"] = PCount
 
 	PNames := make([]interface{}, 0)
-	for _, v := range (*obj)["PropertyNames"].([]interface{}) {
+	for _, v := range obj["PropertyNames"].([]interface{}) {
 		PNames = append(PNames, stringify(v))
 	}
-	(*obj)["PropertyNames"] = PNames
+	obj["PropertyNames"] = PNames
 
 	PTypes := make([]interface{}, 0)
-	for _, v := range (*obj)["PropertyTypes"].([]interface{}) {
+	for _, v := range obj["PropertyTypes"].([]interface{}) {
 		PTypes = append(PTypes, stringify(v))
 	}
-	(*obj)["PropertyTypes"] = PTypes
+	obj["PropertyTypes"] = PTypes
 
 	PValues := make([]interface{}, 0)
-	for k, v := range (*obj)["PropertyValues"].([]interface{}) {
+	for k, v := range obj["PropertyValues"].([]interface{}) {
 		switch {
 		case PTypes[k] == "float":
 			PValues = append(PValues, floatify(v))
@@ -107,6 +108,6 @@ func sanitize(obj *Object_t) {
 			PValues = append(PValues, intify(v))
 		}
 	}
-	(*obj)["PropertyValues"] = PValues
-	(*obj)["Output"] = floatify((*obj)["Output"])
+	obj["PropertyValues"] = PValues
+	obj["Output"] = floatify(obj["Output"])
 }

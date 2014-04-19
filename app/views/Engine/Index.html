@@ -16,6 +16,9 @@
 {{append . "moreScripts" "js/engine/engine.js"}}
 {{template "header.html" .}}
 <div class='toolbar'>
+    <button type="button" id="zoom_home_btn" class="tool btn btn-default btn-sm" onclick="zoom_extent();">
+        <span title="Zoom Home" class="glyphicon glyphicon-home"></span>
+    </button>
     <button type="button" id="zoom_in_btn" class="tool btn btn-default btn-sm" onclick="zoom_in();">
         <span title="Zoom In" class="glyphicon glyphicon-zoom-in"></span>
     </button>
@@ -126,8 +129,6 @@
         <p>Hello! Welcome.</p>
         <ul id="property_area">
         </ul>
-        <div id="debug">
-        </div>
     </div>
     <div id='canvas_container' class='ui-layout-center ui-layout-content'><!--pane ui-layout-wrapper ui-layout-center-->
         <canvas class='' id="canvas"></canvas>

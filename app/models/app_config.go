@@ -51,10 +51,10 @@ func ProcessEmailRateLimits(email_settings Email) (int, int, error) {
 func GetEmail(txn *gorp.Transaction) (Email, error) {
 	var email Email
 	email_config_data, err := txn.Select(AppConfig{},
-		`select * from AppConfig WHERE Key IN ('smtp_address', 
-			'smtp_port', 'smtp_ssl', 'smtp_username',
-			'smtp_password', 'smtp_auth_type',
-			'smtp_max_msgs', 'smtp_max_duration')`)
+		`select * from AppConfig WHERE AppConfig.Key IN ('smtp_address', 
+'smtp_port', 'smtp_ssl', 'smtp_username',
+'smtp_password', 'smtp_auth_type',
+'smtp_max_msgs', 'smtp_max_duration')`)
 	if err != nil {
 		return Email{}, err
 	}

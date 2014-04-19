@@ -1,0 +1,38 @@
+
+{{set . "title" "Alerts"}}
+{{template "header.html" .}}
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h2>Alert History</h2>
+  </div>
+  <div class="panel-body">
+    {{if .alertlist}}
+  	<table class="table table-bordered">
+      <tr>
+        <th>Object</th>
+        <th>Subject</th>
+        <th>Recipients</th>
+        <th>Date</th>
+      </tr>
+      {{range .alertlist}}
+      <tr>
+        <td>{{.ObjectId}}</td>
+        <td>{{.Subject}}</td>
+        <td>{{.Recipients}}</td>
+        <td>{{.Time}}</td>
+      </tr>
+      <tr>
+        <td>Body:</td>
+        <td colspan="3">
+          {{.EventText}}
+        </td>
+      </tr>
+      {{end}}
+    </table>
+    {{else}}
+    <p>No error history.</p>
+    {{end}}
+  </div>
+</div>
+
+{{template "footer.html" .}}

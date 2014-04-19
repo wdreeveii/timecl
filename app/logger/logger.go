@@ -3,19 +3,16 @@ package logger
 import (
 	"container/list"
 	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/coopernurse/gorp"
-	"io/ioutil"
-	"log"
+	"github.com/revel/revel"
 	"math"
 	"net/smtp"
-	"os"
 	"strings"
 	"time"
 	"timecl/app/models"
 )
-
-var LOG = log.New(os.Stderr, "Logger ", log.Ldate|log.Ltime)
-var DEBUG = log.New(ioutil.Discard, "Logger ", log.Ldate|log.Ltime)
 
 type LoggingData struct {
 	Timestamp int64
@@ -40,11 +37,48 @@ type AlertData struct {
 	Time time.Time
 }
 
+type ErrorData struct {
+	Error          string
+	Count          int64
+	Timestamp      int64
+	FirstTimestamp int64
+
+	//transient
+	Time  time.Time
+	First time.Time
+}
+type ErrInfo struct {
+	Count int64
+	Time  time.Time
+	First time.Time
+}
+
+type ErrorSlice []*ErrorListElement
+type ErrorListElement struct {
+	Error string
+	Count int64
+	Time  time.Time
+	First time.Time
+}
+
+func (e ErrorSlice) Len() int {
+	return len(e)
+}
+func (e ErrorSlice) Swap(i, j int) {
+	e[i], e[j] = e[j], e[i]
+}
+func (e ErrorSlice) Less(i, j int) bool {
+	return e[i].Time.Before(e[j].Time)
+}
+
 func InitLoggerTables(dbm *gorp.DbMap) {
 	t := dbm.AddTable(LoggingData{}).SetKeys(false, "Timestamp", "ObjectId")
 	t.ColMap("Time").Transient = true
 	t = dbm.AddTable(AlertData{}).SetKeys(true, "Id")
 	t.ColMap("Time").Transient = true
+	t = dbm.AddTable(ErrorData{}).SetKeys(false, "Error")
+	t.ColMap("Time").Transient = true
+	t.ColMap("First").Transient = true
 }
 
 func (d *LoggingData) PreInsert(_ gorp.SqlExecutor) error {
@@ -54,6 +88,18 @@ func (d *LoggingData) PreInsert(_ gorp.SqlExecutor) error {
 
 func (d *AlertData) PreInsert(_ gorp.SqlExecutor) error {
 	d.Timestamp = d.Time.Unix()
+	return nil
+}
+
+func (d *ErrorData) PreInsert(_ gorp.SqlExecutor) error {
+	d.Timestamp = d.Time.Unix()
+	d.FirstTimestamp = d.First.Unix()
+	return nil
+}
+
+func (d *ErrorData) PostGet(_ gorp.SqlExecutor) error {
+	d.Time = time.Unix(d.Timestamp, 0)
+	d.First = time.Unix(d.FirstTimestamp, 0)
 	return nil
 }
 func SendOneEmail(data AlertData, email_settings models.Email) {
@@ -79,68 +125,8 @@ func SendOneEmail(data AlertData, email_settings models.Email) {
 		rec,
 		[]byte(body))
 	if err != nil {
-		LOG.Println("Problem sending email:", err)
+		PublishOneError(fmt.Errorf("Problem sending email: %v", err))
 	}
-}
-
-var lastMsg time.Time
-var bufferedAlerts = list.New()
-
-func SendOneBufferedEmail(email_settings models.Email) <-chan time.Time {
-	firstAlert := bufferedAlerts.Front()
-	if firstAlert != nil {
-		alert, ok := firstAlert.Value.(AlertData)
-		if ok {
-			go SendOneEmail(alert, email_settings)
-			bufferedAlerts.Remove(firstAlert)
-			lastMsg = time.Now()
-		}
-	}
-	if bufferedAlerts.Len() > 0 {
-		maxmsgs, maxduration, err := models.ProcessEmailRateLimits(email_settings)
-		if err != nil {
-			LOG.Println("There was a problem parsing email rate limit parameters.")
-			return nil
-		}
-		if maxmsgs != 0 && maxduration != 0 {
-			seconds_between_msg := time.Duration(math.Ceil(float64(maxduration) / float64(maxmsgs)))
-			callback := time.After((lastMsg.Add(seconds_between_msg * time.Second)).Sub(time.Now()))
-			return callback
-		}
-		return nil
-	}
-	return nil
-}
-func SendEmailRateLimited(data AlertData, email_settings models.Email) <-chan time.Time {
-	maxmsgs, maxduration, err := models.ProcessEmailRateLimits(email_settings)
-	if err != nil {
-		LOG.Println("There was a problem parsing email rate limit parameters.")
-	}
-	if maxmsgs != 0 && maxduration != 0 {
-		seconds_between_msg := time.Duration(math.Ceil(float64(maxduration) / float64(maxmsgs)))
-		if time.Now().After(lastMsg.Add(seconds_between_msg * time.Second)) {
-			firstAlert := bufferedAlerts.Front()
-			if firstAlert != nil {
-				alert, ok := firstAlert.Value.(AlertData)
-				if ok {
-					go SendOneEmail(alert, email_settings)
-					bufferedAlerts.Remove(firstAlert)
-					lastMsg = time.Now()
-				}
-			}
-		} else {
-			bufferedAlerts.PushBack(data)
-		}
-		if bufferedAlerts.Len() > 0 {
-			callback := time.After((lastMsg.Add(seconds_between_msg * time.Second)).Sub(time.Now()))
-			return callback
-		} else {
-			return nil
-		}
-	} else {
-		go SendOneEmail(data, email_settings)
-	}
-	return nil
 }
 
 type Subscription struct {
@@ -169,14 +155,155 @@ func (s Subscription) Cancel() {
 	drain(s.New)
 }
 
+func PublishOneError(err error) {
+	var list ErrorSlice
+	list = append(list, &ErrorListElement{Error: err.Error(),
+		Count: 1,
+		Time:  time.Now(),
+		First: time.Now()})
+	var event = Event{Type: "errors", Data: list}
+	publish <- event
+}
+
 func Publish(event Event) {
 	publish <- event
 }
 
-func logger_pub_sub(dbm *gorp.DbMap) {
-	var rate_limited_email_ready <-chan time.Time
-	subscribers := list.New()
+func SaveErrorList(txn *gorp.Transaction, errlist ErrorSlice) error {
+	var insert_q = `
+INSERT INTO ErrorData (Error, Count, Timestamp, FirstTimestamp) VALUES (?, ?, ?, ?)
+`
+	var update_q = `
+UPDATE ErrorData SET Timestamp = ?, Count = Count + ? WHERE Error = ?
+`
+	for _, v := range errlist {
+		_, err := txn.Exec(insert_q, v.Error, v.Count, v.Time.Unix(), v.First.Unix())
+		if err != nil {
+			_, err = txn.Exec(update_q, v.Time.Unix(), v.Count, v.Error)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
+const MAXINTERVAL = 10
+
+func SaveTrends(dbm *gorp.DbMap, idata interface{}) {
+	data, ok := idata.(LoggingData)
+	if ok {
+		txn, err := dbm.Begin()
+		if err != nil {
+			fmt.Println("begin failed:", err)
+			go PublishOneError(fmt.Errorf("Could not initiate database transaction to store trend data: %v", err))
+		} else {
+			err = txn.Insert(&data)
+			if err != nil {
+				fmt.Println("errror:", err)
+			}
+		}
+		if txn != nil {
+			err = txn.Commit()
+			if err != nil {
+				fmt.Println("errrrrr:", err)
+			}
+		}
+	} else {
+		go PublishOneError(errors.New("Problem converting logging data to storage format."))
+	}
+}
+
+func SaveErrors(dbm *gorp.DbMap, idata interface{}) {
+	data, ok := idata.(ErrorSlice)
+	for _, v := range data {
+		revel.INFO.Printf("err: %+v\n", v)
+	}
+	if ok {
+		if len(data) > 0 {
+			txn, err := dbm.Begin()
+			if err != nil {
+				revel.INFO.Println(fmt.Errorf("Could not initiate database transaction to store errors: %v", err))
+			} else {
+				err := SaveErrorList(txn, data)
+				if err != nil {
+					fmt.Println("err errrr", err)
+				}
+			}
+			if txn != nil {
+				if err := txn.Commit(); err != nil && err != sql.ErrTxDone {
+					revel.INFO.Println(fmt.Errorf("Could not commit db transaction: %v", err))
+				}
+			}
+		}
+
+	} else {
+		revel.INFO.Println(errors.New("Problem converting error data for storage."))
+	}
+}
+
+func DoAlert(dbm *gorp.DbMap, buffer_email chan AlertData, buffering_enabled bool, email_settings models.Email, idata interface{}) {
+	data, ok := idata.(AlertData)
+	if ok {
+		go func(dbm *gorp.DbMap, data AlertData) {
+			txn, err := dbm.Begin()
+			if err != nil {
+				PublishOneError(fmt.Errorf("Could not create db transaction to save alert data."))
+			} else {
+				err = txn.Insert(&data)
+				if err != nil {
+					fmt.Println("Alert insert err:", err)
+				} else {
+					err = txn.Commit()
+					if err != nil {
+						fmt.Println("Alert commit err:", err)
+					}
+				}
+			}
+		}(dbm, data)
+		if email_settings.Addr != "" {
+			if buffering_enabled {
+				buffer_email <- data
+			} else {
+				SendOneEmail(data, email_settings)
+			}
+		}
+	} else {
+		go PublishOneError(errors.New("Problem converting alert data for storage."))
+	}
+}
+
+func Run(dbm *gorp.DbMap) {
+	var buffer_email = make(chan AlertData)
+	subscribers := list.New()
+	var email_settings models.Email
+	var email_buffer []AlertData
+	var email_ticker <-chan time.Time
+
+	txn, err := dbm.Begin()
+	if err != nil {
+		go PublishOneError(fmt.Errorf("Problem getting email settings: %v", err))
+	} else {
+		email_settings, err = models.GetEmail(txn)
+		if err != nil {
+			go PublishOneError(fmt.Errorf("Problem getting email settings: %v", err))
+		}
+		maxmsgs, maxduration, err := models.ProcessEmailRateLimits(email_settings)
+		if err != nil {
+			go PublishOneError(fmt.Errorf("There was a problem parsing email rate limit parameters: %v", err))
+		}
+		if maxmsgs != 0 && maxduration != 0 {
+			seconds_between_msg := time.Duration(math.Ceil(float64(maxduration) / float64(maxmsgs)))
+			if seconds_between_msg > 0 {
+				email_ticker = time.Tick(seconds_between_msg * time.Second)
+			}
+		}
+	}
+	if txn != nil {
+		if err := txn.Commit(); err != nil && err != sql.ErrTxDone {
+			go PublishOneError(fmt.Errorf("Problem getting email settings: %v", err))
+		}
+	}
 	for {
 		select {
 		case ch := <-subscribe:
@@ -185,65 +312,24 @@ func logger_pub_sub(dbm *gorp.DbMap) {
 			ch <- Subscription{subscriber}
 
 		case event := <-publish:
-			switch event.Type {
-			case "capture":
-				data, ok := event.Data.(LoggingData)
-				if ok {
-					err := dbm.Insert(&data)
-					if err != nil {
-						LOG.Println("Problem inserting logging data:", err)
-					}
-				} else {
-					LOG.Println("Problem converting logging data for storage.")
-				}
-			case "alert":
-				data, ok := event.Data.(AlertData)
-				if ok {
-					err := dbm.Insert(&data)
-					if err != nil {
-						LOG.Println("Problem inserting alert data:", err)
-					}
-					txn, err := dbm.Begin()
-					if err != nil {
-						LOG.Println("Problem getting email settings:", err)
-					} else {
-						email_settings, err := models.GetEmail(txn)
-						if err != nil {
-							LOG.Println("Problem getting email settings:", err)
-						}
-						if email_settings.Addr != "" {
-							rate_limited_email_ready = SendEmailRateLimited(data, email_settings)
-						}
-					}
-					if txn != nil {
-						if err := txn.Commit(); err != nil && err != sql.ErrTxDone {
-							LOG.Println("Problem getting email settings:", err)
-						}
-					}
-				} else {
-					LOG.Println("Problem converting alert data for storage.")
-				}
-			}
 			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
 				ch.Value.(chan Event) <- event
 			}
-		case <-rate_limited_email_ready:
-			txn, err := dbm.Begin()
-			if err != nil {
-				LOG.Println("Problem getting email settings:", err)
-			} else {
-				email_settings, err := models.GetEmail(txn)
-				if err != nil {
-					LOG.Println("Problem getting email settings:", err)
-				}
-				if email_settings.Addr != "" {
-					rate_limited_email_ready = SendOneBufferedEmail(email_settings)
-				}
+			switch event.Type {
+			case "capture":
+				SaveTrends(dbm, event.Data)
+			case "errors":
+				SaveErrors(dbm, event.Data)
+			case "alert":
+				DoAlert(dbm, buffer_email, email_ticker != nil, email_settings, event.Data)
 			}
-			if txn != nil {
-				if err := txn.Commit(); err != nil && err != sql.ErrTxDone {
-					LOG.Println("Problem getting email settings:", err)
-				}
+		case alert := <-buffer_email:
+			email_buffer = append(email_buffer, alert)
+		case <-email_ticker:
+			if len(email_buffer) > 0 {
+				email := email_buffer[0]
+				email_buffer = email_buffer[1:]
+				go SendOneEmail(email, email_settings)
 			}
 		case unsub := <-unsubscribe:
 			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
@@ -262,7 +348,6 @@ func Init(dbm *gorp.DbMap) {
 	if err != nil {
 		panic(err)
 	}
-	go logger_pub_sub(dbm)
 }
 
 // Drains a given channel of any messages.
