@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"timecl/app/controllers"
 	"timecl/app/logger"
+	"timecl/app/models"
 	"timecl/app/network_manager"
 )
 
@@ -34,10 +35,11 @@ func Init() {
 	}
 	dbm := &gorp.DbMap{Db: Db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}}
 	dbm.TraceOn("[gorp]", revel.INFO)
-	logger.Init(dbm)
+	log := logger.Init(dbm, models.EmailSettingsProvider{})
+	log.TraceOn("[logger]", revel.INFO)
 	network_manager.Init(dbm)
 	controllers.Init(dbm)
-	go logger.Run(dbm)
+	go log.Run()
 }
 func init() {
 	go func() {

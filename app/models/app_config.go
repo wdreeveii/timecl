@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"github.com/coopernurse/gorp"
 	"strconv"
-	//"github.com/revel/revel"
-	//"regexp"
+	"timecl/app/logger"
 )
 
 type AppConfig struct {
@@ -18,18 +17,10 @@ func (c AppConfig) String() string {
 	return fmt.Sprintf("Config(%s)", c.Key)
 }
 
-type Email struct {
-	Addr        string
-	Port        string
-	SSL         string
-	Username    string
-	Password    string
-	AuthType    string
-	MaxMsgs     string
-	MaxDuration string
+type EmailSettingsProvider struct {
 }
 
-func ProcessEmailRateLimits(email_settings Email) (int, int, error) {
+func (m EmailSettingsProvider) ProcessEmailRateLimits(email_settings logger.Email) (int, int, error) {
 	var maxmsgs, maxduration int
 	if email_settings.MaxMsgs != "" && email_settings.MaxMsgs != "0" {
 		if email_settings.MaxDuration != "" && email_settings.MaxDuration != "0" {
@@ -48,15 +39,15 @@ func ProcessEmailRateLimits(email_settings Email) (int, int, error) {
 	return maxmsgs, maxduration, nil
 }
 
-func GetEmail(txn *gorp.Transaction) (Email, error) {
-	var email Email
+func (m EmailSettingsProvider) GetEmail(txn *gorp.Transaction) (logger.Email, error) {
+	var email logger.Email
 	email_config_data, err := txn.Select(AppConfig{},
 		`select * from AppConfig WHERE AppConfig.Key IN ('smtp_address', 
 'smtp_port', 'smtp_ssl', 'smtp_username',
 'smtp_password', 'smtp_auth_type',
 'smtp_max_msgs', 'smtp_max_duration')`)
 	if err != nil {
-		return Email{}, err
+		return logger.Email{}, err
 	}
 
 	for _, v := range email_config_data {
@@ -83,7 +74,7 @@ func GetEmail(txn *gorp.Transaction) (Email, error) {
 	return email, nil
 }
 
-func SaveEmail(txn *gorp.Transaction, email Email) error {
+func SaveEmail(txn *gorp.Transaction, email logger.Email) error {
 	var q string = "REPLACE INTO AppConfig (Key, Val) VALUES "
 	q += "('smtp_address','" + email.Addr + "'),"
 	q += "('smtp_port','" + email.Port + "'),"

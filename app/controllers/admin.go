@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go.crypto/bcrypt"
 	"fmt"
 	"github.com/revel/revel"
+	"timecl/app/logger"
 	"timecl/app/models"
 	//"strings"
 )
@@ -93,14 +94,15 @@ func (c Admin) SaveUser(user models.User, verifyPassword string) revel.Result {
 }
 
 func (c Admin) EditEmail() revel.Result {
-	email, err := models.GetEmail(c.Txn)
+	var provider = models.EmailSettingsProvider{}
+	email, err := provider.GetEmail(c.Txn)
 	if err != nil {
 		revel.ERROR.Println(err)
 	}
 	return c.Render(email)
 }
 
-func (c Admin) SaveEmail(email models.Email) revel.Result {
+func (c Admin) SaveEmail(email logger.Email) revel.Result {
 	err := models.SaveEmail(c.Txn, email)
 	if err != nil {
 		revel.ERROR.Println(err)

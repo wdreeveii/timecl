@@ -6,13 +6,38 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coopernurse/gorp"
-	"github.com/revel/revel"
 	"math"
 	"net/smtp"
 	"strings"
 	"time"
-	"timecl/app/models"
 )
+
+type Email struct {
+	Addr        string
+	Port        string
+	SSL         string
+	Username    string
+	Password    string
+	AuthType    string
+	MaxMsgs     string
+	MaxDuration string
+}
+
+type EmailProvider interface {
+	ProcessEmailRateLimits(email_settings Email) (int, int, error)
+	GetEmail(txn *gorp.Transaction) (Email, error)
+}
+
+type LogStream interface {
+	Printf(format string, v ...interface{})
+}
+
+type LogManager struct {
+	log_prefix string
+	log_output LogStream
+	dbm        *gorp.DbMap
+	email_info EmailProvider
+}
 
 type LoggingData struct {
 	Timestamp int64
@@ -71,7 +96,7 @@ func (e ErrorSlice) Less(i, j int) bool {
 	return e[i].Time.Before(e[j].Time)
 }
 
-func InitLoggerTables(dbm *gorp.DbMap) {
+func initLoggerTables(dbm *gorp.DbMap) {
 	t := dbm.AddTable(LoggingData{}).SetKeys(false, "Timestamp", "ObjectId")
 	t.ColMap("Time").Transient = true
 	t = dbm.AddTable(AlertData{}).SetKeys(true, "Id")
@@ -79,6 +104,11 @@ func InitLoggerTables(dbm *gorp.DbMap) {
 	t = dbm.AddTable(ErrorData{}).SetKeys(false, "Error")
 	t.ColMap("Time").Transient = true
 	t.ColMap("First").Transient = true
+
+	err := dbm.CreateTablesIfNotExists()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (d *LoggingData) PreInsert(_ gorp.SqlExecutor) error {
@@ -102,7 +132,7 @@ func (d *ErrorData) PostGet(_ gorp.SqlExecutor) error {
 	d.First = time.Unix(d.FirstTimestamp, 0)
 	return nil
 }
-func SendOneEmail(data AlertData, email_settings models.Email) {
+func sendOneEmail(data AlertData, email_settings Email) {
 	rec := strings.Split(data.Recipients, ",")
 	for i := 0; i < len(rec); i++ {
 		rec[i] = strings.TrimSpace(rec[i])
@@ -169,7 +199,7 @@ func Publish(event Event) {
 	publish <- event
 }
 
-func SaveErrorList(txn *gorp.Transaction, errlist ErrorSlice) error {
+func saveErrorList(txn *gorp.Transaction, errlist ErrorSlice) error {
 	var insert_q = `
 INSERT INTO ErrorData (Error, Count, Timestamp, FirstTimestamp) VALUES (?, ?, ?, ?)
 `
@@ -190,23 +220,22 @@ UPDATE ErrorData SET Timestamp = ?, Count = Count + ? WHERE Error = ?
 
 const MAXINTERVAL = 10
 
-func SaveTrends(dbm *gorp.DbMap, idata interface{}) {
+func (m *LogManager) saveTrends(idata interface{}) {
 	data, ok := idata.(LoggingData)
 	if ok {
-		txn, err := dbm.Begin()
+		txn, err := m.dbm.Begin()
 		if err != nil {
-			fmt.Println("begin failed:", err)
 			go PublishOneError(fmt.Errorf("Could not initiate database transaction to store trend data: %v", err))
 		} else {
 			err = txn.Insert(&data)
 			if err != nil {
-				fmt.Println("errror:", err)
+				go PublishOneError(fmt.Errorf("Could not insert trend data:", err))
 			}
 		}
 		if txn != nil {
 			err = txn.Commit()
 			if err != nil {
-				fmt.Println("errrrrr:", err)
+				go PublishOneError(fmt.Errorf("Could not store trend data:", err))
 			}
 		}
 	} else {
@@ -214,58 +243,64 @@ func SaveTrends(dbm *gorp.DbMap, idata interface{}) {
 	}
 }
 
-func SaveErrors(dbm *gorp.DbMap, idata interface{}) {
+func (m *LogManager) trace(args ...interface{}) {
+	if m.log_output != nil {
+		m.log_output.Printf("%s %v", m.log_prefix, args)
+	}
+}
+
+func (m *LogManager) saveErrors(idata interface{}) {
 	data, ok := idata.(ErrorSlice)
 	for _, v := range data {
-		revel.INFO.Printf("err: %+v\n", v)
+		m.trace("err:", v)
 	}
 	if ok {
 		if len(data) > 0 {
-			txn, err := dbm.Begin()
+			txn, err := m.dbm.Begin()
 			if err != nil {
-				revel.INFO.Println(fmt.Errorf("Could not initiate database transaction to store errors: %v", err))
+				m.trace("Could not initiate database transaction to store errors:", err)
 			} else {
-				err := SaveErrorList(txn, data)
+				err := saveErrorList(txn, data)
 				if err != nil {
-					fmt.Println("err errrr", err)
+					m.trace("Could not save errors:", err)
 				}
 			}
 			if txn != nil {
 				if err := txn.Commit(); err != nil && err != sql.ErrTxDone {
-					revel.INFO.Println(fmt.Errorf("Could not commit db transaction: %v", err))
+					m.trace("Could not commit db transaction:", err)
 				}
 			}
 		}
 
 	} else {
-		revel.INFO.Println(errors.New("Problem converting error data for storage."))
+		m.trace("Problem converting error data for storage.")
 	}
 }
 
-func DoAlert(dbm *gorp.DbMap, buffer_email chan AlertData, buffering_enabled bool, email_settings models.Email, idata interface{}) {
+func (m *LogManager) doAlert(buffer_email chan AlertData, buffering_enabled bool, email_settings Email, idata interface{}) {
 	data, ok := idata.(AlertData)
 	if ok {
 		go func(dbm *gorp.DbMap, data AlertData) {
-			txn, err := dbm.Begin()
+			txn, err := m.dbm.Begin()
 			if err != nil {
 				PublishOneError(fmt.Errorf("Could not create db transaction to save alert data."))
 			} else {
 				err = txn.Insert(&data)
 				if err != nil {
-					fmt.Println("Alert insert err:", err)
+					PublishOneError(fmt.Errorf("Could not insert alert into log:", err))
 				} else {
 					err = txn.Commit()
 					if err != nil {
-						fmt.Println("Alert commit err:", err)
+						PublishOneError(fmt.Errorf("Could not log alert:", err))
 					}
 				}
 			}
-		}(dbm, data)
+		}(m.dbm, data)
 		if email_settings.Addr != "" {
 			if buffering_enabled {
 				buffer_email <- data
 			} else {
-				SendOneEmail(data, email_settings)
+				go sendOneEmail(data, email_settings)
 			}
 		}
 	} else {
@@ -273,22 +308,22 @@ func DoAlert(dbm *gorp.DbMap, buffer_email chan AlertData, buffering_enabled boo
 	}
 }
 
-func Run(dbm *gorp.DbMap) {
+func (m *LogManager) Run() {
 	var buffer_email = make(chan AlertData)
 	subscribers := list.New()
-	var email_settings models.Email
+	var email_settings Email
 	var email_buffer []AlertData
 	var email_ticker <-chan time.Time
 
-	txn, err := dbm.Begin()
+	txn, err := m.dbm.Begin()
 	if err != nil {
 		go PublishOneError(fmt.Errorf("Problem getting email settings: %v", err))
 	} else {
-		email_settings, err = models.GetEmail(txn)
+		email_settings, err = m.email_info.GetEmail(txn)
 		if err != nil {
 			go PublishOneError(fmt.Errorf("Problem getting email settings: %v", err))
 		}
-		maxmsgs, maxduration, err := models.ProcessEmailRateLimits(email_settings)
+		maxmsgs, maxduration, err := m.email_info.ProcessEmailRateLimits(email_settings)
 		if err != nil {
 			go PublishOneError(fmt.Errorf("There was a problem parsing email rate limit parameters: %v", err))
 		}
@@ -317,11 +352,11 @@ func Run(dbm *gorp.DbMap) {
 			}
 			switch event.Type {
 			case "capture":
-				SaveTrends(dbm, event.Data)
+				m.saveTrends(event.Data)
 			case "errors":
-				SaveErrors(dbm, event.Data)
+				m.saveErrors(event.Data)
 			case "alert":
-				DoAlert(dbm, buffer_email, email_ticker != nil, email_settings, event.Data)
+				m.doAlert(buffer_email, email_ticker != nil, email_settings, event.Data)
 			}
 		case alert := <-buffer_email:
 			email_buffer = append(email_buffer, alert)
@@ -329,7 +364,7 @@ func Run(dbm *gorp.DbMap) {
 			if len(email_buffer) > 0 {
 				email := email_buffer[0]
 				email_buffer = email_buffer[1:]
-				go SendOneEmail(email, email_settings)
+				go sendOneEmail(email, email_settings)
 			}
 		case unsub := <-unsubscribe:
 			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
@@ -342,12 +377,18 @@ func Run(dbm *gorp.DbMap) {
 	}
 }
 
-func Init(dbm *gorp.DbMap) {
-	InitLoggerTables(dbm)
-	err := dbm.CreateTablesIfNotExists()
-	if err != nil {
-		panic(err)
+func (m *LogManager) TraceOn(prefix string, logger LogStream) {
+	m.log_output = logger
+	if len(prefix) > 0 {
+		m.log_prefix = prefix + " "
 	}
+}
+
+func Init(dbm *gorp.DbMap, email_settings EmailProvider) *LogManager {
+	initLoggerTables(dbm)
+
+	var l = LogManager{dbm: dbm, email_info: email_settings}
+	return &l
 }
 
 // Drains a given channel of any messages.

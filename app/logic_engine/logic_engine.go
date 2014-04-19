@@ -31,22 +31,22 @@ func (e *Engine_t) Init() {
 	e.SolveIterations = 50
 	e.Objects = make(map[int]Object_t)
 	e.LoadObjects()
-	go e.Run()
+	go e.run()
 }
 
-func (e *Engine_t) AddObject(obj Object_t) {
+func (e *Engine_t) addObject(obj Object_t) {
 	obj["process"] = processors[stringify(obj["Type"])]
 	sanitize(obj)
 	e.Objects[intify(obj["Id"])] = obj
 	e.Save()
 }
 
-func (e *Engine_t) DeleteObject(id int) {
+func (e *Engine_t) deleteObject(id int) {
 	delete(e.Objects, id)
 	e.Save()
 }
 
-func (e *Engine_t) EditObject(new_states StateChange) {
+func (e *Engine_t) editObject(new_states StateChange) {
 	save_obj := false
 	id := new_states.Id
 	obj, ok := e.Objects[id]
@@ -136,7 +136,7 @@ func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
 	}
 }
 
-func (e *Engine_t) Run() {
+func (e *Engine_t) run() {
 	var profile_timeout <-chan time.Time
 	path, found := revel.Config.String("engine.profilepath")
 	if found {
@@ -177,11 +177,11 @@ func (e *Engine_t) Run() {
 			switch {
 			case event.Type == "add":
 				obj := event.Data.(map[string]interface{})
-				e.AddObject(obj)
+				e.addObject(obj)
 			case event.Type == "edit_many":
 				state_changes := event.Data.([]StateChange)
 				for _, v := range state_changes {
-					e.EditObject(v)
+					e.editObject(v)
 				}
 			case event.Type == "edit":
 				var s StateChange
@@ -191,12 +191,12 @@ func (e *Engine_t) Run() {
 				case StateChange:
 					s = v
 				}
-				e.EditObject(s)
+				e.editObject(s)
 			case event.Type == "del":
 				var id int
 				data := event.Data.(map[string]interface{})
 				id = intify(data["Id"])
-				e.DeleteObject(id)
+				e.deleteObject(id)
 			}
 		case event := <-network_subscription.New:
 			DEBUG.Println("Engine Event")

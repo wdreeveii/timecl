@@ -58,7 +58,8 @@ func (c Network) NetworkConfig() revel.Result {
 			networks = append(networks, net)
 		}
 	}
-	email, err := models.GetEmail(c.Txn)
+	provider := models.EmailSettingsProvider{}
+	email, err := provider.GetEmail(c.Txn)
 	if err != nil {
 		revel.ERROR.Println(err)
 	}
