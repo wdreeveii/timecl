@@ -251,9 +251,6 @@ func (m *LogManager) trace(args ...interface{}) {
 
 func (m *LogManager) saveErrors(idata interface{}) {
 	data, ok := idata.(ErrorSlice)
-	for _, v := range data {
-		m.trace("err:", v)
-	}
 	if ok {
 		if len(data) > 0 {
 			txn, err := m.dbm.Begin()
