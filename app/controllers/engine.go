@@ -37,7 +37,7 @@ func (c Engine) Index() revel.Result {
 
 func (c Engine) NewEngine() revel.Result {
 	//InitEngine(dataPath)
-	engine.Save()
+	engine.Stop()
 	return c.RenderJson(1)
 }
 func setDeadline(ws *websocket.Conn) error {
@@ -82,7 +82,10 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 
 	for {
 		select {
-		case event := <-subscription.New:
+		case event, ok := <-subscription.New:
+			if !ok {
+				return nil
+			}
 			if err := websocket.JSON.Send(ws, &event); err != nil {
 				revel.ERROR.Println("Error sending msg to client:", err)
 				return nil

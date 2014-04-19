@@ -26,6 +26,8 @@ type Engine_t struct {
 	DataFile        string
 	subscribe       chan (chan<- Subscription)
 	unsubscribe     chan (<-chan Event)
+	stopRouter      chan (chan<- bool)
+	stopEngine      chan (chan<- bool)
 	publish         chan Event
 }
 
@@ -35,6 +37,7 @@ func Init(dataFile string) *Engine_t {
 	e.subscribe = make(chan (chan<- Subscription), 10)
 	e.unsubscribe = make(chan (<-chan Event), 10)
 	e.publish = make(chan Event, 100)
+	e.stopRouter = make(chan (chan<- bool))
 	go e.engine_pub_sub()
 
 	e.list_objs = make(chan chan []Object_t)
@@ -44,8 +47,19 @@ func Init(dataFile string) *Engine_t {
 	e.DataFile = dataFile
 	e.LoadObjects()
 	e.DataFile = dataFile
+	e.stopEngine = make(chan (chan<- bool))
 	go e.run()
 	return &e
+}
+
+func (e *Engine_t) Stop() {
+	router_stop := make(chan bool)
+	engine_stop := make(chan bool)
+	e.stopRouter <- router_stop
+	e.stopEngine <- engine_stop
+
+	<-router_stop
+	<-engine_stop
 }
 
 func (e *Engine_t) addObject(obj Object_t) {
@@ -183,10 +197,17 @@ func (e *Engine_t) run() {
 				objs = append(objs, obj)
 			}
 			receiver <- objs
+		case resp := <-e.stopEngine:
+			resp <- true
+			return
 		case <-profile_timeout:
 			fmt.Println("Profile Done. Exiting...")
 			return
-		case event := <-engine_subscription.New:
+		case event, ok := <-engine_subscription.New:
+			if !ok {
+				fmt.Println("empty engine sub, exiting")
+				return
+			}
 			switch {
 			case event.Type == "add":
 				obj := event.Data.(map[string]interface{})
@@ -382,6 +403,12 @@ func (e *Engine_t) engine_pub_sub() {
 					break
 				}
 			}
+		case resp := <-e.stopRouter:
+			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
+				close(ch.Value.(chan Event))
+			}
+			resp <- true
+			return
 		}
 	}
 }

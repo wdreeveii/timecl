@@ -2,13 +2,13 @@ package app
 
 import (
 	"database/sql"
-	"fmt"
+	//"fmt"
 	"github.com/coopernurse/gorp"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/revel/revel"
-	"os"
-	"os/signal"
-	"syscall"
+	//"os"
+	//"os/signal"
+	//"syscall"
 	"timecl/app/controllers"
 	"timecl/app/logger"
 	"timecl/app/models"
@@ -44,14 +44,14 @@ func Init() {
 	controllers.InitEngine(engineDataBase, dbm)
 }
 func init() {
-	go func() {
+	/*go func() {
 		signal_source := make(chan os.Signal)
 		signal.Notify(signal_source, syscall.SIGHUP)
 		for {
 			<-signal_source
 			fmt.Println("Terminal Disconnected")
 		}
-	}()
+	}()*/
 	// Filters is the default set of global filters.
 	revel.Filters = []revel.Filter{
 		revel.PanicFilter,             // Recover from panics and display an error page instead.
