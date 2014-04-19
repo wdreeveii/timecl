@@ -2,13 +2,14 @@ package network_manager
 
 import (
 	"container/list"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/coopernurse/gorp"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/revel/revel"
 	"sort"
 	"time"
+	"timecl/app/logger"
 )
 
 type network_manager struct {
@@ -41,26 +42,6 @@ func GetDriverList() []string {
 
 func RegisterDriver(drivername string, driver DriverInterface) {
 	driver_collection = append(driver_collection, driverListItem{Name: drivername, Instance: driver})
-}
-
-func InitNetworkConfigTables(dbm *gorp.DbMap) {
-	setColumnSizes := func(t *gorp.TableMap, colSizes map[string]int) {
-		for col, size := range colSizes {
-			t.ColMap(col).MaxSize = size
-		}
-	}
-	t := dbm.AddTable(NetworkConfig{}).SetKeys(true, "NetworkID")
-	setColumnSizes(t, map[string]int{
-		"ConfigKey":  100,
-		"DevicePath": 1000,
-		"Driver":     100,
-	})
-}
-
-func GetHardwareInterfaces() []string {
-	result := revel.Config.Options("hardware.")
-	sort.Strings(result)
-	return result
 }
 
 type interfaceItem struct {
@@ -347,6 +328,55 @@ func (n *NetworkConfig) String() string {
 	return fmt.Sprintf("Network Config (%d, %s, %s, %s)", n.NetworkID, n.ConfigKey, n.DevicePath, n.Driver)
 }
 
+func GetHardwareInterfaces() []string {
+	result := revel.Config.Options("hardware.")
+	sort.Strings(result)
+	return result
+}
+
+func GetNetworks(txn *gorp.Transaction) []*NetworkConfig {
+	interfaces := GetHardwareInterfaces()
+	var networks []*NetworkConfig
+	for index, val := range interfaces {
+		var config NetworkConfig
+		err := txn.SelectOne(&config, `select * from NetworkConfig where ConfigKey = ?`, val)
+		if err != nil {
+			path, found := revel.Config.String(val)
+			if !found {
+				logger.PublishOneError(fmt.Errorf("Device path for %s not found.", val))
+				continue
+			}
+			_, err = txn.Exec("INSERT INTO NetworkConfig VALUES(?,?,?,?)", index, val, path, "")
+			if err != nil {
+				logger.PublishOneError(fmt.Errorf("Problem initializing interface %s: %s", val, err))
+			}
+			net := NetworkConfig{index, val, path, ""}
+			_, err = txn.Update(&net)
+			if err != nil {
+				logger.PublishOneError(fmt.Errorf("Problem initializing interface %s: %s", val, err))
+			}
+			networks = append(networks, &net)
+		} else {
+			networks = append(networks, &config)
+		}
+	}
+	return networks
+}
+
+func InitNetworkConfigTables(dbm *gorp.DbMap) {
+	setColumnSizes := func(t *gorp.TableMap, colSizes map[string]int) {
+		for col, size := range colSizes {
+			t.ColMap(col).MaxSize = size
+		}
+	}
+	t := dbm.AddTable(NetworkConfig{}).SetKeys(true, "NetworkID")
+	setColumnSizes(t, map[string]int{
+		"ConfigKey":  100,
+		"DevicePath": 1000,
+		"Driver":     100,
+	})
+}
+
 func Init(dbm *gorp.DbMap) {
 	revel.INFO.Println("Network Manager Start")
 	go interfacesManager()
@@ -356,22 +386,25 @@ func Init(dbm *gorp.DbMap) {
 	if err != nil {
 		panic(err)
 	}
-	result := GetHardwareInterfaces()
-	for _, config_key := range result {
-		networks, err := dbm.Select(NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, config_key)
-		if err != nil {
-			panic(err)
+	var networks []*NetworkConfig
+	txn, err := dbm.Begin()
+	if err != nil {
+		logger.PublishOneError(fmt.Errorf("Could not create database transaction: %s", err))
+	} else {
+		networks = GetNetworks(txn)
+		if err := txn.Commit(); err != nil && err != sql.ErrTxDone {
+			logger.PublishOneError(fmt.Errorf("Could not commit db transaction: %s", err))
 		}
-		var driver driverListItem
-		if len(networks) > 0 {
-			driver_name := networks[0].(*NetworkConfig).Driver
-			for index, driver_list_item := range driver_collection {
-				if driver_name == driver_list_item.Name {
-					driver = driver_collection[index]
-				}
+	}
+Interfaces:
+	for _, net := range networks {
+		for _, a_driver := range driver_collection {
+			if net.Driver == a_driver.Name {
+				newInterface <- interfaceItem{ConfigKey: net.ConfigKey, Driver: a_driver}
+				continue Interfaces
 			}
 		}
-		newInterface <- interfaceItem{ConfigKey: config_key, Driver: driver}
+		logger.PublishOneError(fmt.Errorf("Driver for %s not found.", net.ConfigKey))
 	}
 }
 

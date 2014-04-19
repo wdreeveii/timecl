@@ -37,35 +37,6 @@ func (c Network) Index() revel.Result {
 	return c.Render(users)
 }
 
-func (c Network) NetworkConfig() revel.Result {
-	interfaces := network_manager.GetHardwareInterfaces()
-	var networks []*network_manager.NetworkConfig
-	for index, val := range interfaces {
-		netconf, err := c.Txn.Select(network_manager.NetworkConfig{}, `select * from NetworkConfig where ConfigKey = ?`, val)
-		if err != nil {
-			revel.ERROR.Println(err)
-		}
-		if len(netconf) > 0 {
-			networks = append(networks, netconf[0].(*network_manager.NetworkConfig))
-		} else {
-			path, found := revel.Config.String(val)
-			if !found {
-				continue
-			}
-			c.Txn.Exec("INSERT OR IGNORE INTO NetworkConfig VALUES(?,?,?,?)", index, val, path, "")
-			net := &network_manager.NetworkConfig{index, val, path, ""}
-			c.Txn.Update(net)
-			networks = append(networks, net)
-		}
-	}
-	provider := models.EmailSettingsProvider{}
-	email, err := provider.GetEmail(c.Txn)
-	if err != nil {
-		revel.ERROR.Println(err)
-	}
-	return c.Render(networks, email)
-}
-
 func (c Network) ShowDevices() revel.Result {
 	network_definition := network_manager.ListPorts()
 	return c.Render(network_definition)

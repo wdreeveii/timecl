@@ -6,7 +6,7 @@ import (
 	"github.com/revel/revel"
 	"timecl/app/logger"
 	"timecl/app/models"
-	//"strings"
+	"timecl/app/network_manager"
 )
 
 type Admin struct {
@@ -46,7 +46,7 @@ func (c Admin) EditUser(id int) revel.Result {
 	return c.Render(id)
 }
 
-func (c Admin) SaveSettings(id int, password, verifyPassword string) revel.Result {
+func (c Admin) SaveUserSettings(id int, password, verifyPassword string) revel.Result {
 	models.ValidatePassword(c.Validation, password)
 	c.Validation.Required(verifyPassword).
 		Message("Please verify your password")
@@ -107,5 +107,15 @@ func (c Admin) SaveEmail(email logger.Email) revel.Result {
 	if err != nil {
 		revel.ERROR.Println(err)
 	}
-	return c.Redirect(Network.NetworkConfig)
+	return c.Redirect(Admin.SystemSettings)
+}
+
+func (c Admin) SystemSettings() revel.Result {
+	networks := network_manager.GetNetworks(c.Txn)
+	provider := models.EmailSettingsProvider{}
+	email, err := provider.GetEmail(c.Txn)
+	if err != nil {
+		revel.ERROR.Println(err)
+	}
+	return c.Render(networks, email)
 }

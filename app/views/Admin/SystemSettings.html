@@ -23,7 +23,9 @@
           <td>{{.DevicePath}}</td>
           <td>{{.Driver}}</td>
           <td>
-            <a href='{{url "Network.EditNetwork" .NetworkID }}'>Edit</a>
+            <span class="label label-primary">
+              <a href='{{url "Network.EditNetwork" .NetworkID }}'>Edit</a>
+            </span>
           </td>
         </tr>
         {{end}}
