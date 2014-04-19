@@ -23,15 +23,27 @@ type Engine_t struct {
 	UpdateRate      float32
 	SolveIterations int
 	list_objs       chan chan []Object_t
+	DataFile        string
+	subscribe       chan (chan<- Subscription)
+	unsubscribe     chan (<-chan Event)
+	publish         chan Event
 }
 
-func Init() *Engine_t {
+func Init(dataFile string) *Engine_t {
 	DEBUG.Println("Logic Engine Start")
 	var e Engine_t
+	e.subscribe = make(chan (chan<- Subscription), 10)
+	e.unsubscribe = make(chan (<-chan Event), 10)
+	e.publish = make(chan Event, 100)
+	go e.engine_pub_sub()
+
+	e.list_objs = make(chan chan []Object_t)
 	e.UpdateRate = 10
 	e.SolveIterations = 50
 	e.Objects = make(map[int]Object_t)
+	e.DataFile = dataFile
 	e.LoadObjects()
+	e.DataFile = dataFile
 	go e.run()
 	return &e
 }
@@ -134,7 +146,7 @@ func (e *Engine_t) publish_output_changes(outputs map[int]float64) {
 		network_manager.PublishSetEvents(output_changes)
 	}
 	if len(state_changes) > 0 {
-		PublishMultipleStateChanges(state_changes)
+		e.PublishMultipleStateChanges(state_changes)
 	}
 }
 
@@ -154,11 +166,10 @@ func (e *Engine_t) run() {
 	var calc_world <-chan time.Time
 	calc_world = time.After(time.Duration(1000/e.UpdateRate) * time.Millisecond)
 	engine_subscription := e.Subscribe()
-	defer engine_subscription.Cancel()
+	defer e.CancelSubscription(engine_subscription)
 
 	network_subscription := network_manager.Subscribe()
 	defer network_subscription.Cancel()
-	e.list_objs = make(chan chan []Object_t)
 	for {
 		select {
 		case receiver := <-e.list_objs:
@@ -271,14 +282,14 @@ type Subscription struct {
 	New <-chan Event
 }
 
-func (s Subscription) Cancel() {
-	unsubscribe <- s.New
+func (e *Engine_t) CancelSubscription(s Subscription) {
+	e.unsubscribe <- s.New
 	drain(s.New)
 }
 
 func (e *Engine_t) Subscribe() Subscription {
 	resp := make(chan Subscription)
-	subscribe <- resp
+	e.subscribe <- resp
 	return <-resp
 }
 
@@ -299,24 +310,16 @@ type StateChange struct {
 type EventArgument interface {
 }
 
-func PublishMultipleStateChanges(updates []StateChange) {
-	publish <- newEvent("edit_many", updates)
+func (e *Engine_t) PublishMultipleStateChanges(updates []StateChange) {
+	e.publish <- newEvent("edit_many", updates)
 }
 
 func (e *Engine_t) Publish(event Event) {
-	publish <- event
+	e.publish <- event
 }
 
-const archiveSize = 10
-
-var (
-	subscribe   = make(chan (chan<- Subscription), 10)
-	unsubscribe = make(chan (<-chan Event), 10)
-	publish     = make(chan Event, 100)
-)
-
 // This function loops forever, handling the chat room pubsub
-func engine_pub_sub() {
+func (e *Engine_t) engine_pub_sub() {
 	subscribers := list.New()
 	var errDedup = make(map[string]*logger.ErrInfo)
 	errorTicker := time.Tick(1 * time.Second)
@@ -324,7 +327,7 @@ func engine_pub_sub() {
 
 	for {
 		select {
-		case ch := <-subscribe:
+		case ch := <-e.subscribe:
 			subscriber := make(chan Event, 100)
 			subscribers.PushBack(subscriber)
 			ch <- Subscription{subscriber}
@@ -363,7 +366,7 @@ func engine_pub_sub() {
 					}
 				}
 			}
-		case event := <-publish:
+		case event := <-e.publish:
 			switch event.Type {
 			case "errors":
 				panic("Unused event")
@@ -372,7 +375,7 @@ func engine_pub_sub() {
 					ch.Value.(chan Event) <- event
 				}
 			}
-		case unsub := <-unsubscribe:
+		case unsub := <-e.unsubscribe:
 			for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
 				if ch.Value.(chan Event) == unsub {
 					subscribers.Remove(ch)
@@ -381,10 +384,6 @@ func engine_pub_sub() {
 			}
 		}
 	}
-}
-
-func init() {
-	go engine_pub_sub()
 }
 
 // Drains a given channel of any messages.

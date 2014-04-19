@@ -3,25 +3,24 @@ package controllers
 import (
 	"code.google.com/p/go.net/websocket"
 	"fmt"
+	"github.com/coopernurse/gorp"
 	"github.com/revel/revel"
 	"time"
 	"timecl/app/logic_engine"
 )
 
 var (
-	engine *logic_engine.Engine_t
+	dataPath string
+	engine   *logic_engine.Engine_t
 )
 
 type Engine struct {
 	Application
 }
 
-func init() {
-	revel.OnAppStart(InitEngine)
-}
-
-func InitEngine() {
-	engine = logic_engine.Init()
+func InitEngine(dataBasePath string, _ *gorp.DbMap) {
+	dataPath = dataBasePath
+	engine = logic_engine.Init(dataBasePath + "/default.logic")
 }
 
 func (c Engine) checkUser() revel.Result {
@@ -37,7 +36,7 @@ func (c Engine) Index() revel.Result {
 }
 
 func (c Engine) NewEngine() revel.Result {
-	InitEngine()
+	//InitEngine(dataPath)
 	engine.Save()
 	return c.RenderJson(1)
 }
@@ -49,7 +48,7 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 	c.Commit()
 
 	subscription := engine.Subscribe()
-	defer subscription.Cancel()
+	defer engine.CancelSubscription(subscription)
 	init := engine.ListObjects()
 	if err := websocket.JSON.Send(ws, &init); err != nil {
 		revel.INFO.Println(err)

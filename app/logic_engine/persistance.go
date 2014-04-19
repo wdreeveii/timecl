@@ -3,8 +3,8 @@ package logic_engine
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
-	"github.com/revel/revel"
 	"io/ioutil"
 	"os"
 	"time"
@@ -24,11 +24,6 @@ func (p *processor) GobDecode([]byte) error {
 }
 
 func (e *Engine_t) Save() {
-	DEBUG.Println("Saving Engine")
-	path, found := revel.Config.String("engine.savefile")
-	if !found {
-		return
-	}
 	interface_slice := make([]interface{}, 0)
 	gob.Register(interface_slice)
 	var p processor
@@ -42,43 +37,43 @@ func (e *Engine_t) Save() {
 		logger.PublishOneError(fmt.Errorf("Save file encoding error:", err))
 		return
 	}
-	err = ioutil.WriteFile(path+".new", m.Bytes(), 0600)
+	err = ioutil.WriteFile(e.DataFile+".new", m.Bytes(), 0600)
 	if err != nil {
 		logger.PublishOneError(fmt.Errorf("Save file write error:", err))
 		return
 	}
-	if _, err = os.Stat(path); err == nil {
+	if _, err = os.Stat(e.DataFile); err == nil {
 		// main path exists
-		if _, err = os.Stat(path + ".save"); err == nil {
+		if _, err = os.Stat(e.DataFile + ".save"); err == nil {
 			// backup exists
-			err = os.Remove(path + ".save")
+			err = os.Remove(e.DataFile + ".save")
 			if err != nil {
 				logger.PublishOneError(fmt.Errorf("Backup save file removal error:", err))
 				return
 			}
 		}
-		err = os.Link(path, path+".save")
+		err = os.Link(e.DataFile, e.DataFile+".save")
 		if err != nil {
 			logger.PublishOneError(fmt.Errorf("Error creating backup save file:", err))
 			return
 		}
-		err = os.Remove(path)
+		err = os.Remove(e.DataFile)
 		if err != nil {
 			logger.PublishOneError(fmt.Errorf("Error removing old save file:", err))
 			return
 		}
 	}
-	err = os.Link(path+".new", path)
+	err = os.Link(e.DataFile+".new", e.DataFile)
 	if err != nil {
 		logger.PublishOneError(fmt.Errorf("Error swapping original save file with new save file:", err))
 		return
 	}
-	err = os.Remove(path + ".new")
+	err = os.Remove(e.DataFile + ".new")
 	if err != nil {
 		logger.PublishOneError(fmt.Errorf("Error removing new save file:", err))
 		return
 	}
-	err = os.Remove(path + ".save")
+	err = os.Remove(e.DataFile + ".save")
 	if err != nil {
 		logger.PublishOneError(fmt.Errorf("Error removing backup save file:", err))
 		return
@@ -109,23 +104,22 @@ func (e *Engine_t) ReadAndDecode(path string) (err error) {
 	return nil
 }
 
-func (e *Engine_t) LoadObjects() {
-	path, found := revel.Config.String("engine.savefile")
-	if !found {
-		DEBUG.Println("No save file in configuration.")
-		return
+func (e *Engine_t) LoadObjects() error {
+	if e.DataFile == "" {
+		return errors.New("Load Engine: no source data path provided.")
 	}
+	path := e.DataFile
 	err := e.ReadAndDecode(path)
 	if err != nil {
 		DEBUG.Println(err)
 		eagain := e.ReadAndDecode(path + ".save")
 		if eagain != nil {
-			DEBUG.Println(eagain)
-			return
+			return fmt.Errorf("Load Engine: specified engine data source not found. %s", eagain)
 		}
 	}
 	for k, _ := range e.Objects {
 		obj := e.Objects[k]
 		obj["process"] = processors[obj["Type"].(string)]
 	}
+	return nil
 }

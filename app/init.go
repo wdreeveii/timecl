@@ -40,6 +40,8 @@ func Init() {
 	network_manager.Init(dbm)
 	controllers.Init(dbm)
 	go log.Run()
+	engineDataBase, _ := revel.Config.String("engine.datadir")
+	controllers.InitEngine(engineDataBase, dbm)
 }
 func init() {
 	go func() {
