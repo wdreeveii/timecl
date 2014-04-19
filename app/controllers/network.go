@@ -63,5 +63,5 @@ func (c Network) SaveNetwork(NetworkID int, network network_manager.NetworkConfi
 		panic(err)
 	}
 	network_manager.RestartDriver(network.NetworkID, network.Driver)
-	return c.Redirect(routes.Network.EditNetwork(NetworkID))
+	return c.Redirect(routes.Admin.SystemSettings())
 }

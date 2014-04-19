@@ -12,14 +12,10 @@ import (
 	"timecl/app/logger"
 )
 
-type network_manager struct {
-	*revel.Controller
-}
 type DriverInterface interface {
 	// Called on server startup
 	Init(port string, network_id int)
 	Stop()
-	Copy() DriverInterface
 	ListPorts() []BusDef
 }
 
@@ -291,26 +287,29 @@ func interfacesManager() {
 				}
 			}
 		case reConfig := <-restartInterface:
-			for _, val := range driver_collection {
-				if val.Name == reConfig.Driver {
-					if interfaces[reConfig.NetworkID].Driver.Name != "" {
-						interfaces[reConfig.NetworkID].Driver.Instance.Stop()
-					}
-					copy := val.Instance.Copy()
-					d := driverListItem{Name: val.Name, Instance: copy}
-					interfaces[reConfig.NetworkID].Driver = d
-					val, found := revel.Config.String(interfaces[reConfig.NetworkID].ConfigKey)
-					if found {
-						interfaces[reConfig.NetworkID].Driver.Instance.Init(val, reConfig.NetworkID)
+			if reConfig.NetworkID < len(interfaces) {
+				var iface = interfaces[reConfig.NetworkID]
+				if iface.Driver.Instance != nil {
+					iface.Driver.Instance.Stop()
+				}
+				for _, a_driver := range driver_collection {
+					if reConfig.Driver == a_driver.Name {
+						interfaces[reConfig.NetworkID].Driver = a_driver
+						device_path, found := revel.Config.String(iface.ConfigKey)
+						if found {
+							interfaces[reConfig.NetworkID].Driver.Instance.Init(device_path, reConfig.NetworkID)
+						}
+						break
 					}
 				}
+				logger.PublishOneError(fmt.Errorf("Driver not found for %s", iface.ConfigKey))
 			}
 		case newIntConfig := <-newInterface:
-			val, found := revel.Config.String(newIntConfig.ConfigKey)
-			if found {
-				interfaces = append(interfaces, newIntConfig)
-				if interfaces[len(interfaces)-1].Driver.Name != "" {
-					interfaces[len(interfaces)-1].Driver.Instance.Init(val, len(interfaces)-1)
+			if newIntConfig.Driver.Name != "" {
+				val, found := revel.Config.String(newIntConfig.ConfigKey)
+				if found {
+					newIntConfig.Driver.Instance.Init(val, len(interfaces))
+					interfaces = append(interfaces, newIntConfig)
 				}
 			}
 		}

@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/wdreeveii/termioslib"
 	"io/ioutil"
 	"log"
 	"os"
 	"time"
-	//"github.com/mewkiz/pkg/hashutil/crc16"
-	//"github.com/revel/revel/modules/jobs/app/jobs"
-	"github.com/wdreeveii/termioslib"
+	"timecl/app/logger"
 	"timecl/app/network_manager"
 )
 
@@ -24,21 +23,16 @@ type GreenBus struct {
 	List_ports chan chan []network_manager.BusDef
 }
 
-func (d *GreenBus) Init(port string, network_id int) {
+func (d GreenBus) Init(port string, network_id int) {
+	d.StopChan = make(chan bool)
 	go d.runmaster(port, network_id)
 }
 
-func (d *GreenBus) Stop() {
+func (d GreenBus) Stop() {
 	d.StopChan <- true
 }
 
-func (d *GreenBus) Copy() network_manager.DriverInterface {
-	b := d
-	b.StopChan = make(chan bool)
-	return b
-}
-
-func (d *GreenBus) ListPorts() (result []network_manager.BusDef) {
+func (d GreenBus) ListPorts() (result []network_manager.BusDef) {
 	if d.List_ports != nil {
 		var res = make(chan []network_manager.BusDef)
 		d.List_ports <- res
@@ -415,7 +409,7 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 	defer func() {
 		LOG.Println("Serial Exiting...")
 		if err != nil {
-			LOG.Println(err)
+			logger.PublishOneError(fmt.Errorf("Error occurred and driver shutting down:", err))
 		}
 	}()
 
@@ -608,7 +602,7 @@ func (d *GreenBus) runmaster(port string, network_id int) {
 			case event.Type == "get":
 				cmd, ok := event.Data.(network_manager.GetData)
 				if !ok {
-					LOG.Println("Improperly formatted get value request.")
+					logger.PublishOneError(fmt.Errorf("Greenbus: Improperly formatted get port request."))
 				} else {
 					sent := false
 					device_idx, found := devices.Find(uint32(cmd.DeviceID))
@@ -717,7 +711,7 @@ func ReadMessages(c *os.File, r chan Message_t) {
 				}
 
 				if checksum != header.Crc {
-					LOG.Println("Header CRC doesn't match")
+					logger.PublishOneError(fmt.Errorf("Greenbus: Header CRC doesn't match"))
 					buffer = buffer[1:]
 					continue
 				}
@@ -769,7 +763,5 @@ func WriteMessages(c *os.File, w chan Message_t) {
 }
 
 func init() {
-	DEBUG.Println("blah")
-	network_manager.RegisterDriver("greenbus", &GreenBus{StopChan: make(chan bool), List_ports: nil})
-	//go runmaster()
+	network_manager.RegisterDriver("greenbus", GreenBus{})
 }
