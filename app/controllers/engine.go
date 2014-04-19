@@ -21,8 +21,7 @@ func init() {
 }
 
 func InitEngine() {
-	engine = &logic_engine.Engine_t{}
-	engine.Init()
+	engine = logic_engine.Init()
 }
 
 func (c Engine) checkUser() revel.Result {

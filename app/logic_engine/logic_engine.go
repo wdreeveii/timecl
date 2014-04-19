@@ -25,13 +25,15 @@ type Engine_t struct {
 	list_objs       chan chan []Object_t
 }
 
-func (e *Engine_t) Init() {
+func Init() *Engine_t {
 	DEBUG.Println("Logic Engine Start")
+	var e Engine_t
 	e.UpdateRate = 10
 	e.SolveIterations = 50
 	e.Objects = make(map[int]Object_t)
 	e.LoadObjects()
 	go e.run()
+	return &e
 }
 
 func (e *Engine_t) addObject(obj Object_t) {
