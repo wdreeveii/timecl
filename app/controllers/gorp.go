@@ -42,25 +42,6 @@ func Init(dbmap *gorp.DbMap) {
 		"Val": 1000,
 	})
 
-	t = dbm.AddTable(models.Hotel{}).SetKeys(true, "HotelId")
-	setColumnSizes(t, map[string]int{
-		"Name":    50,
-		"Address": 100,
-		"City":    40,
-		"State":   6,
-		"Zip":     6,
-		"Country": 40,
-	})
-
-	t = dbm.AddTable(models.Booking{}).SetKeys(true, "BookingId")
-	t.ColMap("User").Transient = true
-	t.ColMap("Hotel").Transient = true
-	t.ColMap("CheckInDate").Transient = true
-	t.ColMap("CheckOutDate").Transient = true
-	setColumnSizes(t, map[string]int{
-		"CardNumber": 16,
-		"NameOnCard": 50,
-	})
 	//network_manager.InitNetworkConfigTables(dbm)
 	//logger.InitLoggerTables(dbm)
 	err := dbm.CreateTablesIfNotExists()
