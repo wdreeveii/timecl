@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"code.google.com/p/go.net/websocket"
+	"errors"
 	"fmt"
 	"github.com/coopernurse/gorp"
 	"github.com/revel/revel"
@@ -12,38 +13,84 @@ import (
 	"timecl/app/routes"
 )
 
-var (
-	engine *logic_engine.Engine_t
-)
-
 type Engine struct {
 	Application
 }
 
-func InitEngine(dbm *gorp.DbMap) {
+type useEngineRequest struct {
+	Id        int
+	Requester chan *logic_engine.Engine_t
+}
+
+type stopRequest struct {
+	Id   int
+	Done chan bool
+}
+
+type startRequest struct {
+	Id       int
+	DataFile string
+}
+
+var (
+	startRequestChan     = make(chan startRequest)
+	stopRequestChan      = make(chan stopRequest)
+	useEngineRequestChan = make(chan useEngineRequest)
+)
+
+func ManageEngines(engineStore map[int]*logic_engine.Engine_t, basePath string) {
+	for {
+		select {
+		case req := <-startRequestChan:
+			_, exists := engineStore[req.Id]
+			if exists {
+				engineStore[req.Id].Stop()
+			}
+			engineStore[req.Id] = logic_engine.Init(basePath + "/" + req.DataFile + ".logic")
+		case req := <-stopRequestChan:
+			_, exists := engineStore[req.Id]
+			if exists {
+				engineStore[req.Id].Stop()
+				delete(engineStore, req.Id)
+			}
+			req.Done <- true
+		case req := <-useEngineRequestChan:
+			_, exists := engineStore[req.Id]
+			if exists {
+				req.Requester <- engineStore[req.Id]
+			} else {
+				req.Requester <- nil
+			}
+		}
+	}
+}
+
+func InitEngines(dbm *gorp.DbMap) {
+	var engineStore = make(map[int]*logic_engine.Engine_t)
 	dataBasePath, found := revel.Config.String("engine.datadir")
 	if !found {
 		revel.ERROR.Fatal("No engine data file path provided in config file.")
 	}
-
-	path := dataBasePath
+	var defaultPath = dataBasePath + "/default.logic"
 	txn, err := dbm.Begin()
 	if err != nil {
-		path += "/default.logic"
+		engineStore[0] = logic_engine.Init(defaultPath)
 		logger.PublishOneError(fmt.Errorf("Problem initiating database transaction: %s", err))
 	} else {
 		instances, err := models.GetActiveEngineInstances(txn)
 		txn.Commit()
 		if err != nil {
-			path += "/default.logic"
+			engineStore[0] = logic_engine.Init(defaultPath)
 			logger.PublishOneError(fmt.Errorf("Problem finding active engine instances: %s", err))
 		} else if len(instances) == 0 {
-			path += "/default.logic"
+			engineStore[0] = logic_engine.Init(defaultPath)
 		} else {
-			path += "/" + instances[0].DataFile + ".logic"
+			for _, v := range instances {
+				engineStore[v.Id] = logic_engine.Init(dataBasePath + "/" + v.DataFile + ".logic")
+			}
 		}
 	}
-	engine = logic_engine.Init(path)
+	go ManageEngines(engineStore, dataBasePath)
 }
 
 func (c Engine) checkUser() revel.Result {
@@ -80,12 +127,22 @@ func (c Engine) ToggleEngine(id int) revel.Result {
 	if err != nil {
 		return c.RenderError(err)
 	}
-	var status bool
-	err = c.Txn.SelectOne(&status, "SELECT Enabled FROM EngineInstance WHERE EngineInstance.Id = ?", id)
+	var status struct {
+		Enable   bool
+		DataFile string
+	}
+	err = c.Txn.SelectOne(&status, "SELECT Enabled, DataFile FROM EngineInstance WHERE EngineInstance.Id = ?", id)
 	if err != nil {
 		return c.RenderError(err)
 	}
-	return c.RenderJson(status)
+	if status.Enable {
+		startRequestChan <- startRequest{Id: id, DataFile: status.DataFile}
+	} else {
+		done := make(chan bool)
+		stopRequestChan <- stopRequest{Id: id, Done: done}
+		<-done
+	}
+	return c.RenderJson(status.Enable)
 }
 
 func (c Engine) SaveEngine(engine_info models.EngineInstance) revel.Result {
@@ -93,25 +150,39 @@ func (c Engine) SaveEngine(engine_info models.EngineInstance) revel.Result {
 	if c.Validation.HasErrors() {
 		c.Validation.Keep()
 		c.FlashParams()
-		return c.Redirect(routes.Engine.CreateNewEngine())
+		if engine_info.Id == 0 {
+			return c.Redirect(routes.Engine.CreateNewEngine())
+		} else {
+			return c.Redirect(routes.Engine.EditEngine(engine_info.Id))
+		}
 	}
-	err := models.SaveEngineInstance(c.Txn, engine_info)
+	err := models.SaveEngineInstance(c.Txn, &engine_info)
 	if err != nil {
 		c.RenderError(err)
 	}
+	if engine_info.Enabled {
+		startRequestChan <- startRequest{Id: engine_info.Id, DataFile: engine_info.DataFile}
+	} else {
+		done := make(chan bool)
+		stopRequestChan <- stopRequest{Id: engine_info.Id, Done: done}
+		<-done
+	}
 
-	//InitEngine(dataPath)
-	//engine.Stop()
 	return c.Redirect(routes.Admin.SystemSettings())
 }
 
 func setDeadline(ws *websocket.Conn) error {
 	return ws.SetDeadline(time.Now().Add(60 * time.Second))
 }
-func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
+func (c Engine) EngineSocket(ws *websocket.Conn, id int) revel.Result {
 	// Close transaction to prevent database writer starvation
 	c.Commit()
-
+	response := make(chan *logic_engine.Engine_t)
+	useEngineRequestChan <- useEngineRequest{Id: id, Requester: response}
+	engine := <-response
+	if engine == nil {
+		return c.RenderError(errors.New("Requested engine not running."))
+	}
 	subscription := engine.Subscribe()
 	defer engine.CancelSubscription(subscription)
 	init := engine.ListObjects()
@@ -140,7 +211,6 @@ func (c Engine) EngineSocket(ws *websocket.Conn) revel.Result {
 				close(newMessages)
 				return
 			}
-			fmt.Println("msg from client")
 			newMessages <- msg
 		}
 	}()

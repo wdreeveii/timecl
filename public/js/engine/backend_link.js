@@ -190,7 +190,7 @@ function process_messages(bufferedMsgs) {
 
 function backend_start() {
 	socket = TameSocket({
-		target: 'ws://' + window.location.host + '/engine/ws',
+		target: 'ws://' + window.location.host + '/engine/ws/1',
 		msgProcessor: function(bufferedEvents) {
 			requestAnimationFrame(function() {
 				process_messages(bufferedEvents);

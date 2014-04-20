@@ -40,7 +40,7 @@ func Init() {
 	network_manager.Init(dbm)
 	controllers.Init(dbm)
 	go log.Run()
-	controllers.InitEngine(dbm)
+	controllers.InitEngines(dbm)
 }
 func init() {
 	/*go func() {

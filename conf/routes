@@ -20,7 +20,7 @@ GET		/engine/create							Engine.CreateNewEngine
 GET		/engine/edit/:id						Engine.EditEngine
 POST	/engine/save							Engine.SaveEngine
 POST	/engine/toggle/:id						Engine.ToggleEngine
-WS      /engine/ws 								Engine.EngineSocket
+WS      /engine/ws/:id 							Engine.EngineSocket
 GET     /logging/trends                         Logger.Index
 GET     /logging/alerts							Logger.Alerts
 GET     /logging/errors                         Logger.Errors

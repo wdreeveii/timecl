@@ -96,7 +96,7 @@ func GetRecognizedEngineInstances(txn *gorp.Transaction) ([]*EngineInstance, err
 	}
 	for k, v := range dedup {
 		if v == false {
-			var e = EngineInstance{DataFile: k, Enabled: false}
+			var e = &EngineInstance{DataFile: k, Enabled: false}
 			err := SaveEngineInstance(txn, e)
 			if err != nil {
 				return nil, err
@@ -111,15 +111,15 @@ func GetRecognizedEngineInstances(txn *gorp.Transaction) ([]*EngineInstance, err
 	return engine_instances, nil
 
 }
-func SaveEngineInstance(txn *gorp.Transaction, engine_info EngineInstance) error {
+func SaveEngineInstance(txn *gorp.Transaction, engine_info *EngineInstance) error {
 	var err error
 	if engine_info.TsCreated > 0 {
 		engine_info.Created = time.Unix(engine_info.TsCreated, 0)
 	}
 	if engine_info.Id == 0 {
-		err = txn.Insert(&engine_info)
+		err = txn.Insert(engine_info)
 	} else {
-		_, err = txn.Update(&engine_info)
+		_, err = txn.Update(engine_info)
 	}
 	return err
 }
