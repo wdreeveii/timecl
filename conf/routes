@@ -16,7 +16,10 @@ GET		/system/editemail/						Admin.EditEmail
 POST	/system/editemail/						Admin.SaveEmail
 GET     /network/devices                        Network.ShowDevices
 GET		/engine/								Engine.Index
-POST	/engine/new								Engine.NewEngine
+GET		/engine/create							Engine.CreateNewEngine
+GET		/engine/edit/:id						Engine.EditEngine
+POST	/engine/save							Engine.SaveEngine
+POST	/engine/toggle/:id						Engine.ToggleEngine
 WS      /engine/ws 								Engine.EngineSocket
 GET     /logging/trends                         Logger.Index
 GET     /logging/alerts							Logger.Alerts

@@ -1,6 +1,44 @@
 
 {{set . "title" "System Settings"}}
+
 {{template "header.html" .}}
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h2>Engine Instance List</h2>
+  </div>
+  <div class="panel-body">
+    {{if .engine_instances}}
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Enabled</th>
+          <th>Date Created</th>
+          <th width="13%">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .engine_instances}}
+        <tr>
+          <td>{{.DataFile}}</td>
+          <td>{{.Enabled}}</td>
+          <td>{{.Created}}</td>
+          <td>
+              <a class="btn btn-primary" href='{{url "Engine.EditEngine" .Id }}'>Edit</a>
+              <button class="btn btn-primary" data-instanceid="{{.Id}}" data-toggle="modal" data-target="#ToggleConfirm">{{if .Enabled}}Disable{{else}}Enable{{end}}</button>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p>
+      No networks available.
+    </p>
+    {{end}}
+      <a class="btn btn-primary" href="{{url "Engine.CreateNewEngine" }}">Add New Instance</a>
+  </div>
+</div>
 <div class="panel panel-default">
   <div class="panel-heading">
     <h2>Interface List</h2>
@@ -23,9 +61,7 @@
           <td>{{.DevicePath}}</td>
           <td>{{.Driver}}</td>
           <td>
-            <span class="label label-primary">
-              <a href='{{url "Network.EditNetwork" .NetworkID }}'>Edit</a>
-            </span>
+              <a class="btn btn-primary" href='{{url "Network.EditNetwork" .NetworkID }}'>Edit</a>
           </td>
         </tr>
         {{end}}
@@ -40,7 +76,7 @@
 </div>
 <div class="panel panel-default">
   <div class="panel-heading">
-    <h2>Email Settings <span class="label label-primary"><a href='{{url "Admin.EditEmail"}}'>Edit</a></span></h2>
+    <h2>Email Settings</h2>
   </div>
   <div class="panel-body">
     <table class="table table-bordered">
@@ -77,6 +113,60 @@
         <td>{{.email.MaxDuration}}</td>
       </tr>
     </table>
+    <a class="btn btn-primary" href='{{url "Admin.EditEmail"}}'>Edit</a>
   </div>
 </div>
+<div class="modal fade" id="ToggleConfirm" tabindex="-1" role="dialog" aria-labelledby="EngineToggleConfirm" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="EngineToggleConfirm">Modal title</h4>
+      </div>
+      <div class="modal-body" id="EngineToggleConfirmBody">
+        ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button id="ConfirmButton" type="button" class="btn btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+$('#ToggleConfirm').on('show.bs.modal', function (ev) {
+  var target = $(ev.relatedTarget);
+  var row = target.parent().parent();
+  var ec = $(row.children()[1]);
+  var instance_id = target.data("instanceid");
+  var current_status = ec.html();
+  var title = "";
+  var body = "";
+  if (current_status == "false") {
+    title = "Are you sure you want to enable this engine?";
+    body = "Click Confirm to continue.";
+  } else {
+    title = "Are you sure you want to disable this engine?";
+    body = "This could bring down your entire control system!";
+  }
+  $('#EngineToggleConfirm').html(title);
+  $('#EngineToggleConfirmBody').html(body);
+  var toggleResultHandler = function(ev) {
+    $("#ConfirmButton").off("click", toggleResultHandler);
+    $.post({{url "Engine.ToggleEngine" 0}}.replace(0, instance_id), function(data) {
+      console.log("hello?", data);
+      if (data == 1) {
+        ec.html("true");
+        target.html("Disable");
+      } else {
+        ec.html("false");
+        target.html("Enable");
+      }
+    });
+    $('#ToggleConfirm').modal('hide');
+  }
+
+  $("#ConfirmButton").on("click", toggleResultHandler);
+});
+</script>
 {{template "footer.html" .}}

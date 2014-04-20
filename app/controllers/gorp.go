@@ -42,6 +42,12 @@ func Init(dbmap *gorp.DbMap) {
 		"Val": 1000,
 	})
 
+	t = dbm.AddTable(models.EngineInstance{}).SetKeys(true, "Id")
+	t.ColMap("Created").Transient = true
+	setColumnSizes(t, map[string]int{
+		"DataFile": 1000,
+	})
+
 	//network_manager.InitNetworkConfigTables(dbm)
 	//logger.InitLoggerTables(dbm)
 	err := dbm.CreateTablesIfNotExists()

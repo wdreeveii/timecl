@@ -205,7 +205,6 @@ func (e *Engine_t) run() {
 			return
 		case event, ok := <-engine_subscription.New:
 			if !ok {
-				fmt.Println("empty engine sub, exiting")
 				return
 			}
 			switch {

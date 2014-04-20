@@ -111,11 +111,15 @@ func (c Admin) SaveEmail(email logger.Email) revel.Result {
 }
 
 func (c Admin) SystemSettings() revel.Result {
+	engine_instances, err := models.GetRecognizedEngineInstances(c.Txn)
+	if err != nil {
+		return c.RenderError(err)
+	}
 	networks := network_manager.GetNetworks(c.Txn)
 	provider := models.EmailSettingsProvider{}
 	email, err := provider.GetEmail(c.Txn)
 	if err != nil {
 		revel.ERROR.Println(err)
 	}
-	return c.Render(networks, email)
+	return c.Render(engine_instances, networks, email)
 }

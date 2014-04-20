@@ -1,0 +1,52 @@
+{{if eq .engine_info.Id 0}}
+  {{set . "title" "Create a new engine instance."}}
+{{else}}
+  {{set . "title" "Edit an existing engine instance."}}
+{{end}}
+
+{{template "header.html" .}}
+<div class="panel panel-default">
+  <div class="panel-heading">
+    {{if eq .engine_info.Id 0}}
+      <h2>New Engine Instance</h2>
+    {{else}}
+      <h2>Edit Instance {{.engine_info.DataFile}}</h2>
+    {{end}}
+  </div>
+  <div class="panel-body">
+    <form action="{{url "Engine.SaveEngine"}}" method="POST" class="form-horizontal" role="form">
+      <input type="hidden" name="engine_info.Id" value="{{.engine_info.Id}}"/>
+      <input type="hidden" name="engine_info.TsCreated" value="{{.engine_info.TsCreated}}"/>
+      {{with $field := field "engine_info.DataFile" .}}
+      <div class="form-group {{$field.ErrorClass}}">
+        <label class="col-sm-2 control-label" for="instname">*Instance Name:</label>
+        <div class="col-sm-9">
+          {{if eq $field.Flash ""}}
+          <input id="instname" type="text" name="engine_info.DataFile" value="{{$.engine_info.DataFile}}" class="form-control"/>
+          {{else}}
+          <input id="instname" type="text" name="engine_info.DataFile" value="{{$field.Flash}}" class="form-control"/>
+          {{end}}
+        </div>
+        <div class="col-sm-offset-2 col-sm-9 error">{{$field.Error}}</div>
+      </div>
+      {{end}}
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="inst_enabled">Enabled:</label>
+        <div class="col-sm-9">
+          <input id="inst_enabled" type="checkbox" name="engine_info.Enabled" value="true" {{if .engine_info.Enabled}}checked{{end}}/>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-offset-2">
+          {{if eq .engine_info.Id 0}}
+          <input class="btn btn-default" type="submit" value="Add"/>
+          {{else}}
+          <input class="btn btn-default" type="submit" value="Save"/>
+          {{end}}
+          <a class="btn btn-default" href="{{url "Admin.SystemSettings"}}">Cancel</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{{template "footer.html" .}}
