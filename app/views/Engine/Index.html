@@ -9,11 +9,8 @@
 {{append . "moreScripts" "js/noty/packaged/jquery.noty.packaged.min.js"}}
 {{append . "moreScripts" "js/engine/object.js"}}
 {{append . "moreScripts" "js/engine/objects.js"}}
-{{append . "moreScripts" "js/engine/graphics.js"}}
-{{append . "moreScripts" "js/engine/data_source.js"}}
 {{append . "moreScripts" "js/TameSocket.js"}}
 {{append . "moreScripts" "js/engine/backend_link.js"}}
-{{append . "moreScripts" "js/engine/engine.js"}}
 {{template "header.html" .}}
 <div class='toolbar'>
     <button type="button" id="zoom_home_btn" class="tool btn btn-default btn-sm" onclick="zoom_extent();">
@@ -45,7 +42,6 @@
                 <li onclick="set_addmode('ainput');" class="btn">A Input</li>
                 <li onclick="set_addmode('boutput');" class="btn">B Output</li>
                 <li onclick="set_addmode('aoutput');" class="btn">A Output</li>
-                <!--<li onclick="set_addmode('httpsource');" class="btn">HTTP Val</li>-->
             </ul>   
         </div>
         <div class="btn-group">

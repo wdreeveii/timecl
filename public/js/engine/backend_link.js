@@ -23,25 +23,6 @@ function backend_setproperties(id, PropertyCount, PropertyNames, PropertyTypes, 
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_new_engine(name) {
-	$.ajax({
-		url: "/engine/new",
-		context: document.body,
-		type: "POST",
-	});
-}
-
-function backend_save_engine(name) {
-	var cmd = "name=" + name;
-
-	$.ajax({
-		url: "/engine/save",
-		context: document.body,
-		type: "POST",
-		data: cmd
-	});
-}
-
 function backend_hookobject(id, source) {
 	var eevent = {
 		Type: "edit",

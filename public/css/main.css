@@ -49,7 +49,7 @@ a {
 /** Header **/
 
 #header {
-    background: #fff url(../img/ph.png) 0px 45px no-repeat;
+    background: #fff 0px 45px no-repeat;
     color: #585621;
     position: relative;
 }
