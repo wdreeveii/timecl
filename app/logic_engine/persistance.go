@@ -118,8 +118,7 @@ func (e *Engine_t) LoadObjects() error {
 		}
 	}
 	for k, _ := range e.Objects {
-		obj := e.Objects[k]
-		obj["process"] = processors[obj["Type"].(string)]
+		e.Objects[k].process = processors[e.Objects[k].Type]
 	}
 	return nil
 }

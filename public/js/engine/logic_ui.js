@@ -134,7 +134,6 @@ function find_extent() {
 }
 
 function zoom_extent() {
-	console.log("hah")
 	var extents = find_extent();
 	var container = $(document.getElementById("canvas_container"));
 	var x = container.innerWidth();
@@ -414,7 +413,7 @@ function ui_add_pipe1(pos) {
 	var i = find_object(pos.x, pos.y)
 	if (i != -1 && obj[i].Type == "guide") {
 		console.log("adding 1 pipe");
-		obj[i].selected = 1;
+		obj[i].Selected = 1;
 
 		set_mode("add_pipe2");
 		sel_obj = i;
@@ -434,8 +433,8 @@ function ui_add_pipe2(pos) {
 			requestAnimationFrame(draw_display);
 		}
 
-		obj[i].selected = 0;
-		obj[sel_obj].selected = 0;
+		obj[i].Selected = 0;
+		obj[sel_obj].Selected = 0;
 
 		set_mode("add_pipe");
 		//set_mode("none");
@@ -449,7 +448,7 @@ function ui_move_object(pos, i) {
 		obj_x_ofs = get_world_x(pos.x) - obj[i].Xpos;
 		obj_y_ofs = get_world_y(pos.y) - obj[i].Ypos;
 
-		//obj[i].selected = 1;//!obj[i].selected;
+		//obj[i].Selected = 1;//!obj[i].Selected;
 
 		sel_obj = i;
 		set_mode("moving");
@@ -463,9 +462,8 @@ function ui_move_object(pos, i) {
 
 function ui_delete_object(pos) {
 	var i = find_object(pos.x, pos.y);
-
-	if (obj[i].Attached < 1) {
-		delete_object(i);
+	if (i >= 0 && obj[i].Attached < 1) {
+		backend_deleteobject(i);
 		resize_canvas();
 	} else {
 		set_mode("none");
@@ -476,16 +474,14 @@ function ui_unhook_object(pos) {
 	var i = find_object(pos.x, pos.y);
 
 	if (i != -1) {
-		unhook_object(i);
+		backend_unhookobject(i);
 	} else {
 		set_mode("none");
 	}
 }
 
 function ui_add_object(pos) {
-	var index = add_object(obj, pos.x, pos.y, ui_addtype, 0, -1);
-	resize_canvas();
-	requestAnimationFrame(draw_display);
+	backend_addobject(ui_addtype, pos.x, pos.y);
 	set_mode("none");
 	ui_addtype = "";
 }
@@ -500,24 +496,24 @@ function set_guide(s) {
 function select_none() {
 	// more like blank_properties
 	for (var i in obj)
-		obj[i].selected = 0;
+		obj[i].Selected = 0;
 
 	sel_obj = -1;
 	property_window.set('current_obj', undefined);
 }
 
 function select_object(o) {
-	if (o.selected == 1) {
+	if (o.Selected == 1) {
 		object_toggle(o);
 		return;
 	}
 
 	// Clear all selections
 	for (var i in obj)
-		obj[i].selected = 0;
+		obj[i].Selected = 0;
 
 
-	o.selected = 1;
+	o.Selected = 1;
 	property_window.set('current_obj', o);
 
 	requestAnimationFrame(draw_display);
@@ -565,7 +561,7 @@ function set_mode(m) {
 }
 
 function set_addmode(obj_type) {
-	var index = add_object(obj, get_world_x(100), get_world_y(100), obj_type, 0, 0, -1);
+	backend_addobject(obj_type, get_world_x(100), get_world_y(100));
 }
 
 function reset() {

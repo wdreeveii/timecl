@@ -177,6 +177,10 @@ func setDeadline(ws *websocket.Conn) error {
 func (c Engine) EngineSocket(ws *websocket.Conn, id int) revel.Result {
 	// Close transaction to prevent database writer starvation
 	c.Commit()
+
+	logger_subscription := logger.Subscribe()
+	defer logger_subscription.Cancel()
+
 	response := make(chan *logic_engine.Engine_t)
 	useEngineRequestChan <- useEngineRequest{Id: id, Requester: response}
 	engine := <-response
@@ -228,6 +232,20 @@ func (c Engine) EngineSocket(ws *websocket.Conn, id int) revel.Result {
 			if err := setDeadline(ws); err != nil {
 				revel.ERROR.Println(err)
 				return nil
+			}
+		case event, ok := <-logger_subscription.New:
+			if !ok {
+				logger_subscription.New = nil
+			}
+			if event.Type == "errors" {
+				if err := websocket.JSON.Send(ws, &event); err != nil {
+					revel.ERROR.Println("Error sending msg to client:", err)
+					return nil
+				}
+				if err := setDeadline(ws); err != nil {
+					revel.ERROR.Println(err)
+					return nil
+				}
 			}
 		case msg, ok := <-newMessages:
 			if !ok {

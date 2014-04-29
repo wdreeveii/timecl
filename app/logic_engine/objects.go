@@ -6,48 +6,81 @@ import (
 	"math"
 	"sync"
 	"time"
-	//"timecl/app/network_manager"
 	"timecl/app/logger"
+	"timecl/app/network_manager"
 )
 
-var processors = make(map[string]processor)
+var processors = make(map[Type_t]processor)
+var inits = make(map[Type_t]initfunc)
 
 func init() {
-	processors["guide"] = ProcessGuide
-	processors["binput"] = ProcessBinput
-	processors["ainput"] = ProcessAinput
-	processors["boutput"] = ProcessBoutput
-	processors["aoutput"] = ProcessAoutput
-	processors["notgate"] = ProcessNotGate
-	processors["andgate"] = ProcessAndGate
-	processors["orgate"] = ProcessOrGate
-	processors["xorgate"] = ProcessXorGate
-	processors["mult"] = ProcessMult
-	processors["div"] = ProcessDiv
-	processors["add"] = ProcessAdd
-	processors["sub"] = ProcessSub
-	processors["power"] = ProcessPower
-	processors["sine"] = ProcessSine
-	processors["cosine"] = ProcessCosine
+	processors[Type_t("guide")] = ProcessGuide
+	processors[Type_t("binput")] = ProcessBinput
+	processors[Type_t("ainput")] = ProcessAinput
+	processors[Type_t("boutput")] = ProcessBoutput
+	processors[Type_t("aoutput")] = ProcessAoutput
+	processors[Type_t("notgate")] = ProcessNotGate
+	processors[Type_t("andgate")] = ProcessAndGate
+	processors[Type_t("orgate")] = ProcessOrGate
+	processors[Type_t("xorgate")] = ProcessXorGate
+	processors[Type_t("mult")] = ProcessMult
+	processors[Type_t("div")] = ProcessDiv
+	processors[Type_t("add")] = ProcessAdd
+	processors[Type_t("sub")] = ProcessSub
+	processors[Type_t("power")] = ProcessPower
+	processors[Type_t("sine")] = ProcessSine
+	processors[Type_t("cosine")] = ProcessCosine
 
-	processors["agtb"] = ProcessAGTB
-	processors["agteb"] = ProcessAGTEB
-	processors["altb"] = ProcessALTB
-	processors["alteb"] = ProcessALTEB
-	processors["aeqb"] = ProcessAEQB
-	processors["aneqb"] = ProcessANEQB
+	processors[Type_t("agtb")] = ProcessAGTB
+	processors[Type_t("agteb")] = ProcessAGTEB
+	processors[Type_t("altb")] = ProcessALTB
+	processors[Type_t("alteb")] = ProcessALTEB
+	processors[Type_t("aeqb")] = ProcessAEQB
+	processors[Type_t("aneqb")] = ProcessANEQB
 
-	processors["xyscope"] = ProcessXYscope
-	//processors["block"] = 
-	//processors["vbar"] = 
-	//processors["hbar"] = 
-	processors["timebase"] = ProcessTimeBase
-	processors["timerange"] = ProcessTimeRange
-	processors["timer"] = ProcessTimer
-	processors["delay"] = ProcessDelay
-	processors["conversion"] = ProcessConversion
-	processors["logger"] = ProcessLogger
-	processors["alert"] = ProcessAlert
+	processors[Type_t("xyscope")] = ProcessXYscope
+
+	processors[Type_t("timebase")] = ProcessTimeBase
+	processors[Type_t("timerange")] = ProcessTimeRange
+	processors[Type_t("timer")] = ProcessTimer
+	processors[Type_t("delay")] = ProcessDelay
+	processors[Type_t("conversion")] = ProcessConversion
+	processors[Type_t("logger")] = ProcessLogger
+	processors[Type_t("alert")] = ProcessAlert
+
+	inits[Type_t("guide")] = InitGuide
+	inits[Type_t("binput")] = InitBinput
+	inits[Type_t("ainput")] = InitAinput
+	inits[Type_t("boutput")] = InitBoutput
+	inits[Type_t("aoutput")] = InitAoutput
+	inits[Type_t("notgate")] = InitNotGate
+	inits[Type_t("andgate")] = InitAndGate
+	inits[Type_t("orgate")] = InitOrGate
+	inits[Type_t("xorgate")] = InitXorGate
+	inits[Type_t("mult")] = InitMult
+	inits[Type_t("div")] = InitDiv
+	inits[Type_t("add")] = InitAdd
+	inits[Type_t("sub")] = InitSub
+	inits[Type_t("power")] = InitPower
+	inits[Type_t("sine")] = InitSine
+	inits[Type_t("cosine")] = InitCosine
+
+	inits[Type_t("agtb")] = InitAGTB
+	inits[Type_t("agteb")] = InitAGTEB
+	inits[Type_t("altb")] = InitALTB
+	inits[Type_t("alteb")] = InitALTEB
+	inits[Type_t("aeqb")] = InitAEQB
+	inits[Type_t("aneqb")] = InitANEQB
+
+	inits[Type_t("xyscope")] = InitXYscope
+
+	inits[Type_t("timebase")] = InitTimeBase
+	inits[Type_t("timerange")] = InitTimeRange
+	inits[Type_t("timer")] = InitTimer
+	inits[Type_t("delay")] = InitDelay
+	inits[Type_t("conversion")] = InitConversion
+	inits[Type_t("logger")] = InitLogger
+	inits[Type_t("alert")] = InitAlert
 
 	go func() {
 		for {
@@ -60,58 +93,91 @@ func init() {
 
 }
 
-type processor func(o Object_t, objs map[int]Object_t, iteration int) error
+type processor func(o *Object_t, objs ObjectList, iteration int) error
+type initfunc func() Object_t
 
-type Id int
-type Type string
-type Xpos int
-type Ypos int
-type Xsize int
-type ysize int
-type Output float64
-type NextOutput float64
-type TermList string
-type Terminals []int
-type Source int
-type PropertyCount int
-type PropertyNames []string
-type PropertyValues []string
-type PropertyTypes []string
-type Attached int
-type Dir int
+type Id_t int
+type Type_t string
+type Dim_t int
+type Value_t network_manager.Value_t
+type SignalGood bool
+type Terminals_t []Id_t
+type PropertyCount_t int
+type PropertyNames_t []string
+type PropertyValues_t []interface{}
+type PropertyTypes_t []string
+type StateData_t map[string]interface{}
+type Attached_t int
+type Dir_t int
 
-type Object_t map[string]interface{}
+//type Object_t map[string]interface{}
 
-/*type Object_t struct {
-	Id             int
-	Type           string
-	Xpos           int
-	Ypos           int
-	Xsize          int
-	Ysize          int
-	Output         float64
-	NextOutput     float64
-	TermList       string
-	Terminals      []int
-	Source         int
-	PropertyCount  int
-	PropertyNames  []string
-	PropertyValues []string
-	PropertyTypes  []string
-	Attached       int
-	Dir            int
-	process        processor
-}*/
+type Object_t struct {
+	Id              Id_t
+	Type            Type_t
+	Xpos            Dim_t
+	Ypos            Dim_t
+	Xsize           Dim_t
+	Ysize           Dim_t
+	Output          Value_t
+	NextOutput      Value_t
+	SignalGood      SignalGood
+	PortValue       Value_t
+	Terminals       Terminals_t
+	Source          Id_t
+	PropertyCount   PropertyCount_t
+	PropertyNames   PropertyNames_t
+	PropertyValues  PropertyValues_t
+	PropertyTypes   PropertyTypes_t
+	StateData       StateData_t
+	Attached        Attached_t
+	Dir             Dir_t
+	process         processor
+	ShowOutput      bool
+	ShowAnalog      bool
+	ShowName        string
+	inputTermCount  int
+	outputTermCount int
+}
+
+const (
+	DirNone  = Dir_t(0)
+	DirUp    = Dir_t(1)
+	DirDown  = Dir_t(2)
+	DirLeft  = Dir_t(3)
+	DirRight = Dir_t(4)
+)
+
+func makeObject_t() Object_t {
+	var obj Object_t
+	obj.Xsize = 50
+	obj.Ysize = 50
+
+	obj.Type = Type_t("None")
+
+	obj.Dir = DirNone
+	obj.Attached = -1
+	obj.Source = -1
+
+	obj.Terminals = make(Terminals_t, 0)
+	obj.PropertyNames = make(PropertyNames_t, 0)
+	obj.PropertyValues = make(PropertyValues_t, 0)
+	obj.PropertyTypes = make(PropertyTypes_t, 0)
+	obj.StateData = make(StateData_t)
+	return obj
+}
+
+type ObjectList map[Id_t]*Object_t
 
 func (o Object_t) Display() {
 	var output string
-	output += fmt.Sprintf("ID %4d  ", o["Id"])
-	output += fmt.Sprintf("Type %10s  ", o["Type"])
-	output += fmt.Sprintf("Source %3d  ", int(o["Source"].(int)))
-	output += fmt.Sprintf("Output %10f  ", o["Output"])
+	output += fmt.Sprintf("ID %4d  ", o.Id)
+	output += fmt.Sprintf("Type %10s  ", o.Type)
+	output += fmt.Sprintf("Source %3d  ", o.Source)
+	output += fmt.Sprintf("Output %10f  ", o.Output)
 	output += fmt.Sprintf("Terminals: ")
-	for _, val := range o["Terminals"].([]interface{}) {
-		output += fmt.Sprintf("%d ", int(val.(float64)))
+	for _, val := range o.Terminals {
+		output += fmt.Sprintf("%d ", val)
 	}
 	fmt.Println(output)
 }
@@ -120,111 +186,123 @@ func (o Object_t) Display() {
 	return nil
 }*/
 
-func (o Object_t) AssignOutput(objs map[int]Object_t, terminal int) error {
-	terms, ok := o["Terminals"].([]interface{})
-	if !ok {
-		return errors.New("No terminal list/terminal list of improper type.")
-	}
-	terminal64, ok := terms[terminal].(float64)
-	if !ok {
+func (o Object_t) AssignOutput(objs ObjectList, terminal int) error {
+	if terminal < len(o.Terminals) {
+		term := o.Terminals[terminal]
+		obj, exists := objs[term]
+		if exists {
+			obj.NextOutput = o.NextOutput
+			return nil
+		} else {
+			return errors.New("The specified object does not exist.")
+		}
+	} else {
 		return errors.New("Specified terminal does not exist.")
 	}
-	obj, ok := objs[int(terminal64)]
-	if !ok {
-		return errors.New("The specified object does not exist.")
-	}
-	output64, ok := o["Output"].(float64)
-	if !ok {
-		return errors.New("No output value, or value is of improper type.")
-	}
-	obj["NextOutput"] = output64
-	return nil
 }
 
 func (o Object_t) CheckTerminals(count int) error {
-	iterms, ok := o["Terminals"]
-	if !ok {
-		return errors.New("No terminal list.")
-	}
-	terms, ok := iterms.([]interface{})
-	if !ok {
-		return errors.New("Terminal list of unknown type.")
-	}
-	if len(terms) < count {
-		return fmt.Errorf("Invalid Terminals for obj type: %v, Id: %v", o["Type"], o["Id"])
+	if len(o.Terminals) < count {
+		return fmt.Errorf("Invalid Terminals for obj type: %v, Id: %v", o.Type, o.Id)
 	}
 	return nil
 }
 
-func (o Object_t) GetTerminal(Objects map[int]Object_t, term int) (float64, error) {
-	terms, ok := o["Terminals"].([]interface{})
-	if !ok {
-		return 0, errors.New("Terminals list of unknown type.")
+func (o Object_t) GetTerminal(Objects ObjectList, term int) (Value_t, error) {
+	if term < len(o.Terminals) {
+		terminal_id := o.Terminals[term]
+		obj, exists := Objects[terminal_id]
+		if exists {
+			return obj.Output, nil
+		} else {
+			return 0, errors.New("Specified object does not exist.")
+		}
+	} else {
+		return 0, errors.New("Specified terminal does not exist.")
 	}
-	terminal64, ok := terms[term].(float64)
-	if !ok {
-		return 0, errors.New("Specified Terminal does not exist or is of improper type.")
-	}
-	theterm := int(terminal64)
-	obj, ok := Objects[theterm]
-	if !ok {
-		return 0, errors.New("Specified object does not exist.")
-	}
-	output64, ok := obj["Output"].(float64)
-	if !ok {
-		return 0, errors.New("No Output value or Output is of improper type.")
-	}
-	return output64, nil
+}
+
+func (o *Object_t) addProperty(name string, prop_type string, default_value interface{}) {
+	o.PropertyNames = append(o.PropertyNames, name)
+	o.PropertyTypes = append(o.PropertyTypes, prop_type)
+	o.PropertyValues = append(o.PropertyValues, default_value)
+	o.PropertyCount++
 }
 
 func (o Object_t) GetProperty(name string) (interface{}, error) {
-	PCount := o["PropertyCount"].(int)
-	if PCount <= 0 {
-		return nil, fmt.Errorf("Property %s not found.", name)
-	}
-	names := o["PropertyNames"].([]interface{})
-	for ii := 0; ii < PCount; ii++ {
-		if stringify(names[ii]) == name {
-			valList, ok := o["PropertyValues"].([]interface{})
-			if !ok {
-				return nil, fmt.Errorf("Property value list is of improper type.")
-			}
-			if ii >= len(valList) {
+	for ii := PropertyCount_t(0); ii < o.PropertyCount; ii++ {
+		if o.PropertyNames[ii] == name {
+			if int(ii) < len(o.PropertyValues) {
+				val := o.PropertyValues[ii]
+				return val, nil
+			} else {
 				return nil, fmt.Errorf("Specified property value is not in list.")
 			}
-			return valList[ii], nil
 		}
 	}
 	return nil, fmt.Errorf("Property %s not found.", name)
 }
 
-func ProcessGuide(o Object_t, Objects map[int]Object_t, iteration int) error {
-	source := int(o["Source"].(int))
-	if source < 0 {
-		return nil
+func InitGuide() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 10
+	obj.Ysize = 10
+	obj.process = ProcessGuide
+	return obj
+}
+
+func ProcessGuide(o *Object_t, Objects ObjectList, iteration int) error {
+	Source, exists := Objects[o.Source]
+	if exists {
+		o.NextOutput = Source.Output
 	}
-	o["NextOutput"] = Objects[source]["Output"]
 	return nil
 }
 
-func ProcessBinput(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitBinput() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 60
+	obj.Ysize = 60
+	obj.ShowOutput = true
+	obj.inputTermCount = 0
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.addProperty("value", "float", 0)
+	obj.addProperty("port", "port", "None")
+	obj.process = ProcessBinput
+	return obj
+}
+
+func ProcessBinput(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(1); err != nil {
 		return err
 	}
-	port_value, ok := o["PortValue"].(float64)
-	if ok {
-		o["Output"] = port_value
-	} else {
-		o["Output"] = float64(-99)
+	if o.SignalGood {
+		o.Output = o.PortValue
 	}
-
-	o["NextOutput"] = o["Output"]
+	o.NextOutput = o.Output
 	err = o.AssignOutput(Objects, 0)
 	return err
 }
 
-func ProcessAinput(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitAinput() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 60
+	obj.Ysize = 60
+	obj.ShowOutput = true
+	obj.inputTermCount = 0
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.addProperty("value", "float", 0)
+	obj.addProperty("port", "port", "None")
+	obj.addProperty("Auto scale - Max", "float", 5)
+	obj.addProperty("Auto scale - Min", "float", 0)
+	obj.process = ProcessAinput
+	return obj
+}
+
+func ProcessAinput(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(1); err != nil {
 		return err
@@ -245,17 +323,32 @@ func ProcessAinput(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if !ok {
 		max = float64(5)
 	}
-	o["NextOutput"] = o["Output"]
-	port_value, ok := o["PortValue"].(float64)
-	if ok {
-		o["NextOutput"] = float64(port_value*(1.0/(65536.0/math.Abs(min-max))) + min)
+	o.NextOutput = o.Output
+	if o.SignalGood {
+		delta := Value_t(math.Abs(min - max))
+		base_delta := Value_t(65536.0) / delta
+		ratio := Value_t(1.0) / base_delta
+		o.NextOutput = o.PortValue*ratio + Value_t(min)
 	}
 
 	err = o.AssignOutput(Objects, 0)
 	return err
 }
 
-func ProcessBoutput(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitBoutput() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 80
+	obj.Ysize = 30
+	obj.ShowOutput = true
+	obj.inputTermCount = 1
+	obj.outputTermCount = 0
+	obj.addProperty("name", "string", "")
+	obj.addProperty("port", "port", "None")
+	obj.process = ProcessBoutput
+	return obj
+}
+
+func ProcessBoutput(o *Object_t, Objects ObjectList, iteration int) error {
 	if err := o.CheckTerminals(1); err != nil {
 		return err
 	}
@@ -263,11 +356,24 @@ func ProcessBoutput(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = value
+	o.NextOutput = value
 	return nil
 }
 
-func ProcessAoutput(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitAoutput() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 80
+	obj.Ysize = 30
+	obj.ShowAnalog = true
+	obj.inputTermCount = 1
+	obj.outputTermCount = 0
+	obj.addProperty("name", "string", "")
+	obj.addProperty("port", "port", "None")
+	obj.process = ProcessAoutput
+	return obj
+}
+
+func ProcessAoutput(o *Object_t, Objects ObjectList, iteration int) error {
 	if err := o.CheckTerminals(1); err != nil {
 		return err
 	}
@@ -275,11 +381,21 @@ func ProcessAoutput(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = value
+	o.NextOutput = value
 	return nil
 }
 
-func ProcessNotGate(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitNotGate() Object_t {
+	var obj = makeObject_t()
+	obj.ShowOutput = true
+	obj.inputTermCount = 1
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessNotGate
+	return obj
+}
+
+func ProcessNotGate(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(2); err != nil {
 		return err
@@ -289,15 +405,25 @@ func ProcessNotGate(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if input > 0 {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	} else {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	}
 	err = o.AssignOutput(Objects, 1)
 	return err
 }
 
-func ProcessAndGate(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitAndGate() Object_t {
+	var obj = makeObject_t()
+	obj.ShowOutput = true
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessAndGate
+	return obj
+}
+
+func ProcessAndGate(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -312,15 +438,25 @@ func ProcessAndGate(o Object_t, Objects map[int]Object_t, iteration int) error {
 	}
 
 	if in_a > 0 && in_b > 0 {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessOrGate(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitOrGate() Object_t {
+	var obj = makeObject_t()
+	obj.ShowOutput = true
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessOrGate
+	return obj
+}
+
+func ProcessOrGate(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -334,19 +470,29 @@ func ProcessOrGate(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if in_a > 0 || in_b > 0 {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
+}
+
+func InitXorGate() Object_t {
+	var obj = makeObject_t()
+	obj.ShowOutput = true
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessXorGate
+	return obj
 }
 
 func xor(cond1, cond2 bool) bool {
 	return (cond1 || cond2) && !(cond1 && cond2)
 }
 
-func ProcessXorGate(o Object_t, Objects map[int]Object_t, iteration int) error {
+func ProcessXorGate(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -360,15 +506,26 @@ func ProcessXorGate(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if xor((in_a > 0), (in_b > 0)) {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessMult(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitMult() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Mult"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessMult
+	return obj
+}
+
+func ProcessMult(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -381,12 +538,23 @@ func ProcessMult(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = in_a * in_b
+	o.NextOutput = in_a * in_b
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessDiv(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitDiv() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Div"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessDiv
+	return obj
+}
+
+func ProcessDiv(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err := o.CheckTerminals(3); err != nil {
 		return err
@@ -400,13 +568,24 @@ func ProcessDiv(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if in_b != 0 {
-		o["NextOutput"] = in_a / in_b
+		o.NextOutput = in_a / in_b
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessAdd(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitAdd() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Add"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessAdd
+	return obj
+}
+
+func ProcessAdd(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -419,12 +598,23 @@ func ProcessAdd(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = in_a + in_b
+	o.NextOutput = in_a + in_b
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessSub(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitSub() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Sub"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessSub
+	return obj
+}
+
+func ProcessSub(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -437,12 +627,23 @@ func ProcessSub(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = in_a - in_b
+	o.NextOutput = in_a - in_b
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessPower(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitPower() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Power"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessPower
+	return obj
+}
+
+func ProcessPower(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -455,12 +656,23 @@ func ProcessPower(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = math.Pow(in_a, in_b)
+	o.NextOutput = Value_t(math.Pow(float64(in_a), float64(in_b)))
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessSine(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitSine() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Sine"
+	obj.inputTermCount = 1
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessSine
+	return obj
+}
+
+func ProcessSine(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(2); err != nil {
 		return err
@@ -469,12 +681,23 @@ func ProcessSine(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = math.Sin(in_a)
+	o.NextOutput = Value_t(math.Sin(float64(in_a)))
 	err = o.AssignOutput(Objects, 1)
 	return err
 }
 
-func ProcessCosine(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitCosine() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Cosine"
+	obj.inputTermCount = 1
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessCosine
+	return obj
+}
+
+func ProcessCosine(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(2); err != nil {
 		return err
@@ -483,12 +706,23 @@ func ProcessCosine(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = math.Cos(in_a)
+	o.NextOutput = Value_t(math.Cos(float64(in_a)))
 	err = o.AssignOutput(Objects, 1)
 	return err
 }
 
-func ProcessAGTB(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitAGTB() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "A > B"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessAGTB
+	return obj
+}
+
+func ProcessAGTB(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -502,15 +736,26 @@ func ProcessAGTB(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if in_a > in_b {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessAGTEB(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitAGTEB() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "A >= B"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessAGTEB
+	return obj
+}
+
+func ProcessAGTEB(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -524,15 +769,26 @@ func ProcessAGTEB(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if in_a >= in_b {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessALTB(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitALTB() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "A < B"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessALTB
+	return obj
+}
+
+func ProcessALTB(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -546,15 +802,26 @@ func ProcessALTB(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if in_a < in_b {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessALTEB(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitALTEB() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "A <= B"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessALTEB
+	return obj
+}
+
+func ProcessALTEB(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -568,15 +835,26 @@ func ProcessALTEB(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if in_a <= in_b {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessAEQB(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitAEQB() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "A == B"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessAEQB
+	return obj
+}
+
+func ProcessAEQB(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(3); err != nil {
 		return err
@@ -590,15 +868,26 @@ func ProcessAEQB(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if in_a == in_b {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
-func ProcessANEQB(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitANEQB() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "A != B"
+	obj.inputTermCount = 2
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessANEQB
+	return obj
+}
+
+func ProcessANEQB(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err := o.CheckTerminals(3); err != nil {
 		return err
@@ -612,37 +901,75 @@ func ProcessANEQB(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	if in_a != in_b {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 2)
 	return err
 }
 
+func InitTimeBase() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 60
+	obj.Ysize = 60
+	obj.ShowOutput = true
+	obj.inputTermCount = 0
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessTimeBase
+	return obj
+}
+
 var tbmu sync.Mutex
 var tick float64
 
-func ProcessTimeBase(o Object_t, Objects map[int]Object_t, iteration int) error {
+func ProcessTimeBase(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(1); err != nil {
 		return err
 	}
 	tbmu.Lock()
-	o["NextOutput"] = tick //float64(time.Now().Unix())
+	o.NextOutput = Value_t(tick) //float64(time.Now().Unix())
 	tbmu.Unlock()
 	err = o.AssignOutput(Objects, 0)
 	return err
 }
 
-func ProcessXYscope(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitXYscope() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 200
+	obj.Ysize = 200
+	obj.inputTermCount = 2
+	obj.outputTermCount = 0
+	obj.addProperty("name", "string", "")
+	obj.process = ProcessXYscope
+	return obj
+}
+
+func ProcessXYscope(o *Object_t, Objects ObjectList, iteration int) error {
 	if err := o.CheckTerminals(2); err != nil {
 		return err
 	}
 	return nil
 }
 
-func ProcessTimeRange(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitTimeRange() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 80
+	obj.Ysize = 40
+	obj.ShowOutput = true
+	obj.inputTermCount = 0
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.addProperty("on", "time", "8:00")
+	obj.addProperty("off", "time", "18:00")
+	obj.addProperty("timezone", "timezone", "")
+	obj.process = ProcessTimeRange
+	return obj
+}
+
+func ProcessTimeRange(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if iteration != 0 {
 		return nil
@@ -679,7 +1006,7 @@ func ProcessTimeRange(o Object_t, Objects map[int]Object_t, iteration int) error
 	}
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 		err2 := o.AssignOutput(Objects, 0)
 		if err2 != nil {
 			return fmt.Errorf("Two errors encountered:", err, err2)
@@ -692,7 +1019,7 @@ func ProcessTimeRange(o Object_t, Objects map[int]Object_t, iteration int) error
 	m := int(month)
 	on_time, err := time.ParseInLocation("15:04", on, loc)
 	if err != nil {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 		err2 := o.AssignOutput(Objects, 0)
 		if err2 != nil {
 			fmt.Errorf("Two errors encountered:", err, err2)
@@ -703,7 +1030,7 @@ func ProcessTimeRange(o Object_t, Objects map[int]Object_t, iteration int) error
 	on_time = on_time.AddDate(year, m-1, day-1)
 	off_time, err := time.ParseInLocation("15:04", off, loc)
 	if err != nil {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 		err2 := o.AssignOutput(Objects, 0)
 		if err2 != nil {
 			return fmt.Errorf("Two errors encountered:", err, err2)
@@ -714,15 +1041,29 @@ func ProcessTimeRange(o Object_t, Objects map[int]Object_t, iteration int) error
 	off_time = off_time.AddDate(year, m-1, day-1)
 
 	if current_time.After(on_time) && current_time.Before(off_time) {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 0)
 	return err
 }
 
-func ProcessTimer(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitTimer() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 80
+	obj.Ysize = 60
+	obj.ShowOutput = true
+	obj.inputTermCount = 0
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.addProperty("on duration", "time", "2s")
+	obj.addProperty("off duration", "time", "2s")
+	obj.process = ProcessTimer
+	return obj
+}
+
+func ProcessTimer(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if iteration != 0 {
 		return nil
@@ -732,13 +1073,12 @@ func ProcessTimer(o Object_t, Objects map[int]Object_t, iteration int) error {
 	}
 	var start int64
 	var ok bool
-	_, ok = o["_timer_start"]
+	_, ok = o.StateData["_timer_start"]
 	if ok {
-		start = o["_timer_start"].(int64)
-	}
-	if !ok {
+		start = o.StateData["_timer_start"].(int64)
+	} else {
 		start = time.Now().UTC().Unix()
-		o["_timer_start"] = start
+		o.StateData["_timer_start"] = start
 	}
 	now := time.Now().UTC().Unix()
 	ion, err := o.GetProperty("on duration")
@@ -771,15 +1111,28 @@ func ProcessTimer(o Object_t, Objects map[int]Object_t, iteration int) error {
 	//fmt.Println("off_secs", off_secs)
 	modsecs := (now - start) % (on_secs + off_secs)
 	if modsecs >= 0 && modsecs < on_secs {
-		o["NextOutput"] = float64(1)
+		o.NextOutput = Value_t(1)
 	} else if modsecs >= on_secs {
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 	err = o.AssignOutput(Objects, 0)
 	return err
 }
 
-func ProcessDelay(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitDelay() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Delay"
+	obj.inputTermCount = 1
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.addProperty("delay", "float", 0)
+	obj.addProperty("min on", "float", 0)
+	obj.process = ProcessDelay
+	return obj
+}
+
+func ProcessDelay(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(2); err != nil {
 		return err
@@ -805,50 +1158,66 @@ func ProcessDelay(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	current_time := time.Now()
-	current_delay_start, ok := o["_current_delay"].(time.Time)
+	current_delay_start, ok := o.StateData["_current_delay"].(time.Time)
 	if !ok {
 		current_delay_start = current_time
 		if input > 0 && delay > 0 {
-			o["_current_delay"] = current_delay_start
+			o.StateData["_current_delay"] = current_delay_start
 			return nil
 		}
 	}
 	delay_end := current_delay_start.Add(time.Duration(delay) * time.Second)
 
 	if current_time.Equal(delay_end) || current_time.After(delay_end) {
-		current_min_start, ok := o["_current_min_on"].(time.Time)
+		current_min_start, ok := o.StateData["_current_min_on"].(time.Time)
 		if !ok {
 			current_min_start = current_time
 			if min > 0 {
-				o["_current_min_on"] = current_min_start
+				o.StateData["_current_min_on"] = current_min_start
 			}
 		}
 		min_end := current_min_start.Add(time.Duration(min) * time.Second)
 
 		if current_time.Equal(min_end) || current_time.After(min_end) {
 			if input > 0 {
-				o["NextOutput"] = float64(1)
+				o.NextOutput = Value_t(1)
 			} else {
-				o["NextOutput"] = float64(0)
-				o["_current_delay"] = nil
-				o["_current_min_on"] = nil
+				o.NextOutput = Value_t(0)
+				o.StateData["_current_delay"] = nil
+				o.StateData["_current_min_on"] = nil
 			}
 		} else {
-			o["NextOutput"] = float64(1)
+			o.NextOutput = Value_t(1)
 		}
 	} else {
 		if !(input > 0) {
-			o["_current_delay"] = nil
-			o["_current_min_on"] = nil
+			o.StateData["_current_delay"] = nil
+			o.StateData["_current_min_on"] = nil
 		}
-		o["NextOutput"] = float64(0)
+		o.NextOutput = Value_t(0)
 	}
 
 	err = o.AssignOutput(Objects, 1)
 	return err
 }
 
-func ProcessConversion(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitConversion() Object_t {
+	var obj = makeObject_t()
+	obj.Xsize = 140
+	obj.Ysize = 60
+	obj.ShowAnalog = true
+	obj.ShowName = "Conversion"
+	obj.inputTermCount = 1
+	obj.outputTermCount = 1
+	obj.addProperty("name", "string", "")
+	obj.addProperty("a", "float", 0)
+	obj.addProperty("b", "float", 0)
+	obj.addProperty("c", "float", 0)
+	obj.process = ProcessConversion
+	return obj
+}
+
+func ProcessConversion(o *Object_t, Objects ObjectList, iteration int) error {
 	var err error
 	if err = o.CheckTerminals(2); err != nil {
 		return err
@@ -881,7 +1250,7 @@ func ProcessConversion(o Object_t, Objects map[int]Object_t, iteration int) erro
 	if err != nil {
 		return err
 	}
-	o["NextOutput"] = a*(input*input) + b*input + c
+	o.NextOutput = Value_t(a)*(input*input) + Value_t(b)*input + Value_t(c)
 	err = o.AssignOutput(Objects, 1)
 	return err
 }
@@ -896,7 +1265,19 @@ func getSurroundingTimeslots(current time.Time, freq float64) (time.Time, time.T
 	return prev_timeslot_start, next_timeslot_start
 }
 
-func ProcessLogger(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitLogger() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Log"
+	obj.inputTermCount = 1
+	obj.outputTermCount = 0
+	obj.addProperty("name", "string", "")
+	obj.addProperty("frequency", "float", 300)
+	obj.process = ProcessLogger
+	return obj
+}
+
+func ProcessLogger(o *Object_t, Objects ObjectList, iteration int) error {
 	if err := o.CheckTerminals(1); err != nil {
 		return err
 	}
@@ -905,24 +1286,21 @@ func ProcessLogger(o Object_t, Objects map[int]Object_t, iteration int) error {
 	if err != nil {
 		return err
 	}
-	objid, ok := o["Id"].(int)
-	if !ok {
-		return errors.New("Object Id doesn't exist or is of improper type.")
-	}
-	min, ok := o["_min_value"].(float64)
+	objid := o.Id
+	min, ok := o.StateData["_min_value"].(Value_t)
 	if !ok {
 		min = input
-		o["_min_value"] = min
+		o.StateData["_min_value"] = min
 	}
-	max, ok := o["_max_value"].(float64)
+	max, ok := o.StateData["_max_value"].(Value_t)
 	if !ok {
 		max = input
-		o["_max_value"] = max
+		o.StateData["_max_value"] = max
 	}
-	avg, ok := o["_avg_data"].([]float64)
+	avg, ok := o.StateData["_avg_data"].([]Value_t)
 	if !ok {
-		avg = []float64{}
-		o["_avg_data"] = avg
+		avg = []Value_t{}
+		o.StateData["_avg_data"] = avg
 	}
 	ifreq, _ := o.GetProperty("frequency")
 	freq, ok := ifreq.(float64)
@@ -932,51 +1310,66 @@ func ProcessLogger(o Object_t, Objects map[int]Object_t, iteration int) error {
 
 	current := time.Now()
 
-	next_timeslot, ok := o["_next_timeslot"].(time.Time)
+	next_timeslot, ok := o.StateData["_next_timeslot"].(time.Time)
 	if !ok {
 		_, next_timeslot = getSurroundingTimeslots(current, freq)
-		o["_next_timeslot"] = next_timeslot
+		o.StateData["_next_timeslot"] = next_timeslot
 	}
 	if current.After(next_timeslot) {
-		var calc_avg float64
+		var calc_avg Value_t
 		for _, v := range avg {
 			calc_avg += v
 		}
-		calc_avg = calc_avg / float64(len(avg))
+		calc_avg = calc_avg / Value_t(len(avg))
 
 		prev_timeslot, next_timeslot := getSurroundingTimeslots(current, freq)
 		lEvent := logger.LoggingData{Time: prev_timeslot,
-			ObjectId: objid,
-			Min:      min,
-			Max:      max,
-			Avg:      calc_avg}
+			ObjectId: int(objid),
+			Min:      float64(min),
+			Max:      float64(max),
+			Avg:      float64(calc_avg)}
 		logger.Publish(logger.Event{"capture", lEvent})
 
-		avg = []float64{}
+		avg = []Value_t{}
 		min = input
 		max = input
-		o["_avg_data"] = avg
-		o["_min_value"] = min
-		o["_max_value"] = max
-		o["_next_timeslot"] = next_timeslot
+		o.StateData["_avg_data"] = avg
+		o.StateData["_min_value"] = min
+		o.StateData["_max_value"] = max
+		o.StateData["_next_timeslot"] = next_timeslot
 	}
 	if input < min {
 		min = input
-		o["_min_value"] = min
+		o.StateData["_min_value"] = min
 	}
 	if input > max {
 		max = input
-		o["_max_value"] = max
+		o.StateData["_max_value"] = max
 	}
 	if iteration == 0 {
 		avg = append(avg, input)
-		o["_avg_data"] = avg
+		o.StateData["_avg_data"] = avg
 	}
-	o["NextOutput"] = input
+	o.NextOutput = input
 	return nil
 }
 
-func ProcessAlert(o Object_t, Objects map[int]Object_t, iteration int) error {
+func InitAlert() Object_t {
+	var obj = makeObject_t()
+	obj.ShowAnalog = true
+	obj.ShowName = "Alert"
+	obj.inputTermCount = 1
+	obj.outputTermCount = 0
+	obj.addProperty("name", "string", "")
+	obj.addProperty("Event Text", "string", "")
+	obj.addProperty("Email Recipients", "string", "")
+	obj.addProperty("Notify Event Start", "string", "Yes")
+	obj.addProperty("Notify Event End", "string", "Yes")
+	obj.process = ProcessAlert
+	return obj
+}
+
+func ProcessAlert(o *Object_t, Objects ObjectList, iteration int) error {
 	if err := o.CheckTerminals(1); err != nil {
 		return err
 	}
@@ -985,26 +1378,23 @@ func ProcessAlert(o Object_t, Objects map[int]Object_t, iteration int) error {
 		return err
 	}
 	current_time := time.Now()
-	alert_event_start, ok := o["_alert_event_start"].(time.Time)
+	alert_event_start, ok := o.StateData["_alert_event_start"].(time.Time)
 	var start = false
 	var stop = false
 	if !ok {
 		alert_event_start = current_time
 		if input > 0 {
 			start = true
-			o["_alert_event_start"] = alert_event_start
+			o.StateData["_alert_event_start"] = alert_event_start
 		}
 	} else {
 		if input <= 0 {
 			stop = true
-			delete(o, "_alert_event_start")
+			delete(o.StateData, "_alert_event_start")
 		}
 	}
 	if start || stop {
-		objid, ok := o["Id"].(int)
-		if !ok {
-			return errors.New("Object Id doesn't exist or is of improper type.")
-		}
+		objid := o.Id
 		iname, err := o.GetProperty("name")
 		if err != nil {
 			logger.PublishOneError(err)
@@ -1042,7 +1432,7 @@ func ProcessAlert(o Object_t, Objects map[int]Object_t, iteration int) error {
 				var subject = "[" + name + "] "
 				subject += "Triggered: " + current_time.Format(time.StampMilli)
 				aEvent := logger.AlertData{Time: current_time,
-					ObjectId:   objid,
+					ObjectId:   int(objid),
 					Subject:    subject,
 					EventText:  eventText,
 					Recipients: recipients}
@@ -1061,7 +1451,7 @@ func ProcessAlert(o Object_t, Objects map[int]Object_t, iteration int) error {
 				var subject = "[" + name + "] "
 				subject += "Recovered: " + current_time.Format(time.StampMilli)
 				aEvent := logger.AlertData{Time: current_time,
-					ObjectId:   objid,
+					ObjectId:   int(objid),
 					Subject:    subject,
 					EventText:  eventText,
 					Recipients: recipients}
@@ -1070,6 +1460,6 @@ func ProcessAlert(o Object_t, Objects map[int]Object_t, iteration int) error {
 		}
 
 	}
-	o["NextOutput"] = input
+	o.NextOutput = input
 	return nil
 }

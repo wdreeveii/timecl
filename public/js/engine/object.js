@@ -30,15 +30,13 @@ function object_type(name) {
 	this.Type = "none";
 
 	this.Id = 0;
-	this.index = 0;
 
 	this.input_termcount = 0;
 	this.output_termcount = 0;
 
-	this.selected = 0;
+	this.Selected = 0;
 	this.Terminals = new Array;
 	this.Attached = -1;
-	this.solved = 0;
 	this.Dir = dir_type.none;
 	this.Output = 0;
 	this.NextOutput = 0;
@@ -48,34 +46,13 @@ function object_type(name) {
 	this.show_analog = 0;
 	this.show_output = 0;
 
-	this.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
-	}
-
 	this.PropertyCount = 0;
 	this.PropertyNames = new Array;
 	this.PropertyTypes = new Array;
 	this.PropertyValues = new Array;
 
-	this.RootId = -1;
-
-	this.add_output_terminal = function(objects, pos, root_id) {
-		var index = add_object(objects,
-			this.Xpos + this.Xsize,
-			this.Ypos + this.Ysize / 2 - guide_size / 2 + pos * (guide_size + 2),
-			"guide", 1, dir_type.right, root_id);
-
-		this.Terminals.push(index);
-	}
-
-
-	this.add_input_terminal = function(objects, pos, root_id) {
-		var index = add_object(objects,
-			this.Xpos - guide_size,
-			this.Ypos + this.Ysize / 2 - guide_size / 2 + pos * (guide_size + 2),
-			"guide", 1, dir_type.left, root_id);
-
-		this.Terminals.push(index);
+	this.draw_icon = function(ctx) {
+		bounding_rect(ctx, this);
 	}
 
 	this.set_output = function(output) {
@@ -116,20 +93,16 @@ function object_type(name) {
 
 		ctx.fillText(name, get_x(x + this.Xsize * 0.1), get_y(y) - f_size / 2);
 
-		if (this.show_output)
+		if (this.ShowOutput)
 			ctx.fillText(format(this.Output), get_x(x + this.Xsize * 0.3), get_y(y + this.Ysize / 2) + f_size / 2);
 
-		if (this.show_analog)
+		if (this.ShowAnalog)
 			ctx.fillText(format(this.Output), get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) + f_size / 2);
 
-		if (this.show_name)
+		if (this.ShowName)
 			ctx.fillText(this.show_name, get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) - f_size / 2 * 1.5);
 
 		ctx.fillStyle = old_fill;
-	}
-
-	this.backend_add = function() {
-		backend_addobject(this);
 	}
 
 	this.get_property = function(property) {
@@ -158,20 +131,6 @@ function bounding_rect(ctx, o) {
 	ctx.stroke();
 }
 
-function init_obj(x, y, type, attached, dir, index, root_id) {
-	var o = new object_type;
-	o.Type = type;
-	o.Xpos = x;
-	o.Ypos = y;
-	o.Dir = dir;
-	o.Id = index;
-	o.RootId = root_id;
-	o.index = index;
-	if (type == "guide")
-		o.Attached = attached;
-	return o;
-}
-
 function construct(new_object) {
 	for (var i = 0; i < object_list.length; i++) {
 		if (new_object.Type == object_list[i]) {
@@ -179,32 +138,6 @@ function construct(new_object) {
 			break;
 		}
 	}
-}
-
-function add_object(objects, x, y, type, attached, dir, root_id) {
-	var index = objects.length;
-	var o = init_obj(x, y, type, attached, dir, index, root_id);
-	objects.push(o);
-	construct(o);
-	// Add terminals
-	// HACK
-	for (var i = 0; i < o.input_termcount; i++) {
-		if (o.input_termcount == 1)
-			o.add_input_terminal(objects, 0, index);
-
-		if (o.input_termcount == 2)
-			o.add_input_terminal(objects, 2 * i - 1, index);
-	}
-
-	for (var i = 0; i < o.output_termcount; i++) {
-		if (o.output_termcount == 1)
-			o.add_output_terminal(objects, 0, index);
-
-		if (o.output_termcount == 2)
-			o.add_output_terminal(objects, 2 * i - 1, index);
-	}
-	objects[index].backend_add()
-	return index;
 }
 
 function load_object(newobject) {
@@ -229,10 +162,13 @@ function find_object(x, y) {
 	// convert to world cords
 	x = get_world_x(x);
 	y = get_world_y(y);
-	var keys = [],
-		ii = 0;
-	for (keys[ii++] in obj) {}
+	var keys = [];
+	var ii = 0;
+	for (var k in obj) {
+		keys[ii++] = parseInt(k);
+	}
 	keys.reverse();
+
 	for (var k in keys) {
 		var i = keys[k];
 		if (x >= obj[i].Xpos &&
@@ -245,56 +181,6 @@ function find_object(x, y) {
 	}
 
 	return (-1);
-}
-
-function unhook_object(i) {
-	if (i in obj) {
-		// unhook objects linked to this object
-		for (var j in obj)
-			if (obj[j].Source == i) {
-				obj[j].Source = -1;
-
-				backend_unhookobject(obj[j].Id);
-			}
-
-
-			// unhook main source
-		obj[i].Source = -1;
-
-		backend_unhookobject(obj[i].Id);
-
-		for (var j in obj[i].Terminals) {
-			unhook_guide(obj[i].Terminals[j]);
-			if (obj[i].Terminals[j] in obj) {
-				obj[obj[i].Terminals[j]].source = -1;
-				backend_unhookobject(obj[obj[i].Terminals[j]].Id);
-			}
-		}
-	}
-}
-
-function unhook_guide(i) {
-	for (var j in obj)
-		if (obj[j].Source == i) {
-			obj[j].Source = -1;
-			backend_unhookobject(obj[j].Id);
-		}
-	if (i in obj) {
-		obj[i].Source = -1;
-	}
-}
-
-function delete_object(i) {
-	if (i in obj) {
-		unhook_object(i);
-
-		for (var j in obj[i].Terminals)
-			delete_object(obj[i].Terminals[j]);
-
-		backend_deleteobject(obj[i].Id);
-
-		delete obj[i];
-	}
 }
 
 function object_connect(o1, o2) {
@@ -369,7 +255,7 @@ function draw_wire(ctx, objects, i1, i2, p1, p2) {
 function draw_object(ctx, o, x_size, y_size) {
 	if (o.Type == "guide" && show_guide == 0) return;
 
-	if (o.selected) {
+	if (o.Selected) {
 		var old_fill = ctx.fillStyle;
 
 		var border = 4;

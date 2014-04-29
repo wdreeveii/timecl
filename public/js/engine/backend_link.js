@@ -39,13 +39,8 @@ function backend_hookobject(id, source) {
 
 function backend_unhookobject(id) {
 	var eevent = {
-		Type: "edit",
-		Data: {
-			Id: id,
-			State: {
-				"Source": -1
-			}
-		},
+		Type: "unhook",
+		Data: id,
 		Timestamp: 100000000
 	}
 	socket.send(JSON.stringify(eevent));
@@ -67,21 +62,24 @@ function backend_setoutput(id, output) {
 }
 
 function backend_deleteobject(id) {
+	console.log("delete object", id, typeof id);
 	var eevent = {
-		Type: "del",
-		Data: {
-			Id: id
-		},
+		Type: "delete_object",
+		Data: id,
 		Timestamp: 100000000
 	}
 	socket.send(JSON.stringify(eevent));
 }
 
-function backend_addobject(obj) {
+function backend_addobject(type, x, y) {
 	var event = {
-		Type: "add",
-		Data: obj,
-		Timestamp: 1000000,
+		Type: "add_object",
+		Data: {
+			Type: type,
+			X: x,
+			Y: y
+		},
+		Timestamp: 1000000
 	}
 	socket.send(JSON.stringify(event));
 }
@@ -107,7 +105,8 @@ var socket;
 function process_messages(bufferedMsgs) {
 	while (bufferedMsgs.length > 0) {
 		var event_msg = JSON.parse(bufferedMsgs.shift());
-		if (event_msg["Type"] == "edit_many") {
+		console.log(event_msg);
+		if (event_msg.Type == "edit_many") {
 			var event_data = event_msg["Data"];
 			for (var i = 0; i < event_data.length; i++) {
 				var state_change = event_data[i];
@@ -117,7 +116,7 @@ function process_messages(bufferedMsgs) {
 					obj[id][change] = changes[change];
 				}
 			}
-		} else if (event_msg["Type"] == "error_list") {
+		} else if (event_msg.Type == "errors") {
 			var event_data = event_msg["Data"];
 			for (i in event_data) {
 				var errkey = event_data[i]["Error"];
@@ -142,7 +141,7 @@ function process_messages(bufferedMsgs) {
 					};
 				}
 			}
-		} else if (event_msg["Type"] == "edit") {
+		} else if (event_msg.Type == "edit") {
 			var event_data = event_msg["Data"];
 			var id = event_data["Id"]
 			if (id in obj) {
@@ -151,11 +150,13 @@ function process_messages(bufferedMsgs) {
 					obj[id][change] = changes[change];
 				}
 			}
-		} else if (event_msg["Type"] == "add") {
+		} else if (event_msg.Type == "add") {
 			var event_data = event_msg["Data"];
 			var object = load_object(event_data);
 			obj[object["Id"]] = object;
-		} else if (event_msg["Type"] == "init") {
+		} else if (event_msg.Type == "del") {
+			delete obj[event_msg.Data];
+		} else if (event_msg.Type == "init") {
 			var event_data = event_msg["Data"];
 			obj = load_objects(event_data);
 			zoom_extent();
@@ -165,6 +166,8 @@ function process_messages(bufferedMsgs) {
 			} else {
 				property_window.set('port_list', event_msg["Data"]);
 			}
+		} else {
+			console.log("Unknown type:", event_msg);
 		}
 	}
 }

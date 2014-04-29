@@ -123,9 +123,11 @@ type PortURI struct {
 	Port    int
 }
 
+type Value_t float64
+
 type PortChange struct {
 	URI   PortURI
-	Value float64
+	Value Value_t
 }
 
 type GetData struct {
@@ -154,7 +156,7 @@ type SetData struct {
 	BusID    int
 	DeviceID int
 	PortID   int
-	Value    float64
+	Value    Value_t
 }
 
 func PublishSetEvents(in []PortChange) {

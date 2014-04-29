@@ -67,36 +67,17 @@ func toPortURI(in interface{}) (result network_manager.PortURI) {
 	return
 }
 
-func sanitize(obj Object_t) {
-	obj["Id"] = intify(obj["Id"])
-	obj["Source"] = intify(obj["Source"])
-
-	var PCount int
-	PCount = intify(obj["PropertyCount"])
-	obj["PropertyCount"] = PCount
-
-	PNames := make([]interface{}, 0)
-	for _, v := range obj["PropertyNames"].([]interface{}) {
-		PNames = append(PNames, stringify(v))
-	}
-	obj["PropertyNames"] = PNames
-
-	PTypes := make([]interface{}, 0)
-	for _, v := range obj["PropertyTypes"].([]interface{}) {
-		PTypes = append(PTypes, stringify(v))
-	}
-	obj["PropertyTypes"] = PTypes
-
+func sanitize(obj *Object_t) {
 	PValues := make([]interface{}, 0)
-	for k, v := range obj["PropertyValues"].([]interface{}) {
+	for k, v := range obj.PropertyValues {
 		switch {
-		case PTypes[k] == "float":
+		case obj.PropertyTypes[k] == "float":
 			PValues = append(PValues, floatify(v))
-		case PTypes[k] == "string",
-			PTypes[k] == "time",
-			PTypes[k] == "timezone":
+		case obj.PropertyTypes[k] == "string",
+			obj.PropertyTypes[k] == "time",
+			obj.PropertyTypes[k] == "timezone":
 			PValues = append(PValues, stringify(v))
-		case PTypes[k] == "port":
+		case obj.PropertyTypes[k] == "port":
 			pval := toPortURI(v)
 			var defaultURI network_manager.PortURI
 			if pval == defaultURI {
@@ -104,10 +85,9 @@ func sanitize(obj Object_t) {
 			} else {
 				PValues = append(PValues, pval)
 			}
-		case PTypes[k] == "int":
+		case obj.PropertyTypes[k] == "int":
 			PValues = append(PValues, intify(v))
 		}
 	}
-	obj["PropertyValues"] = PValues
-	obj["Output"] = floatify(obj["Output"])
+	obj.PropertyValues = PValues
 }
