@@ -70,15 +70,6 @@ function object_type(name) {
 	}
 
 
-	this.add_property = function(name, type, value) {
-		this.PropertyNames[this.PropertyCount] = name;
-		this.PropertyTypes[this.PropertyCount] = type;
-		this.PropertyValues[this.PropertyCount] = value;
-
-		this.PropertyCount++;
-	}
-
-
 	this.draw_properties = function(ctx, x, y) {
 		var old_fill = ctx.fillStyle;
 

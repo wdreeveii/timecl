@@ -8,7 +8,7 @@
 
 function backend_setproperties(id, PropertyCount, PropertyNames, PropertyTypes, PropertyValues) {
 	var eevent = {
-		Type: "edit",
+		Type: "edit_object",
 		Data: {
 			Id: id,
 			State: {
@@ -25,7 +25,7 @@ function backend_setproperties(id, PropertyCount, PropertyNames, PropertyTypes, 
 
 function backend_hookobject(id, source) {
 	var eevent = {
-		Type: "edit",
+		Type: "edit_object",
 		Data: {
 			Id: id,
 			State: {
@@ -49,7 +49,7 @@ function backend_unhookobject(id) {
 function backend_setoutput(id, output) {
 	console.log("setting output");
 	var eevent = {
-		Type: "edit",
+		Type: "edit_object",
 		Data: {
 			Id: id,
 			State: {
@@ -86,7 +86,7 @@ function backend_addobject(type, x, y) {
 
 function backend_moveobject(id, x_pos, y_pos) {
 	var eevent = {
-		Type: "edit",
+		Type: "edit_object",
 		Data: {
 			Id: id,
 			State: {

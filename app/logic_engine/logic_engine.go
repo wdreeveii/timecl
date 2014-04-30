@@ -31,6 +31,7 @@ type Engine_t struct {
 	delete_obj      chan Id_t
 	unhook_obj      chan Id_t
 	add_obj         chan addObjRequest
+	edit_obj        chan StateChange
 	DataFile        string
 	subscribe       chan (chan<- Subscription)
 	unsubscribe     chan (<-chan Event)
@@ -52,6 +53,7 @@ func Init(dataFile string) *Engine_t {
 	e.delete_obj = make(chan Id_t)
 	e.unhook_obj = make(chan Id_t)
 	e.add_obj = make(chan addObjRequest)
+	e.edit_obj = make(chan StateChange)
 	e.UpdateRate = 10
 	e.SolveIterations = 50
 	e.Objects = make(ObjectList)
@@ -136,7 +138,7 @@ func (e *Engine_t) add_input_terminal(pos Dim_t, parent *Object_t) {
 	new_obj.Dir = DirLeft
 	new_obj.Attached = 1
 	e.Objects[new_id] = &new_obj
-	e.Publish(Event{Type: "add", Data: new_obj})
+	e.Publish(Event{Type: "add", Data: new_obj.Copy()})
 
 	parent.Terminals = append(parent.Terminals, new_id)
 }
@@ -149,7 +151,7 @@ func (e *Engine_t) add_output_terminal(pos Dim_t, parent *Object_t) {
 	new_obj.Dir = DirRight
 	new_obj.Attached = 1
 	e.Objects[new_id] = &new_obj
-	e.Publish(Event{Type: "add", Data: new_obj})
+	e.Publish(Event{Type: "add", Data: new_obj.Copy()})
 
 	parent.Terminals = append(parent.Terminals, new_id)
 }
@@ -186,7 +188,7 @@ func (e *Engine_t) _addObject(request addObjRequest) {
 		}
 	}
 	e.Objects[new_id] = &new_obj
-	e.Publish(Event{Type: "add", Data: new_obj})
+	e.Publish(Event{Type: "add", Data: new_obj.Copy()})
 }
 
 func (e *Engine_t) _unhookConnectedObjects(id Id_t) {
@@ -203,8 +205,10 @@ func (e *Engine_t) _unhookForDelete(id Id_t) {
 		e._unhookConnectedObjects(v)
 	}
 }
-
 func (e *Engine_t) editObject(new_states StateChange) {
+	e.edit_obj <- new_states
+}
+func (e *Engine_t) _editObject(new_states StateChange) {
 	save_obj := false
 	id := new_states.Id
 	obj, ok := e.Objects[id]
@@ -216,15 +220,14 @@ func (e *Engine_t) editObject(new_states StateChange) {
 				f := s.FieldByName(k)
 				if f.IsValid() {
 					if f.CanSet() {
-						fmt.Println("trying to set", k, v)
 						f.Set(reflect.ValueOf(v).Convert(f.Type()))
 						save_obj = true
 					}
 				}
 			}
-			fmt.Println("key val", k, v, save_obj)
 		}
 		if save_obj {
+			e.Publish(Event{Type: "edit", Data: new_states})
 			sanitize(obj)
 			e.Save()
 		}
@@ -308,8 +311,6 @@ func (e *Engine_t) run() {
 
 	var calc_world <-chan time.Time
 	calc_world = time.After(time.Duration(1000/e.UpdateRate) * time.Millisecond)
-	engine_subscription := e.Subscribe()
-	defer e.CancelSubscription(engine_subscription)
 
 	network_subscription := network_manager.Subscribe()
 	defer network_subscription.Cancel()
@@ -347,23 +348,8 @@ func (e *Engine_t) run() {
 		case request := <-e.add_obj:
 			e._addObject(request)
 			e.Save()
-		case event, ok := <-engine_subscription.New:
-			if !ok {
-				return
-			}
-			switch {
-			case event.Type == "edit":
-				var s StateChange
-				switch v := event.Data.(type) {
-				case map[string]interface{}:
-					s = StateChange{Id: Id_t(v["Id"].(float64)), State: v["State"].(map[string]interface{})}
-				case StateChange:
-					s = v
-				}
-				e.editObject(s)
-			default:
-				fmt.Println("unrecognized object:", event.Type, event.Data)
-			}
+		case request := <-e.edit_obj:
+			e._editObject(request)
 		case event := <-network_subscription.New:
 			DEBUG.Println("Engine Event")
 			DEBUG.Println(event.NetworkID)
@@ -484,6 +470,15 @@ func (e *Engine_t) engine_pub_sub() {
 			switch event.Type {
 			case "errors":
 				panic("Unused event")
+			case "edit_object":
+				var s StateChange
+				switch v := event.Data.(type) {
+				case map[string]interface{}:
+					s = StateChange{Id: Id_t(v["Id"].(float64)), State: v["State"].(map[string]interface{})}
+				case StateChange:
+					s = v
+				}
+				e.editObject(s)
 			case "delete_object":
 				obj_id, ok := event.Data.(float64)
 				if ok {

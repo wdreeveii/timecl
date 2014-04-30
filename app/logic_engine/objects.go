@@ -103,9 +103,9 @@ type Value_t network_manager.Value_t
 type SignalGood bool
 type Terminals_t []Id_t
 type PropertyCount_t int
-type PropertyNames_t []string
+type PropertyNames_t []interface{}
 type PropertyValues_t []interface{}
-type PropertyTypes_t []string
+type PropertyTypes_t []interface{}
 type StateData_t map[string]interface{}
 type Attached_t int
 type Dir_t int
@@ -138,6 +138,20 @@ type Object_t struct {
 	ShowName        string
 	inputTermCount  int
 	outputTermCount int
+}
+
+func (o Object_t) Copy() Object_t {
+	var n Object_t = o
+	n.PropertyNames = make(PropertyNames_t, len(n.PropertyNames), len(n.PropertyNames))
+	n.PropertyValues = make(PropertyValues_t, len(n.PropertyValues), len(n.PropertyValues))
+	n.PropertyTypes = make(PropertyTypes_t, len(n.PropertyTypes), len(n.PropertyTypes))
+
+	copy(n.PropertyNames, o.PropertyNames)
+	copy(n.PropertyValues, o.PropertyValues)
+	copy(n.PropertyTypes, o.PropertyTypes)
+
+	n.StateData = nil
+	return n
 }
 
 const (
@@ -918,6 +932,9 @@ func InitTimeBase() Object_t {
 	obj.outputTermCount = 1
 	obj.addProperty("name", "string", "")
 	obj.process = ProcessTimeBase
+	tbmu.Lock()
+	obj.Output = Value_t(tick)
+	tbmu.Unlock()
 	return obj
 }
 
