@@ -102,83 +102,13 @@ var error_list = new Array();
 
 var socket;
 
-function process_messages(bufferedMsgs) {
-	while (bufferedMsgs.length > 0) {
-		var event_msg = JSON.parse(bufferedMsgs.shift());
-		console.log(event_msg);
-		if (event_msg.Type == "edit_many") {
-			var event_data = event_msg["Data"];
-			for (var i = 0; i < event_data.length; i++) {
-				var state_change = event_data[i];
-				var id = state_change["Id"];
-				var changes = state_change["State"];
-				for (var change in changes) {
-					obj[id][change] = changes[change];
-				}
-			}
-		} else if (event_msg.Type == "errors") {
-			var event_data = event_msg["Data"];
-			for (i in event_data) {
-				var errkey = event_data[i]["Error"];
-				if (errkey in error_list) {
-					error_list[errkey]["Time"] = event_data[i]["Time"];
-					error_list[errkey]["Count"] += event_data[i]["Count"];
-					var eventtext = "<table><tr><td>" + errkey +
-						"</td><td>" + error_list[errkey]["Count"] +
-						"</td></tr></table>";
-					error_list[errkey]["Noty"].setText(eventtext);
-				} else {
-					var eventtext = "<table><tr><td>" + errkey +
-						"</td><td>" + event_data[i]["Count"] +
-						"</td></tr></table>"
-					error_list[errkey] = {
-						Noty: noty({
-							text: eventtext
-						}),
-						Count: event_data[i]["Count"],
-						Time: event_data[i]["Time"],
-						First: event_data[i]["First"]
-					};
-				}
-			}
-		} else if (event_msg.Type == "edit") {
-			var event_data = event_msg["Data"];
-			var id = event_data["Id"]
-			if (id in obj) {
-				var changes = event_data["State"]
-				for (var change in changes) {
-					obj[id][change] = changes[change];
-				}
-			}
-		} else if (event_msg.Type == "add") {
-			var event_data = event_msg["Data"];
-			var object = load_object(event_data);
-			obj[object["Id"]] = object;
-		} else if (event_msg.Type == "del") {
-			delete obj[event_msg.Data];
-		} else if (event_msg.Type == "init") {
-			var event_data = event_msg["Data"];
-			obj = load_objects(event_data);
-			zoom_extent();
-		} else if (event_msg["Type"] == "init_ports") {
-			if (property_window == null) {
-				port_list = event_msg["Data"];
-			} else {
-				property_window.set('port_list', event_msg["Data"]);
-			}
-		} else {
-			console.log("Unknown type:", event_msg);
-		}
-	}
-}
-
 function backend_start() {
 	socket = TameSocket({
 		target: 'ws://' + window.location.host + '/engine/ws/1',
 		msgProcessor: function(bufferedEvents) {
 			requestAnimationFrame(function() {
-				process_messages(bufferedEvents);
-				draw_display();
+				engine.process_messages(bufferedEvents);
+				engine.draw_display();
 			});
 		}
 	});

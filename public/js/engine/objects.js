@@ -11,8 +11,6 @@
 
 "use strict";
 
-object_list.push("binput");
-
 function binput_type(o) {
 	o.save_properties = function() {
 		backend_setproperties(o.Id, o.PropertyCount, o.PropertyNames, o.PropertyTypes, o.PropertyValues);
@@ -43,15 +41,13 @@ function binput_type(o) {
 	o.draw_icon = function(ctx) {
 		ctx.beginPath();
 
-		ctx.arc(get_x(this.Xpos + this.Xsize / 2),
-			get_y(this.Ypos + this.Ysize / 2), (this.Xsize / 2) * zoom, 0, Math.PI * 2, true);
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize / 2),
+		engine.get_y(this.Ypos + this.Ysize / 2), (this.Xsize / 2) * engine.get_zoom(), 0, Math.PI * 2, true);
 
 		ctx.fill();
 		ctx.stroke();
 	}
 }
-
-object_list.push("ainput");
 
 function ainput_type(o) {
 	o.save_properties = function() {
@@ -83,15 +79,13 @@ function ainput_type(o) {
 	o.draw_icon = function(ctx) {
 		ctx.beginPath();
 
-		ctx.arc(get_x(this.Xpos + this.Xsize / 2),
-			get_y(this.Ypos + this.Ysize / 2), (this.Xsize / 2) * zoom, 0, Math.PI * 2, true);
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize / 2),
+			engine.get_y(this.Ypos + this.Ysize / 2), (this.Xsize / 2) * engine.get_zoom(), 0, Math.PI * 2, true);
 
 		ctx.fill();
 		ctx.stroke();
 	}
 }
-
-object_list.push("boutput");
 
 function boutput_type(o) {
 	o.draw_icon = function(ctx) {
@@ -99,37 +93,31 @@ function boutput_type(o) {
 	}
 }
 
-object_list.push("aoutput");
-
 function aoutput_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 }
 
-object_list.push("notgate");
-
 function notgate_type(o) {
 	o.draw_icon = function(ctx) {
 		ctx.beginPath();
-		ctx.moveTo(Math.round(get_x(this.Xpos)), Math.round(get_y(this.Ypos)));
-		ctx.lineTo(Math.round(get_x(this.Xpos)), Math.round(get_y(this.Ypos + this.Ysize)));
-		ctx.lineTo(Math.round(get_x(this.Xpos + this.Xsize)), Math.round(get_y(this.Ypos + this.Ysize / 2)));
+		ctx.moveTo(Math.round(engine.get_x(this.Xpos)), Math.round(engine.get_y(this.Ypos)));
+		ctx.lineTo(Math.round(engine.get_x(this.Xpos)), Math.round(engine.get_y(this.Ypos + this.Ysize)));
+		ctx.lineTo(Math.round(engine.get_x(this.Xpos + this.Xsize)), Math.round(engine.get_y(this.Ypos + this.Ysize / 2)));
 		ctx.closePath();
 
 		ctx.fill();
 		ctx.stroke();
 	}
 }
-
-object_list.push("andgate");
 
 function andgate_type(o) {
 	o.draw_icon = function(ctx) {
 		ctx.beginPath();
-		ctx.moveTo(get_x(this.Xpos), get_y(this.Ypos));
-		ctx.lineTo(get_x(this.Xpos), get_y(this.Ypos + this.Ysize));
-		ctx.arc(get_x(this.Xpos + this.Xsize / 2), get_y(this.Ypos + this.Ysize / 2), this.Xsize / 2 * zoom, 0.5 * Math.PI, 1.5 * Math.PI, true);
+		ctx.moveTo(engine.get_x(this.Xpos), engine.get_y(this.Ypos));
+		ctx.lineTo(engine.get_x(this.Xpos), engine.get_y(this.Ypos + this.Ysize));
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize / 2), engine.get_y(this.Ypos + this.Ysize / 2), this.Xsize / 2 * engine.get_zoom(), 0.5 * Math.PI, 1.5 * Math.PI, true);
 
 		ctx.closePath();
 
@@ -137,26 +125,24 @@ function andgate_type(o) {
 		ctx.stroke();
 	}
 }
-
-object_list.push("orgate");
 
 function orgate_type(o) {
 	o.draw_icon = function(ctx) {
 		ctx.beginPath();
 
-		ctx.arc(get_x(this.Xpos - this.Xsize * 1.15),
-			get_y(this.Ypos + this.Ysize / 2),
-			this.Xsize * 1.2 * zoom,
+		ctx.arc(engine.get_x(this.Xpos - this.Xsize * 1.15),
+			engine.get_y(this.Ypos + this.Ysize / 2),
+			this.Xsize * 1.2 * engine.get_zoom(),
 			0.10 * Math.PI, 1.90 * Math.PI, true);
 
-		ctx.arc(get_x(this.Xpos + this.Xsize * 0.05),
-			get_y(this.Ypos + this.Ysize / 2 + this.Ysize * 0.6),
-			this.Xsize * 1.1 * zoom,
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize * 0.05),
+			engine.get_y(this.Ypos + this.Ysize / 2 + this.Ysize * 0.6),
+			this.Xsize * 1.1 * engine.get_zoom(),
 			1.45 * Math.PI, 1.80 * Math.PI, false);
 
-		ctx.arc(get_x(this.Xpos + this.Xsize * 0.05),
-			get_y(this.Ypos + this.Ysize / 2 - this.Ysize * 0.6),
-			this.Xsize * 1.1 * zoom,
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize * 0.05),
+			engine.get_y(this.Ypos + this.Ysize / 2 - this.Ysize * 0.6),
+		this.Xsize * 1.1 * engine.get_zoom(),
 			0.20 * Math.PI, 0.55 * Math.PI, false);
 
 		ctx.closePath();
@@ -165,26 +151,24 @@ function orgate_type(o) {
 		ctx.stroke();
 	}
 }
-
-object_list.push("xorgate");
 
 function xorgate_type(o) {
 	o.draw_icon = function(ctx) {
 		ctx.beginPath();
 
-		ctx.arc(get_x(this.Xpos - this.Xsize * 1.15),
-			get_y(this.Ypos + this.Ysize / 2),
-			this.Xsize * 1.2 * zoom,
+		ctx.arc(engine.get_x(this.Xpos - this.Xsize * 1.15),
+			engine.get_y(this.Ypos + this.Ysize / 2),
+			this.Xsize * 1.2 * engine.get_zoom(),
 			0.10 * Math.PI, 1.90 * Math.PI, true);
 
-		ctx.arc(get_x(this.Xpos + this.Xsize * 0.05),
-			get_y(this.Ypos + this.Ysize / 2 + this.Ysize * 0.6),
-			this.Xsize * 1.1 * zoom,
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize * 0.05),
+			engine.get_y(this.Ypos + this.Ysize / 2 + this.Ysize * 0.6),
+			this.Xsize * 1.1 * engine.get_zoom(),
 			1.45 * Math.PI, 1.80 * Math.PI, false);
 
-		ctx.arc(get_x(this.Xpos + this.Xsize * 0.05),
-			get_y(this.Ypos + this.Ysize / 2 - this.Ysize * 0.6),
-			this.Xsize * 1.1 * zoom,
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize * 0.05),
+			engine.get_y(this.Ypos + this.Ysize / 2 - this.Ysize * 0.6),
+			this.Xsize * 1.1 * engine.get_zoom(),
 			0.20 * Math.PI, 0.55 * Math.PI, false);
 		ctx.closePath();
 		ctx.fill();
@@ -192,16 +176,14 @@ function xorgate_type(o) {
 
 		ctx.beginPath();
 
-		ctx.arc(get_x(this.Xpos - this.Xsize * 1.15 + 5),
-			get_y(this.Ypos + this.Ysize / 2),
-			this.Xsize * 1.2 * zoom,
+		ctx.arc(engine.get_x(this.Xpos - this.Xsize * 1.15 + 5),
+			engine.get_y(this.Ypos + this.Ysize / 2),
+			this.Xsize * 1.2 * engine.get_zoom(),
 			0.10 * Math.PI, 1.90 * Math.PI, true);
 
 		ctx.stroke();
 	}
 }
-
-object_list.push("mult");
 
 function mult_type(o) {
 	o.draw_icon = function(ctx) {
@@ -209,15 +191,11 @@ function mult_type(o) {
 	}
 }
 
-object_list.push("div");
-
 function div_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 }
-
-object_list.push("add");
 
 function add_type(o) {
 	o.draw_icon = function(ctx) {
@@ -225,16 +203,11 @@ function add_type(o) {
 	}
 }
 
-object_list.push("sub");
-
-
 function sub_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 }
-
-object_list.push("power");
 
 function power_type(o) {
 	o.draw_icon = function(ctx) {
@@ -242,15 +215,11 @@ function power_type(o) {
 	}
 }
 
-object_list.push("sine");
-
 function sine_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 }
-
-object_list.push("cosine");
 
 function cosine_type(o) {
 	o.draw_icon = function(ctx) {
@@ -258,15 +227,11 @@ function cosine_type(o) {
 	}
 }
 
-object_list.push("agtb");
-
 function agtb_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 }
-
-object_list.push("agteb");
 
 function agteb_type(o) {
 	o.draw_icon = function(ctx) {
@@ -274,15 +239,11 @@ function agteb_type(o) {
 	}
 }
 
-object_list.push("altb");
-
 function altb_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 }
-
-object_list.push("alteb");
 
 function alteb_type(o) {
 	o.draw_icon = function(ctx) {
@@ -290,23 +251,17 @@ function alteb_type(o) {
 	}
 }
 
-object_list.push("aeqb");
-
 function aeqb_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 }
 
-object_list.push("aneqb");
-
 function aneqb_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 }
-
-object_list.push("xyscope");
 
 function xyscope_type(o) {
 	o.draw_icon = function(ctx) {
@@ -333,8 +288,8 @@ function xyscope_type(o) {
 		ctx.strokeStyle = "rgb(0,0,0)";
 		ctx.fillStyle = "rgb(0, 0, 0)";
 
-		ctx.arc(get_x(this.Xpos + this.Xsize / 2 + x * this.Xsize / 2.5),
-			get_y(this.Ypos + this.Ysize / 2 + y * this.Ysize / 2.5), (this.Xsize / 2) * dot_scale * zoom, 0, Math.PI * 2, true);
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize / 2 + x * this.Xsize / 2.5),
+			engine.get_y(this.Ypos + this.Ysize / 2 + y * this.Ysize / 2.5), (this.Xsize / 2) * dot_scale * engine.get_zoom(), 0, Math.PI * 2, true);
 
 		ctx.fill();
 		ctx.stroke();
@@ -343,8 +298,6 @@ function xyscope_type(o) {
 		ctx.fillStyle = old_fill;
 	}
 }
-
-object_list.push("guide");
 
 function guide_type(o) {
 	o.draw_icon = function(ctx) {
@@ -355,7 +308,7 @@ function guide_type(o) {
 		else
 			ctx.fillStyle = "rgb(190, 20, 20)";
 
-		//ctx.fillRect (get_x(this.Xpos), get_y(this.Ypos), this.Xsize*zoom, this.Ysize*zoom);	
+		//ctx.fillRect (engine.get_x(this.Xpos), engine.get_y(this.Ypos), this.Xsize*zoom, this.Ysize*zoom);	
 
 		bounding_rect(ctx, this);
 
@@ -363,14 +316,12 @@ function guide_type(o) {
 	}
 }
 
-object_list.push("timebase");
-
 function timebase_type(o) {
 	o.draw_icon = function(ctx) {
 		ctx.beginPath();
 
-		ctx.arc(get_x(this.Xpos + this.Xsize / 2),
-			get_y(this.Ypos + this.Ysize / 2), (this.Xsize / 2) * zoom, 0, Math.PI * 2, true);
+		ctx.arc(engine.get_x(this.Xpos + this.Xsize / 2),
+			engine.get_y(this.Ypos + this.Ysize / 2), (this.Xsize / 2) * engine.get_zoom(), 0, Math.PI * 2, true);
 
 		ctx.fill();
 		ctx.stroke();
@@ -379,8 +330,6 @@ function timebase_type(o) {
 	}
 
 }
-
-object_list.push("timerange");
 
 function timerange_type(o) {
 	o.draw_icon = function(ctx) {
@@ -398,22 +347,19 @@ function timerange_type(o) {
 		ctx.fillStyle = "rgb(0,0,0)";
 		ctx.font = "16pt Arial";
 
-		var f_size = 12 * zoom;
+		var f_size = 12 * engine.get_zoom();
 
 		ctx.font = format(f_size) + "pt Arial";
 
-		ctx.fillText(name, get_x(x + this.Xsize * 0.1), get_y(y) - f_size / 2);
+		ctx.fillText(name, engine.get_x(x + this.Xsize * 0.1), engine.get_y(y) - f_size / 2);
 
-		ctx.fillText(on, get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) - f_size / 2);
+		ctx.fillText(on, engine.get_x(x + this.Xsize * 0.1), engine.get_y(y + this.Ysize / 2) - f_size / 2);
 
-		ctx.fillText(off, get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) + f_size / 2 * 1.5);
+		ctx.fillText(off, engine.get_x(x + this.Xsize * 0.1), engine.get_y(y + this.Ysize / 2) + f_size / 2 * 1.5);
 
 		ctx.fillStyle = old_fill;
 	}
 }
-
-
-object_list.push("timer");
 
 function timer_type(o) {
 	o.draw_icon = function(ctx) {
@@ -431,23 +377,21 @@ function timer_type(o) {
 		ctx.fillStyle = "rgb(0,0,0)";
 		ctx.font = "16pt Arial";
 
-		var f_size = 12 * zoom;
+		var f_size = 12 * engine.get_zoom();
 
 		ctx.font = format(f_size) + "pt Arial";
 
-		ctx.fillText(name, get_x(x + this.Xsize * 0.1), get_y(y) - f_size / 2);
+		ctx.fillText(name, engine.get_x(x + this.Xsize * 0.1), engine.get_y(y) - f_size / 2);
 
-		ctx.fillText("Timer", get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) - f_size);
+		ctx.fillText("Timer", engine.get_x(x + this.Xsize * 0.1), engine.get_y(y + this.Ysize / 2) - f_size);
 
-		ctx.fillText("  ON: " + on, get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) + f_size / 2 * 1.5);
+		ctx.fillText("  ON: " + on, engine.get_x(x + this.Xsize * 0.1), engine.get_y(y + this.Ysize / 2) + f_size / 2 * 1.5);
 
-		ctx.fillText("OFF: " + off, get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) + f_size * 2);
+		ctx.fillText("OFF: " + off, engine.get_x(x + this.Xsize * 0.1), engine.get_y(y + this.Ysize / 2) + f_size * 2);
 
 		ctx.fillStyle = old_fill;
 	}
 }
-
-object_list.push("conversion");
 
 function conversion_type(o) {
 	o.draw_icon = function(ctx) {
@@ -465,23 +409,21 @@ function conversion_type(o) {
 		ctx.fillStyle = "rgb(0,0,0)";
 		ctx.font = "16pt Arial";
 
-		var f_size = 12 * zoom;
+		var f_size = 12 * engine.get_zoom();
 
 		ctx.font = format(f_size) + "pt Arial";
 
-		ctx.fillText(name, get_x(x + this.Xsize * 0.1), get_y(y) - f_size / 2);
+		ctx.fillText(name, engine.get_x(x + this.Xsize * 0.1), engine.get_y(y) - f_size / 2);
 
-		ctx.fillText("Conversion", get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) - f_size);
+		ctx.fillText("Conversion", engine.get_x(x + this.Xsize * 0.1), engine.get_y(y + this.Ysize / 2) - f_size);
 
-		ctx.fillText(a + "x²" + (b < 0 ? '' : '+') + b + "x" + (c < 0 ? '' : '+') + c, get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) + f_size / 2 * 1.5);
+		ctx.fillText(a + "x²" + (b < 0 ? '' : '+') + b + "x" + (c < 0 ? '' : '+') + c, engine.get_x(x + this.Xsize * 0.1), engine.get_y(y + this.Ysize / 2) + f_size / 2 * 1.5);
 
-		ctx.fillText(format(this.Output), get_x(x + this.Xsize * 0.1), get_y(y + this.Ysize / 2) + f_size * 2);
+		ctx.fillText(format(this.Output), engine.get_x(x + this.Xsize * 0.1), engine.get_y(y + this.Ysize / 2) + f_size * 2);
 
 		ctx.fillStyle = old_fill;
 	}
 }
-
-object_list.push("logger");
 
 function logger_type(o) {
 	o.draw_icon = function(ctx) {
@@ -490,16 +432,12 @@ function logger_type(o) {
 	//o.draw_properties	
 }
 
-object_list.push("alert");
-
 function alert_type(o) {
 	o.draw_icon = function(ctx) {
 		bounding_rect(ctx, this);
 	}
 	//o.draw_properties	
 }
-
-object_list.push("delay");
 
 function delay_type(o) {
 	o.draw_icon = function(ctx) {
