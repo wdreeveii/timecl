@@ -4,9 +4,9 @@ import (
 	"fmt"
 	//"sort"
 	"github.com/revel/revel"
-	"timecl/app/models"
-	"timecl/app/network_manager"
-	"timecl/app/routes"
+	"github.com/wdreeveii/timecl/app/models"
+	"github.com/wdreeveii/timecl/app/network_manager"
+	"github.com/wdreeveii/timecl/app/routes"
 	//"strings"
 )
 

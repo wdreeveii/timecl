@@ -9,7 +9,7 @@ import (
 	"github.com/revel/revel"
 	"sort"
 	"time"
-	"timecl/app/logger"
+	"github.com/wdreeveii/timecl/app/logger"
 )
 
 type DriverInterface interface {

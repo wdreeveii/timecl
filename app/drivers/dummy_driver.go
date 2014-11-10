@@ -1,7 +1,7 @@
 package drivers
 
 import (
-	"timecl/app/network_manager"
+	"github.com/wdreeveii/timecl/app/network_manager"
 )
 
 type DummyDriver struct {

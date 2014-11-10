@@ -9,8 +9,8 @@ import (
 	"log"
 	"os"
 	"time"
-	"timecl/app/logger"
-	"timecl/app/network_manager"
+	"github.com/wdreeveii/timecl/app/logger"
+	"github.com/wdreeveii/timecl/app/network_manager"
 )
 
 //ioutil.Discard

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/coopernurse/gorp"
 	"strconv"
-	"timecl/app/logger"
+	"github.com/wdreeveii/timecl/app/logger"
 )
 
 type AppConfig struct {

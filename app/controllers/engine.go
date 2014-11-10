@@ -7,10 +7,10 @@ import (
 	"github.com/coopernurse/gorp"
 	"github.com/revel/revel"
 	"time"
-	"timecl/app/logger"
-	"timecl/app/logic_engine"
-	"timecl/app/models"
-	"timecl/app/routes"
+	"github.com/wdreeveii/timecl/app/logger"
+	"github.com/wdreeveii/timecl/app/logic_engine"
+	"github.com/wdreeveii/timecl/app/models"
+	"github.com/wdreeveii/timecl/app/routes"
 )
 
 type Engine struct {

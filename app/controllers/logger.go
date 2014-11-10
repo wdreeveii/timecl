@@ -6,7 +6,7 @@ import (
 	"github.com/revel/revel"
 	"strings"
 	"time"
-	"timecl/app/logger"
+	"github.com/wdreeveii/timecl/app/logger"
 )
 
 type Logger struct {

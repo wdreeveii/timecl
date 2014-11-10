@@ -4,9 +4,9 @@ import (
 	"code.google.com/p/go.crypto/bcrypt"
 	"fmt"
 	"github.com/revel/revel"
-	"timecl/app/logger"
-	"timecl/app/models"
-	"timecl/app/network_manager"
+	"github.com/wdreeveii/timecl/app/logger"
+	"github.com/wdreeveii/timecl/app/models"
+	"github.com/wdreeveii/timecl/app/network_manager"
 )
 
 type Admin struct {

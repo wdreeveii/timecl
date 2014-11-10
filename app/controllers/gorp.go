@@ -6,9 +6,9 @@ import (
 	"github.com/coopernurse/gorp"
 	_ "github.com/mattn/go-sqlite3"
 	r "github.com/revel/revel"
-	//"timecl/app/logger"
-	"timecl/app/models"
-	//"timecl/app/network_manager"
+	//"github.com/wdreeveii/timecl/app/logger"
+	"github.com/wdreeveii/timecl/app/models"
+	//"github.com/wdreeveii/timecl/app/network_manager"
 )
 
 var (

@@ -6,8 +6,8 @@ import (
 	"math"
 	"sync"
 	"time"
-	"timecl/app/logger"
-	"timecl/app/network_manager"
+	"github.com/wdreeveii/timecl/app/logger"
+	"github.com/wdreeveii/timecl/app/network_manager"
 )
 
 var processors = make(map[Type_t]processor)
