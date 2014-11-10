@@ -254,12 +254,6 @@ var EngineView = function() {
 		requestAnimationFrame(draw_display);
 	}
 
-	var draw_display = function() {
-		var canvas = document.getElementById("canvas");
-		var ctx = canvas.getContext("2d");
-
-		draw_objects(ctx, obj, canvas.width, canvas.height);
-	}
 	var zoom_in = function() {
 		zoom += 0.1;
 		if (zoom > max_zoom) {
@@ -497,7 +491,6 @@ var EngineView = function() {
 	}
 
 	var draw_objects = function(ctx, objects, x_size, y_size) {
-		console.log(obj);
 		ctx.clearRect(0, 0, x_size, y_size);
 
 		ctx.lineWidth = 1;
@@ -522,6 +515,13 @@ var EngineView = function() {
 
 		for (var i in objects)
 			draw_object(ctx, objects[i], x_size, y_size);
+	}
+
+	var draw_display = function() {
+		var canvas = document.getElementById("canvas");
+		var ctx = canvas.getContext("2d");
+
+		draw_objects(ctx, obj, canvas.width, canvas.height);
 	}
 
 	var find_object = function(x, y) {
@@ -621,16 +621,67 @@ var EngineView = function() {
 	var get_zoom = function() {
 		return zoom;
 	}
-	//var set_zoom = function(new_zoom)
+	var bounding_rect = function(ctx, o) {
+		ctx.lineWidth = 0.25;
+		ctx.beginPath();
+		ctx.moveTo(Math.round(get_x(o.Xpos)), Math.round(get_y(o.Ypos)));
+		ctx.lineTo(Math.round(get_x(o.Xpos + o.Xsize)), Math.round(get_y(o.Ypos)));
+		ctx.lineTo(Math.round(get_x(o.Xpos + o.Xsize)), Math.round(get_y(o.Ypos + o.Ysize)));
+		ctx.lineTo(Math.round(get_x(o.Xpos)), Math.round(get_y(o.Ypos + o.Ysize)));
+
+		ctx.closePath();
+
+		ctx.fill();
+		ctx.stroke();
+	}
+
+	var construct = function(new_object) {
+		if (typeof(window[new_object.Type + "_type"]) == 'function') {
+			window[new_object.Type + "_type"](new_object);
+		}
+	}
+
+	var load_object = function(newobject) {
+		var o = new object_type;
+		$.extend(o, newobject);
+		construct(o);
+		return o;
+	}
+
+	var load_objects = function(objects) {
+		var results = Array();
+		for (var i = 0; i < objects.length; i++) {
+			var o = new object_type;
+			$.extend(o, objects[i]);
+			construct(o);
+			results[o["Id"]] = o;
+		}
+		return results;
+	}
+
+	var object_connect = function(o1, o2) {
+		obj[o2].Source = o1;
+		backend_hookobject(obj[o2].Id, obj[o1].Id)
+	}
+
+	var object_toggle = function(o) {
+		o.set_output(!o.Output);
+	}
+
 	return {
 		resize: resize_canvas,
 		start: start,
 		zoom_extent: zoom_extent,
 		draw_display: draw_display,
-		obj: obj,
 		process_messages: process_messages,
 		get_x: get_x,
 		get_y: get_y,
 		get_zoom: get_zoom,
+		bounding_rect: bounding_rect,
+		add_obj: set_addmode,
+		save_properties: save_properties,
+		set_mode: set_mode,
+		zoom_in: zoom_in,
+		zoom_out: zoom_out,
 	};
 }

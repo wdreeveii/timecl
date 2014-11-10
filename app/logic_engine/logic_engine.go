@@ -208,6 +208,17 @@ func (e *Engine_t) _unhookForDelete(id Id_t) {
 func (e *Engine_t) editObject(new_states StateChange) {
 	e.edit_obj <- new_states
 }
+
+func convert(v interface{}, f reflect.Value) (out reflect.Value, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v\n", r)
+		}
+	}()
+	out = reflect.ValueOf(v).Convert(f.Type())
+	return
+}
+
 func (e *Engine_t) _editObject(new_states StateChange) {
 	save_obj := false
 	id := new_states.Id
@@ -220,8 +231,13 @@ func (e *Engine_t) _editObject(new_states StateChange) {
 				f := s.FieldByName(k)
 				if f.IsValid() {
 					if f.CanSet() {
-						f.Set(reflect.ValueOf(v).Convert(f.Type()))
-						save_obj = true
+						tmp, err := convert(v, f)
+						if err != nil {
+							logger.PublishOneError(err)
+						} else {
+							f.Set(tmp)
+							save_obj = true
+						}
 					}
 				}
 			}
@@ -319,7 +335,12 @@ func (e *Engine_t) run() {
 		case receiver := <-e.list_objs:
 			objs := make([]Object_t, 0, len(e.Objects))
 			for _, val := range e.Objects {
-				objs = append(objs, *val)
+				var obj = *val
+				obj.StateData = nil
+				obj.PropertyNames = append(PropertyNames_t{}, obj.PropertyNames...)
+				obj.PropertyValues = append(PropertyValues_t{}, obj.PropertyValues...)
+				obj.PropertyTypes = append(PropertyTypes_t{}, obj.PropertyTypes...)
+				objs = append(objs, obj)
 			}
 			receiver <- objs
 		case resp := <-e.stopEngine:

@@ -14,89 +14,89 @@
 {{append . "moreScripts" "js/engine/engine_view.js"}}
 {{template "header.html" .}}
 <div class='toolbar'>
-    <button type="button" id="zoom_home_btn" class="tool btn btn-default btn-sm" onclick="zoom_extent();">
+    <button type="button" id="zoom_home_btn" class="tool btn btn-default btn-sm" onclick="engine.zoom_extent();">
         <span title="Zoom Home" class="glyphicon glyphicon-home"></span>
     </button>
-    <button type="button" id="zoom_in_btn" class="tool btn btn-default btn-sm" onclick="zoom_in();">
+    <button type="button" id="zoom_in_btn" class="tool btn btn-default btn-sm" onclick="engine.zoom_in();">
         <span title="Zoom In" class="glyphicon glyphicon-zoom-in"></span>
     </button>
-    <button type="button" id="zoom_out_btn" class="tool btn btn-default btn-sm" onclick="zoom_out();">
+    <button type="button" id="zoom_out_btn" class="tool btn btn-default btn-sm" onclick="engine.zoom_out();">
         <span title="Zoom Out" class="glyphicon glyphicon-zoom-out"></span>
     </button>
-    <button type="button" id='wire_btn' class="tool btn btn-default btn-sm" onclick="set_mode('add_pipe');">
+    <button type="button" id='wire_btn' class="tool btn btn-default btn-sm" onclick="engine.set_mode('add_pipe');">
         <span title="Wire" class="glyphicon glyphicon-pencil"></span>
     </button>
-    <button type="button" id='unhook_btn' class="tool btn btn-default btn-sm" onclick="set_mode('unhook');">
+    <button type="button" id='unhook_btn' class="tool btn btn-default btn-sm" onclick="engine.set_mode('unhook');">
         <span title="Unwire" class="glyphicon glyphicon-resize-full"></span>
     </button>
-    <button type="button" id='delete_btn' class="tool btn btn-default btn-sm" onclick="set_mode('delete');">
+    <button type="button" id='delete_btn' class="tool btn btn-default btn-sm" onclick="engine.set_mode('delete');">
         <span title="Delete" class="glyphicon glyphicon-remove"></span>
     </button>
-    <button type="button" id='ptr_btn' class="tool btn btn-default btn-sm active" onclick="set_mode('none');">
+    <button type="button" id='ptr_btn' class="tool btn btn-default btn-sm active" onclick="engine.set_mode('none');">
         <span title="Pointer" class="glyphicon glyphicon-hand-up"></span>
     </button>
     <div class="pull-right">
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">IO<span class="caret"></span></a>
             <ul class="dropdown-menu">
-                <li onclick="set_addmode('binput');"  class="btn">B Input</li>
-                <li onclick="set_addmode('ainput');" class="btn">A Input</li>
-                <li onclick="set_addmode('boutput');" class="btn">B Output</li>
-                <li onclick="set_addmode('aoutput');" class="btn">A Output</li>
+                <li onclick="engine.add_obj('binput');"  class="btn">B Input</li>
+                <li onclick="engine.add_obj('ainput');" class="btn">A Input</li>
+                <li onclick="engine.add_obj('boutput');" class="btn">B Output</li>
+                <li onclick="engine.add_obj('aoutput');" class="btn">A Output</li>
             </ul>   
         </div>
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Gates<span class="caret"></span></a>
             <ul class="dropdown-menu">
-                <li onclick="set_addmode('notgate');" class="btn">Not</li>
-                <li onclick="set_addmode('andgate');" class="btn">And</li>
-                <li onclick="set_addmode('orgate');" class="btn"> Or </li>
-                <li onclick="set_addmode('xorgate');" class="btn">XOr</li>
+                <li onclick="engine.add_obj('notgate');" class="btn">Not</li>
+                <li onclick="engine.add_obj('andgate');" class="btn">And</li>
+                <li onclick="engine.add_obj('orgate');" class="btn"> Or </li>
+                <li onclick="engine.add_obj('xorgate');" class="btn">XOr</li>
             </ul>
         </div>
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Math<span class="caret"></span></a>
             <ul class="dropdown-menu">
-                <li onclick="set_addmode('mult');" class="btn"> Mult</li>
-                <li onclick="set_addmode('div');" class="btn"> Div</li>
-                <li onclick="set_addmode('add');" class="btn">  Add</li>
-                <li onclick="set_addmode('sub');" class="btn">  Sub</li>
-                <li onclick="set_addmode('power');" class="btn"> Power</li>
-                <li onclick="set_addmode('sine');" class="btn"> Sine</li>
-                <li onclick="set_addmode('cosine');" class="btn">Cosine</li>
-                <li onclick="set_addmode('conversion');" class="btn">Conversion</li>
+                <li onclick="engine.add_obj('mult');" class="btn"> Mult</li>
+                <li onclick="engine.add_obj('div');" class="btn"> Div</li>
+                <li onclick="engine.add_obj('add');" class="btn">  Add</li>
+                <li onclick="engine.add_obj('sub');" class="btn">  Sub</li>
+                <li onclick="engine.add_obj('power');" class="btn"> Power</li>
+                <li onclick="engine.add_obj('sine');" class="btn"> Sine</li>
+                <li onclick="engine.add_obj('cosine');" class="btn">Cosine</li>
+                <li onclick="engine.add_obj('conversion');" class="btn">Conversion</li>
             </ul>
         </div>
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Conditional<span class="caret"></span></a>
             <ul class="dropdown-menu">
-                <li onclick="set_addmode('agtb');" class="btn"> A > B</li>
-                <li onclick="set_addmode('agteb');" class="btn"> A >= B</li>
-                <li onclick="set_addmode('altb');" class="btn">  A < B</li>
-                <li onclick="set_addmode('alteb');" class="btn"> A <= B</li>
-                <li onclick="set_addmode('aeqb');" class="btn"> A == B</li>
-                <li onclick="set_addmode('aneqb');" class="btn"> A != B</li>
+                <li onclick="engine.add_obj('agtb');" class="btn"> A > B</li>
+                <li onclick="engine.add_obj('agteb');" class="btn"> A >= B</li>
+                <li onclick="engine.add_obj('altb');" class="btn">  A < B</li>
+                <li onclick="engine.add_obj('alteb');" class="btn"> A <= B</li>
+                <li onclick="engine.add_obj('aeqb');" class="btn"> A == B</li>
+                <li onclick="engine.add_obj('aneqb');" class="btn"> A != B</li>
             </ul>
         </div>
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">Utility<span class="caret"></span></a>
             <ul class="dropdown-menu">
-                <li onclick="set_addmode('timerange');" class="btn"> Timerange </li>
-                <li onclick="set_addmode('timebase');" class="btn"> Timebase </li>
-                <li onclick="set_addmode('timer');" class="btn"> Timer </li>
-                <li onclick="set_addmode('xyscope');" class="btn"> XYScope </li>
-                <li onclick="set_addmode('alert');" class="btn">Alert</li>
-                <li onclick="set_addmode('logger');" class="btn"> Logger </li>
-                <li onclick="set_addmode('delay');" class="btn">Delay</li>
+                <li onclick="engine.add_obj('timerange');" class="btn"> Timerange </li>
+                <li onclick="engine.add_obj('timebase');" class="btn"> Timebase </li>
+                <li onclick="engine.add_obj('timer');" class="btn"> Timer </li>
+                <li onclick="engine.add_obj('xyscope');" class="btn"> XYScope </li>
+                <li onclick="engine.add_obj('alert');" class="btn">Alert</li>
+                <li onclick="engine.add_obj('logger');" class="btn"> Logger </li>
+                <li onclick="engine.add_obj('delay');" class="btn">Delay</li>
             </ul>
         </div>
         <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">World<span class="caret"></span></a>
             <ul class="dropdown-menu">
-                <li onclick="set_addmode('block');" class="btn"> Block </li>
-                <li onclick="set_addmode('vbar');" class="btn"> Vert Bar </li>
-                <li onclick="set_addmode('hbar');" class="btn"> Horz Bar </li>
-                <li onclick="set_addmode('guide');" class="btn"> Terminal </li>
+                <li onclick="engine.add_obj('block');" class="btn"> Block </li>
+                <li onclick="engine.add_obj('vbar');" class="btn"> Vert Bar </li>
+                <li onclick="engine.add_obj('hbar');" class="btn"> Horz Bar </li>
+                <li onclick="engine.add_obj('guide');" class="btn"> Terminal </li>
             </ul>
         </div>
         <div class="btn-group">

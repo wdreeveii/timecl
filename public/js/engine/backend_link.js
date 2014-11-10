@@ -105,6 +105,7 @@ var socket;
 function backend_start() {
 	socket = TameSocket({
 		target: 'ws://' + window.location.host + '/engine/ws/1',
+		msgMinInterval: 200,
 		msgProcessor: function(bufferedEvents) {
 			requestAnimationFrame(function() {
 				engine.process_messages(bufferedEvents);

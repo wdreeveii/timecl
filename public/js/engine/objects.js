@@ -42,7 +42,7 @@ function binput_type(o) {
 		ctx.beginPath();
 
 		ctx.arc(engine.get_x(this.Xpos + this.Xsize / 2),
-		engine.get_y(this.Ypos + this.Ysize / 2), (this.Xsize / 2) * engine.get_zoom(), 0, Math.PI * 2, true);
+			engine.get_y(this.Ypos + this.Ysize / 2), (this.Xsize / 2) * engine.get_zoom(), 0, Math.PI * 2, true);
 
 		ctx.fill();
 		ctx.stroke();
@@ -89,13 +89,13 @@ function ainput_type(o) {
 
 function boutput_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function aoutput_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
@@ -142,7 +142,7 @@ function orgate_type(o) {
 
 		ctx.arc(engine.get_x(this.Xpos + this.Xsize * 0.05),
 			engine.get_y(this.Ypos + this.Ysize / 2 - this.Ysize * 0.6),
-		this.Xsize * 1.1 * engine.get_zoom(),
+			this.Xsize * 1.1 * engine.get_zoom(),
 			0.20 * Math.PI, 0.55 * Math.PI, false);
 
 		ctx.closePath();
@@ -187,85 +187,85 @@ function xorgate_type(o) {
 
 function mult_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function div_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function add_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function sub_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function power_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function sine_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function cosine_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function agtb_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function agteb_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function altb_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function alteb_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function aeqb_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function aneqb_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }
 
 function xyscope_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 
 		if (this.Terminals.length < 2) return;
 
@@ -310,7 +310,7 @@ function guide_type(o) {
 
 		//ctx.fillRect (engine.get_x(this.Xpos), engine.get_y(this.Ypos), this.Xsize*zoom, this.Ysize*zoom);	
 
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 
 		ctx.fillStyle = old_fill;
 	}
@@ -333,7 +333,7 @@ function timebase_type(o) {
 
 function timerange_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 
 	o.draw_properties = function(ctx, x, y) {
@@ -363,7 +363,7 @@ function timerange_type(o) {
 
 function timer_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 
 	o.draw_properties = function(ctx, x, y) {
@@ -395,7 +395,7 @@ function timer_type(o) {
 
 function conversion_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 	o.draw_properties = function(ctx, x, y) {
 		//alert("draw");
@@ -427,20 +427,20 @@ function conversion_type(o) {
 
 function logger_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 	//o.draw_properties	
 }
 
 function alert_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 	//o.draw_properties	
 }
 
 function delay_type(o) {
 	o.draw_icon = function(ctx) {
-		bounding_rect(ctx, this);
+		engine.bounding_rect(ctx, this);
 	}
 }

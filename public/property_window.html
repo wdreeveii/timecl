@@ -10,7 +10,7 @@
 	<p>y = ax&sup2; + bx + c</p>
 	{{/.Type}}
 	<div class="panel-group" id="accordion">
-		<form id="property_form" onsubmit='save_properties({{current_obj.Id}}); return false;' >
+		<form id="property_form" onsubmit='engine.save_properties({{current_obj.Id}}); return false;' >
 		{{#.PropertyNames:i}}
 		<div class="panel panel-default">
 			<div class="panel-heading">
